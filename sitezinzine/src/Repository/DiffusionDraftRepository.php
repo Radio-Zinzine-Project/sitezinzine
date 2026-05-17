@@ -59,4 +59,29 @@ class DiffusionDraftRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    public function findByAssignmentGroupKey(string $assignmentGroupKey): array
+    {
+        return $this->createQueryBuilder('d')
+            ->andWhere('d.assignmentGroupKey = :assignmentGroupKey')
+            ->setParameter('assignmentGroupKey', $assignmentGroupKey)
+            ->orderBy('d.horaireDiffusion', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findOneRegularBySlotAndHoraire(
+        ProgrammationRuleSlot $slot,
+        \DateTimeImmutable $horaireDiffusion
+    ): ?DiffusionDraft {
+        return $this->createQueryBuilder('d')
+            ->andWhere('d.slot = :slot')
+            ->andWhere('d.horaireDiffusion = :horaire')
+            ->andWhere('d.draftType = :type')
+            ->setParameter('slot', $slot)
+            ->setParameter('horaire', $horaireDiffusion)
+            ->setParameter('type', DiffusionDraft::TYPE_REGULAR)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

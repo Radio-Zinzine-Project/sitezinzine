@@ -298,4 +298,80 @@ class GridDraftController extends AbstractController
             'draftId' => (int) $draftId,
         ]);
     }
+
+    #[Route('/move', name: 'move', methods: ['POST'])]
+    public function move(
+        Request $request,
+        DiffusionDraftRepository $draftRepository,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        $draftId = $request->request->getInt('draftId');
+        $startsAt = $request->request->get('startsAt');
+
+        if ($draftId <= 0 || !$startsAt) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Paramètres manquants',
+            ], 400);
+        }
+
+        $draft = $draftRepository->find($draftId);
+
+        if (!$draft instanceof DiffusionDraft) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Draft introuvable.',
+            ], 404);
+        }
+
+        if (!$draft->isManual()) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Seules les programmations ponctuelles peuvent être déplacées ici.',
+            ], 400);
+        }
+
+        try {
+            $newStartsAt = new \DateTimeImmutable($startsAt);
+        } catch (\Exception) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Date invalide.',
+            ], 400);
+        }
+
+        $duration = $draft->getDurationMinutes()
+            ?? $draft->getEmission()?->getDuree()
+            ?? 15;
+
+        if ($duration < 1) {
+            $duration = 15;
+        }
+
+        $newEndsAt = $newStartsAt->modify(sprintf('+%d minutes', $duration));
+
+        $overlappingDrafts = $draftRepository->findOverlappingDrafts(
+            $newStartsAt,
+            $newEndsAt,
+            $draft->getId()
+        );
+
+        if (count($overlappingDrafts) > 0) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Ce déplacement chevauche déjà une autre programmation.',
+            ], 409);
+        }
+
+        $draft->setSchedule($newStartsAt, $duration);
+
+        $em->flush();
+
+        return $this->json([
+            'success' => true,
+            'draftId' => $draft->getId(),
+            'startsAt' => $draft->getHoraireDiffusion()?->format('Y-m-d H:i:s'),
+            'endsAt' => $draft->getEndsAt()?->format('Y-m-d H:i:s'),
+        ]);
+    }
 }

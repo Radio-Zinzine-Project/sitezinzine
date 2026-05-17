@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.96] - 2026-05-17
+### Ajout
+- Ajout du tag rediff (1, 2 ou 3) sur la grille.
+- Ajout sur la grille, émissions régulières, du champs de recherche dans titre.
+- Ajout du changement de catégorie sur un créneau.
+- Ajout de "plus d'émissions" si besoin.
+### Correction
+- Correction du manque de fiabilité de la propagation et de la suppression des redifs d'émission quand elles sont attribuées à un créneau.
+- Correction du placement multiple des émissions non régulière qui ne mettait pas à jour la date et l'heure.
+- Correction du système de règle, maintenant les rediff sont calculées à partir de la première diffusion.
+- Suppression du tag ponctuelle.
+- Séparation du twig grille en deux pages car trop lourd pour une seule.
+
+
+
 ## [1.0.95] - 2026-05-01
 ### Ajout
 - Ajout du n° de la semaine sur la grille.

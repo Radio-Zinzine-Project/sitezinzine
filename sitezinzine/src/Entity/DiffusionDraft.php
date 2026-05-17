@@ -14,6 +14,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_diffusion_draft_emission', columns: ['emission_id'])]
 #[ORM\Index(name: 'idx_diffusion_draft_slot', columns: ['slot_id'])]
 #[ORM\Index(name: 'idx_diffusion_draft_type', columns: ['draft_type'])]
+#[ORM\Index(name: 'idx_diffusion_draft_assignment_group', columns: ['assignment_group_key'])]
 class DiffusionDraft
 {
     public const TYPE_REGULAR = 'regular';
@@ -71,6 +72,9 @@ class DiffusionDraft
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $endsAt = null;
+
+    #[ORM\Column(length: 80, nullable: true)]
+    private ?string $assignmentGroupKey = null;
 
     public function __construct()
     {
@@ -299,5 +303,18 @@ class DiffusionDraft
     private function touch(): void
     {
         $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function getAssignmentGroupKey(): ?string
+    {
+        return $this->assignmentGroupKey;
+    }
+
+    public function setAssignmentGroupKey(?string $assignmentGroupKey): static
+    {
+        $this->assignmentGroupKey = $assignmentGroupKey;
+        $this->touch();
+
+        return $this;
     }
 }

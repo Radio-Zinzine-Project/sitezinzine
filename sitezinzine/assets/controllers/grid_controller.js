@@ -12,6 +12,10 @@ export default class extends Controller {
     'modeRegularBtn',
     'modeSpecialBtn',
     'regularPanel',
+    'regularSearch',
+    'regularShowAllBtn',
+    'regularOtherCategoryBtn',
+    'regularCategorySelect',
     'specialPanel',
     'specialCategorySelect',
     'specialShowAllBtn',
@@ -31,6 +35,9 @@ export default class extends Controller {
     this.fromStartIndex = null
     this.selectedPostit = null
     this.currentMode = 'regular'
+    this.regularExtended = false
+    this.regularSearchTimeout = null
+    this.regularOtherCategory = false
 
     this.element.querySelectorAll('.postit').forEach((el) => {
       this.makeDraggable(el, 'grid')
@@ -101,6 +108,27 @@ export default class extends Controller {
     } else {
       this.showRegularMode()
     }
+  }
+
+  regularSearch() {
+    clearTimeout(this.regularSearchTimeout)
+
+    this.regularSearchTimeout = setTimeout(() => {
+      this.loadCandidatesForSelectedPostit()
+    }, 300)
+  }
+
+  async toggleRegularExtended() {
+    this.regularExtended = !this.regularExtended
+
+    if (this.hasRegularShowAllBtnTarget) {
+      this.regularShowAllBtnTarget.classList.toggle('is-active', this.regularExtended)
+      this.regularShowAllBtnTarget.textContent = this.regularExtended
+        ? 'Revenir aux suggestions récentes'
+        : 'Afficher plus'
+    }
+
+    await this.loadCandidatesForSelectedPostit()
   }
 
   getSlotHeight() {
@@ -597,47 +625,27 @@ export default class extends Controller {
           Ces actions s’appliquent uniquement au créneau actuellement sélectionné.
         </div>
 
-        <button
-          type="button"
-          class="btn-arbitration"
-          data-action="click->grid#reschedulePreviousWeek"
-        >
+        <button type="button" class="btn-arbitration" data-action="click->grid#reschedulePreviousWeek">
           Décaler à la semaine précédente
         </button>
 
-        <button
-          type="button"
-          class="btn-arbitration"
-          data-action="click->grid#rescheduleNextWeek"
-        >
+        <button type="button" class="btn-arbitration" data-action="click->grid#rescheduleNextWeek">
           Décaler à la semaine suivante
         </button>
 
-        <button
-          type="button"
-          class="btn-arbitration"
-          data-action="click->grid#toggleCustomRescheduleForm"
-        >
+        <button type="button" class="btn-arbitration" data-action="click->grid#toggleCustomRescheduleForm">
           Choisir une autre date / heure
         </button>
 
         <div class="reschedule-form" data-grid-custom-reschedule-form style="display:none;">
           <input type="date" data-grid-custom-date>
           <input type="time" data-grid-custom-time step="900">
-          <button
-            type="button"
-            class="btn-arbitration"
-            data-action="click->grid#submitCustomReschedule"
-          >
+          <button type="button" class="btn-arbitration" data-action="click->grid#submitCustomReschedule">
             Confirmer le déplacement
           </button>
         </div>
 
-        <button
-          type="button"
-          class="btn-arbitration btn-arbitration--danger"
-          data-action="click->grid#cancelOccurrence"
-        >
+        <button type="button" class="btn-arbitration btn-arbitration--danger" data-action="click->grid#cancelOccurrence">
           Annuler ce créneau
         </button>
       </div>
@@ -734,76 +742,41 @@ export default class extends Controller {
 
       if (item.isSelectedOccurrence) {
         actionsHtml = `
-          <button
-            type="button"
-            class="btn-arbitration"
-            data-action="click->grid#reschedulePreviousWeek"
-          >
+          <button type="button" class="btn-arbitration" data-action="click->grid#reschedulePreviousWeek">
             Décaler à la semaine précédente
           </button>
 
-          <button
-            type="button"
-            class="btn-arbitration"
-            data-action="click->grid#rescheduleNextWeek"
-          >
+          <button type="button" class="btn-arbitration" data-action="click->grid#rescheduleNextWeek">
             Décaler à la semaine suivante
           </button>
 
-          <button
-            type="button"
-            class="btn-arbitration"
-            data-action="click->grid#toggleCustomRescheduleForm"
-          >
+          <button type="button" class="btn-arbitration" data-action="click->grid#toggleCustomRescheduleForm">
             Choisir une autre date / heure
           </button>
 
           <div class="reschedule-form" data-grid-custom-reschedule-form style="display:none;">
             <input type="date" data-grid-custom-date>
             <input type="time" data-grid-custom-time step="900">
-            <button
-              type="button"
-              class="btn-arbitration"
-              data-action="click->grid#submitCustomReschedule"
-            >
+            <button type="button" class="btn-arbitration" data-action="click->grid#submitCustomReschedule">
               Confirmer le déplacement
             </button>
           </div>
 
-          <button
-            type="button"
-            class="btn-arbitration btn-arbitration--danger"
-            data-action="click->grid#cancelOccurrence"
-          >
+          <button type="button" class="btn-arbitration btn-arbitration--danger" data-action="click->grid#cancelOccurrence">
             Annuler ce créneau
           </button>
         `
       } else {
         actionsHtml = `
-          <button
-            type="button"
-            class="btn-arbitration"
-            data-action="click->grid#arbitratePreviousWeek"
-            data-conflict-index="${otherConflictIndex}"
-          >
+          <button type="button" class="btn-arbitration" data-action="click->grid#arbitratePreviousWeek" data-conflict-index="${otherConflictIndex}">
             Décaler -1 semaine
           </button>
 
-          <button
-            type="button"
-            class="btn-arbitration"
-            data-action="click->grid#arbitrateNextWeek"
-            data-conflict-index="${otherConflictIndex}"
-          >
+          <button type="button" class="btn-arbitration" data-action="click->grid#arbitrateNextWeek" data-conflict-index="${otherConflictIndex}">
             Décaler +1 semaine
           </button>
 
-          <button
-            type="button"
-            class="btn-arbitration btn-arbitration--danger"
-            data-action="click->grid#arbitrateCancel"
-            data-conflict-index="${otherConflictIndex}"
-          >
+          <button type="button" class="btn-arbitration btn-arbitration--danger" data-action="click->grid#arbitrateCancel" data-conflict-index="${otherConflictIndex}">
             Annuler ce créneau
           </button>
         `
@@ -817,10 +790,7 @@ export default class extends Controller {
             ${badge}
           </div>
 
-          ${ruleDisplayName
-          ? `<div class="conflict-card__meta">${this.escapeHtml(ruleDisplayName)}</div>`
-          : ''
-        }
+          ${ruleDisplayName ? `<div class="conflict-card__meta">${this.escapeHtml(ruleDisplayName)}</div>` : ''}
 
           <div class="conflict-card__meta">
             ${this.escapeHtml(startsAt)}${endsAt ? ` → ${this.escapeHtml(endsAt)}` : ''}
@@ -875,7 +845,7 @@ export default class extends Controller {
     const broadcastRank = parseInt(postit.dataset.broadcastRank || '1', 10)
 
     if (isManualDraft) {
-      return isLive ? '● Direct ponctuel' : 'Ponctuelle'
+      return isLive ? '● Direct' : ''
     }
 
     if (broadcastRank > 1) {
@@ -943,7 +913,7 @@ export default class extends Controller {
         : ''
       }
 
-        ${slots > 2
+        ${slots > 2 && badge
         ? `<span class="postit__badge">${this.escapeHtml(badge)}</span>`
         : ''
       }
@@ -1081,6 +1051,49 @@ export default class extends Controller {
     }
   }
 
+  async moveManualDraftFromDrop(dayEl, startIndex) {
+    if (!this.dragged) {
+      return
+    }
+
+    const draftId = this.dragged.dataset.draftId || ''
+    const startsAt = this.getStartsAtFromDrop(dayEl, startIndex)
+
+    if (!draftId || !startsAt) {
+      alert('Impossible de déplacer ce draft : informations manquantes.')
+      return
+    }
+
+    try {
+      const response = await fetch('/admin/grid-drafts/move', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: new URLSearchParams({
+          draftId,
+          startsAt
+        })
+      })
+
+      const data = await response.json().catch(() => null)
+
+      if (response.status === 409) {
+        throw new Error(data?.error || 'Conflit détecté sur ce créneau.')
+      }
+
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || 'Impossible de déplacer ce draft.')
+      }
+
+      this.saveCurrentMode()
+      window.location.reload()
+    } catch (error) {
+      alert(error.message || 'Erreur lors du déplacement du draft.')
+    }
+  }
+
   dropOnDay(e, dayEl) {
     dayEl.classList.remove('drag-over')
 
@@ -1091,9 +1104,18 @@ export default class extends Controller {
     const rect = dayEl.getBoundingClientRect()
     const startIndex = Math.floor((e.clientY - rect.top) / this.CELL_H)
 
-    if (this.currentMode === 'special' && this.dragged.dataset.source === 'pool') {
+    if (this.dragged.dataset.source === 'pool' && this.dragged.dataset.specialItemType) {
       e.preventDefault()
       this.createSpecialDraftFromDrop(dayEl, startIndex)
+      return
+    }
+
+    if (
+      this.dragged.dataset.source === 'grid' &&
+      this.dragged.dataset.isManualDraft === 'true'
+    ) {
+      e.preventDefault()
+      this.moveManualDraftFromDrop(dayEl, startIndex)
       return
     }
 
@@ -1398,6 +1420,7 @@ export default class extends Controller {
       if (emissionsList) {
         emissionsList.querySelectorAll('.emission-card').forEach((el) => el.classList.remove('is-selected'))
       }
+
       card.classList.add('is-selected')
 
       await this.loadCandidatesForSelectedPostit()
@@ -1485,6 +1508,32 @@ export default class extends Controller {
       return
     }
 
+    const title = this.selectedPostit.dataset.assignedEmissionTitle || 'Émission inconnue'
+    const broadcastRank = parseInt(this.selectedPostit.dataset.broadcastRank || '1', 10)
+
+    let message = ''
+
+    if (broadcastRank === 1) {
+      message =
+        `Retirer cette émission de la grille ?\n\n` +
+        `Émission : ${title}\n` +
+        `Première diffusion : ${startsAt}\n\n` +
+        `Les rediffusions liées à cette programmation seront aussi retirées.\n\n` +
+        `L’émission elle-même ne sera pas supprimée.`
+    } else {
+      message =
+        `Retirer cette rediffusion de la grille ?\n\n` +
+        `Émission : ${title}\n` +
+        `Rediffusion : ${startsAt}\n\n` +
+        `L’émission elle-même ne sera pas supprimée.`
+    }
+
+    const confirmed = window.confirm(message)
+
+    if (!confirmed) {
+      return
+    }
+
     try {
       const response = await fetch('/admin/grille/remove', {
         method: 'POST',
@@ -1545,11 +1594,33 @@ export default class extends Controller {
       return
     }
 
+    const search = this.hasRegularSearchTarget
+      ? this.regularSearchTarget.value.trim()
+      : ''
+    const categoryId = (
+      this.regularOtherCategory &&
+      this.hasRegularCategorySelectTarget
+    )
+      ? this.regularCategorySelectTarget.value
+      : ''
     this.setEmissionsListHtml('<div>Chargement…</div>')
 
     try {
-      const url = `/admin/grille/candidates?slotId=${encodeURIComponent(slotId)}&startsAt=${encodeURIComponent(startsAt)}`
-      const response = await fetch(url, {
+      const params = new URLSearchParams({
+        slotId,
+        startsAt,
+        extended: this.regularExtended ? '1' : '0'
+      })
+
+      if (categoryId) {
+        params.set('categoryId', categoryId)
+      }
+
+      if (search.length >= 3) {
+        params.set('q', search)
+      }
+
+      const response = await fetch(`/admin/grille/candidates?${params.toString()}`, {
         headers: {
           'X-Requested-With': 'XMLHttpRequest'
         }
@@ -1564,7 +1635,7 @@ export default class extends Controller {
       const hasAutoGeneratedCandidate = items.some((item) => item.isAutoGenerated === true)
 
       this.renderEmissions(data, {
-        showCreateLive: !assignedEmissionTitle && broadcastRank === 1 && !hasAutoGeneratedCandidate
+        showCreateLive: !categoryId && !assignedEmissionTitle && broadcastRank === 1 && !hasAutoGeneratedCandidate
       })
     } catch (error) {
       this.setEmissionsListHtml('<div>Impossible de charger les émissions.</div>')
@@ -1902,5 +1973,34 @@ export default class extends Controller {
 
   getSavedMode() {
     return sessionStorage.getItem('gridCurrentMode') || 'regular'
+  }
+
+  async toggleRegularOtherCategory() {
+    this.regularOtherCategory = !this.regularOtherCategory
+
+    if (this.hasRegularOtherCategoryBtnTarget) {
+      this.regularOtherCategoryBtnTarget.classList.toggle('is-active', this.regularOtherCategory)
+      this.regularOtherCategoryBtnTarget.textContent = this.regularOtherCategory
+        ? 'Revenir à la catégorie du créneau'
+        : 'Autre catégorie'
+    }
+
+    if (this.hasRegularCategorySelectTarget) {
+      this.regularCategorySelectTarget.style.display = this.regularOtherCategory ? 'block' : 'none'
+
+      if (!this.regularOtherCategory) {
+        this.regularCategorySelectTarget.value = ''
+      }
+    }
+
+    await this.loadCandidatesForSelectedPostit()
+  }
+
+  async regularCategoryChanged() {
+    if (!this.regularOtherCategory) {
+      this.regularOtherCategory = true
+    }
+
+    await this.loadCandidatesForSelectedPostit()
   }
 }

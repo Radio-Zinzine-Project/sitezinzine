@@ -16,78 +16,144 @@ class GridAssignmentService
     ) {
     }
 
-    public function assign(ProgrammationRuleSlot $slot, Emission $emission, \DateTimeImmutable $selectedDate): bool
-    {
-        $rule = $slot->getRule();
+public function assign(ProgrammationRuleSlot $slot, Emission $emission, \DateTimeImmutable $selectedDate): bool
+{
+    $rule = $slot->getRule();
 
-        if ($rule === null) {
-            throw new \RuntimeException('Règle introuvable.');
+    if ($rule === null) {
+        throw new \RuntimeException('Règle introuvable.');
+    }
+
+    if ($slot->getBroadcastRank() !== 1) {
+        throw new \RuntimeException(
+            'L’affectation doit se faire sur la première diffusion. Les rediffusions sont générées automatiquement.'
+        );
+    }
+
+    $originDate = $selectedDate;
+    $assignmentGroupKey = $this->buildAssignmentGroupKey($rule->getId(), $originDate);
+
+    foreach ($rule->getSlots() as $relatedSlot) {
+        if (!$relatedSlot instanceof ProgrammationRuleSlot) {
+            continue;
         }
 
-        if ($slot->getBroadcastRank() === 1) {
-            $anchorDate = $selectedDate;
+        if (!$relatedSlot->isActive() || $relatedSlot->isDeleted()) {
+            continue;
+        }
 
-            foreach ($rule->getSlots() as $relatedSlot) {
-                if (!$relatedSlot instanceof ProgrammationRuleSlot) {
-                    continue;
-                }
+        $relatedStartsAt = $this->computeStartsAtFromAnchor($originDate, $relatedSlot);
 
-                if (!$relatedSlot->isActive() || $relatedSlot->isDeleted()) {
-                    continue;
-                }
+        $this->upsertDraft(
+            $relatedSlot,
+            $emission,
+            $relatedStartsAt,
+            $assignmentGroupKey
+        );
+    }
 
-                $relatedStartsAt = $this->computeStartsAtFromAnchor($anchorDate, $relatedSlot);
-                $duration = $this->resolveDurationMinutes($relatedSlot, $emission);
+    $this->em->flush();
 
-                $draft = $this->draftRepository->findOneBySlotAndHoraire($relatedSlot, $relatedStartsAt);
+    return true;
+}
 
-                if (!$draft) {
-                    $draft = new DiffusionDraft();
-                }
+    public function remove(ProgrammationRuleSlot $slot, \DateTimeImmutable $selectedDate): bool
+    {
+        $draft = $this->draftRepository->findOneRegularBySlotAndHoraire($slot, $selectedDate);
 
-                $draft
-                    ->setSlot($relatedSlot)
-                    ->setSchedule($relatedStartsAt, $duration)
-                    ->setEmission($emission)
-                    ->setNombreDiffusion($relatedSlot->getBroadcastRank())
-                    ->setDraftType(DiffusionDraft::TYPE_REGULAR);
+        if (!$draft instanceof DiffusionDraft) {
+            return false;
+        }
 
-                $this->em->persist($draft);
-            }
+        $assignmentGroupKey = $draft->getAssignmentGroupKey();
 
+        if (!$assignmentGroupKey) {
+            $this->em->remove($draft);
             $this->em->flush();
 
-            return true;
+            return false;
         }
 
-        $duration = $this->resolveDurationMinutes($slot, $emission);
-        $draft = $this->draftRepository->findOneBySlotAndHoraire($slot, $selectedDate);
+        $drafts = $this->draftRepository->findByAssignmentGroupKey($assignmentGroupKey);
 
-        if (!$draft) {
+        foreach ($drafts as $draftToRemove) {
+            if ($draftToRemove instanceof DiffusionDraft) {
+                $this->em->remove($draftToRemove);
+            }
+        }
+
+        $this->em->flush();
+
+        return true;
+    }
+
+    private function upsertDraft(
+        ProgrammationRuleSlot $slot,
+        Emission $emission,
+        \DateTimeImmutable $startsAt,
+        string $assignmentGroupKey
+    ): DiffusionDraft {
+        $duration = $this->resolveDurationMinutes($slot, $emission);
+
+        $draft = $this->draftRepository->findOneRegularBySlotAndHoraire($slot, $startsAt);
+
+        if (!$draft instanceof DiffusionDraft) {
             $draft = new DiffusionDraft();
         }
 
         $draft
             ->setSlot($slot)
-            ->setSchedule($selectedDate, $duration)
+            ->setSchedule($startsAt, $duration)
             ->setEmission($emission)
             ->setNombreDiffusion($slot->getBroadcastRank())
-            ->setDraftType(DiffusionDraft::TYPE_REGULAR);
+            ->setDraftType(DiffusionDraft::TYPE_REGULAR)
+            ->setAssignmentGroupKey($assignmentGroupKey);
 
         $this->em->persist($draft);
-        $this->em->flush();
 
-        return false;
+        return $draft;
+    }
+
+    private function buildAssignmentGroupKey(?int $ruleId, \DateTimeImmutable $originDate): string
+    {
+        if ($ruleId === null) {
+            throw new \RuntimeException('Impossible de générer une clé de groupe sans ID de règle.');
+        }
+
+        return sprintf(
+            'rule_%d_origin_%s',
+            $ruleId,
+            $originDate->format('Ymd_Hi')
+        );
+    }
+
+    private function resolveOriginDate(
+        ProgrammationRuleSlot $slot,
+        \DateTimeImmutable $selectedDate
+    ): \DateTimeImmutable {
+        if ($slot->getBroadcastRank() === 1) {
+            return $selectedDate;
+        }
+
+        $weekOffset = $slot->getWeekOffset();
+
+        if (!\is_int($weekOffset)) {
+            $weekOffset = 0;
+        }
+
+        return $selectedDate->modify(sprintf('-%d days', $weekOffset * 7));
     }
 
     private function resolveDurationMinutes(ProgrammationRuleSlot $slot, Emission $emission): int
     {
         $slotDuration = $slot->getDurationMinutes();
+
         if (\is_int($slotDuration) && $slotDuration > 0) {
             return $slotDuration;
         }
 
         $emissionDuration = $emission->getDuree();
+
         if (\is_int($emissionDuration) && $emissionDuration > 0) {
             return $emissionDuration;
         }

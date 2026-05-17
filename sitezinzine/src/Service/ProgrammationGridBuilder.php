@@ -14,7 +14,6 @@ class ProgrammationGridBuilder
 
     public function buildForWeek(\DateTimeImmutable $startOfWeek, \DateTimeImmutable $endOfWeek): array
     {
-        // 7 colonnes = mardi -> lundi
         $daySegments = array_fill(0, 7, []);
 
         $rules = $this->programmationRuleRepository->findAll();
@@ -28,6 +27,9 @@ class ProgrammationGridBuilder
                 continue;
             }
 
+            $firstBroadcastSlots = [];
+            $rebroadcastSlots = [];
+
             foreach ($rule->getSlots() as $slot) {
                 if (!$slot instanceof ProgrammationRuleSlot) {
                     continue;
@@ -37,79 +39,54 @@ class ProgrammationGridBuilder
                     continue;
                 }
 
-                $occurrences = $this->generateSlotOccurrencesForWeek(
+                if ($slot->getBroadcastRank() === 1) {
+                    $firstBroadcastSlots[] = $slot;
+                } else {
+                    $rebroadcastSlots[] = $slot;
+                }
+            }
+
+            foreach ($firstBroadcastSlots as $firstSlot) {
+                $firstOccurrences = $this->generateSlotOccurrencesForWeekWithLookAround(
                     $rule,
-                    $slot,
+                    $firstSlot,
                     $startOfWeek,
                     $endOfWeek
                 );
 
-                foreach ($occurrences as $startsAt) {
-                    $dayIndex = (int) $startOfWeek->diff($startsAt)->days;
-
-                    if ($dayIndex < 0 || $dayIndex > 6) {
-                        continue;
+                foreach ($firstOccurrences as $firstStartsAt) {
+                    if ($firstStartsAt >= $startOfWeek && $firstStartsAt < $endOfWeek) {
+                        $this->addSegment(
+                            $daySegments,
+                            $rule,
+                            $firstSlot,
+                            $firstStartsAt,
+                            $startOfWeek
+                        );
                     }
 
-                    $hour = (int) $startsAt->format('H');
-                    $minute = (int) $startsAt->format('i');
-                    $startIndex = $hour * 4 + intdiv($minute, 15);
-                    $startIndex = max(0, min(95, $startIndex));
+                    foreach ($rebroadcastSlots as $rebroadcastSlot) {
+                        $rebroadcastStartsAt = $this->computeStartsAtFromAnchor(
+                            $firstStartsAt,
+                            $rebroadcastSlot
+                        );
 
-                    $duration = $slot->getDurationMinutes() ?? 15;
-                    $endsAt = $startsAt->modify(sprintf('+%d minutes', $duration));
+                        if ($rebroadcastStartsAt < $startOfWeek || $rebroadcastStartsAt >= $endOfWeek) {
+                            continue;
+                        }
 
-                    $category = $rule->getCategory();
-                    $categoryTitle = $category?->getTitre() ?? 'Catégorie inconnue';
-                    $categorySlug = $category?->getSlug();
-
-                    $ruleNumber = $rule->getRuleNumber();
-                    $ruleDisplayName = $rule->getDisplayName();
-
-                    $segmentKey = $this->buildSegmentKey(
-                        $slot->getId(),
-                        $startsAt
-                    );
-
-                    $daySegments[$dayIndex][] = [
-                        // Identifiants techniques
-                        'segmentKey' => $segmentKey,
-
-                        // Titre par défaut affiché dans la grille avant affectation
-                        'title' => $categoryTitle,
-                        'displayTitle' => $categoryTitle,
-
-                        // Infos catégorie utiles pour l'affichage compact
-                        'categoryTitle' => $categoryTitle,
-                        'categorySlug' => $categorySlug,
-
-                        // Infos de positionnement
-                        'duration' => $duration,
-                        'startIndex' => $startIndex,
-
-                        // Infos de règle / slot
-                        'ruleId' => $rule->getId(),
-                        'ruleNumber' => $ruleNumber,
-                        'ruleDisplayName' => $ruleDisplayName,
-                        'slotId' => $slot->getId(),
-                        'broadcastRank' => $slot->getBroadcastRank(),
-
-                        // Date/heure réelle du créneau
-                        'startsAt' => $startsAt->format('Y-m-d H:i:s'),
-                        'endsAt' => $endsAt->format('Y-m-d H:i:s'),
-
-                        // Métadonnées conflit
-                        'hasConflict' => false,
-                        'conflictType' => null,
-                        'conflictSeverity' => null,
-                        'conflictCount' => 0,
-                        'conflictWith' => [],
-                    ];
+                        $this->addSegment(
+                            $daySegments,
+                            $rule,
+                            $rebroadcastSlot,
+                            $rebroadcastStartsAt,
+                            $startOfWeek
+                        );
+                    }
                 }
             }
         }
 
-        // Tri chronologique dans chaque journée
         foreach ($daySegments as &$segments) {
             usort(
                 $segments,
@@ -126,13 +103,164 @@ class ProgrammationGridBuilder
         }
         unset($segments);
 
-        // Détection des conflits par journée
         foreach ($daySegments as &$segments) {
             $segments = $this->detectConflictsForDay($segments);
         }
         unset($segments);
 
         return $daySegments;
+    }
+
+    private function generateSlotOccurrencesForWeekWithLookAround(
+    ProgrammationRule $rule,
+    ProgrammationRuleSlot $slot,
+    \DateTimeImmutable $startOfWeek,
+    \DateTimeImmutable $endOfWeek
+): array {
+    $rangeStart = $startOfWeek->modify('-8 weeks');
+    $rangeEnd = $endOfWeek->modify('+8 weeks');
+
+    $occurrences = [];
+
+    if ($slot->isWeekly()) {
+        $cursorWeekStart = $this->getRadioWeekStart($rangeStart);
+
+        while ($cursorWeekStart < $rangeEnd) {
+            $visibleDate = $this->findDayInDisplayedWeek($cursorWeekStart, $slot->getDayOfWeek());
+
+            if ($visibleDate !== null) {
+                $startsAt = $this->applyTime($visibleDate, $slot);
+
+                if (
+                    $startsAt >= $rangeStart
+                    && $startsAt < $rangeEnd
+                    && $this->weeklyOccurrenceMatchesRule($rule, $slot, $startsAt)
+                    && $this->weekMatchesParity($slot, $startsAt)
+                ) {
+                    $occurrences[$startsAt->format('Y-m-d H:i:s')] = $startsAt;
+                }
+            }
+
+            $cursorWeekStart = $cursorWeekStart->modify('+7 days');
+        }
+    }
+
+    if ($slot->isMonthly()) {
+        $monthCursor = $rangeStart->modify('first day of this month')->setTime(0, 0, 0);
+        $lastMonth = $rangeEnd->modify('first day of this month')->setTime(0, 0, 0);
+
+        while ($monthCursor <= $lastMonth) {
+            if ($this->monthMatchesInterval($rule, $monthCursor, $slot->getMonthInterval())) {
+                $baseDate = $this->resolveMonthlyOccurrenceDate(
+                    (int) $monthCursor->format('Y'),
+                    (int) $monthCursor->format('m'),
+                    $slot->getDayOfWeek(),
+                    $slot->getMonthlyOccurrence()
+                );
+
+                if ($baseDate !== null && $this->dateMatchesRuleWindow($rule, $baseDate)) {
+                    $visibleDate = $baseDate->modify(sprintf('+%d days', $slot->getWeekOffset() * 7));
+                    $startsAt = $this->applyTime($visibleDate, $slot);
+
+                    if ($startsAt >= $rangeStart && $startsAt < $rangeEnd) {
+                        $occurrences[$startsAt->format('Y-m-d H:i:s')] = $startsAt;
+                    }
+                }
+            }
+
+            $monthCursor = $monthCursor->modify('first day of next month')->setTime(0, 0, 0);
+        }
+    }
+
+    ksort($occurrences);
+
+    return array_values($occurrences);
+}
+
+    private function computeStartsAtFromAnchor(
+        \DateTimeImmutable $anchorDate,
+        ProgrammationRuleSlot $slot
+    ): \DateTimeImmutable {
+        $anchorWeekStart = $this->getRadioWeekStart($anchorDate);
+
+        $targetDate = $anchorWeekStart
+            ->modify(sprintf('+%d days', $this->radioDayIndexFromDayOfWeek($slot->getDayOfWeek())))
+            ->modify(sprintf('+%d days', $slot->getWeekOffset() * 7));
+
+        return $this->applyTime($targetDate, $slot);
+    }
+
+    private function radioDayIndexFromDayOfWeek(?int $dayOfWeek): int
+    {
+        return match ($dayOfWeek) {
+            2 => 0,
+            3 => 1,
+            4 => 2,
+            5 => 3,
+            6 => 4,
+            7 => 5,
+            1 => 6,
+            default => 0,
+        };
+    }
+
+    private function addSegment(
+        array &$daySegments,
+        ProgrammationRule $rule,
+        ProgrammationRuleSlot $slot,
+        \DateTimeImmutable $startsAt,
+        \DateTimeImmutable $startOfWeek
+    ): void {
+        $dayIndex = (int) $startOfWeek->diff($startsAt)->days;
+
+        if ($dayIndex < 0 || $dayIndex > 6) {
+            return;
+        }
+
+        $hour = (int) $startsAt->format('H');
+        $minute = (int) $startsAt->format('i');
+        $startIndex = $hour * 4 + intdiv($minute, 15);
+        $startIndex = max(0, min(95, $startIndex));
+
+        $duration = $slot->getDurationMinutes() ?? 15;
+        $endsAt = $startsAt->modify(sprintf('+%d minutes', $duration));
+
+        $category = $rule->getCategory();
+        $categoryTitle = $category?->getTitre() ?? 'Catégorie inconnue';
+        $categorySlug = $category?->getSlug();
+
+        $segmentKey = $this->buildSegmentKey(
+            $slot->getId(),
+            $startsAt
+        );
+
+        $daySegments[$dayIndex][] = [
+            'segmentKey' => $segmentKey,
+
+            'title' => $categoryTitle,
+            'displayTitle' => $categoryTitle,
+
+            'categoryTitle' => $categoryTitle,
+            'categorySlug' => $categorySlug,
+
+            'duration' => $duration,
+            'startIndex' => $startIndex,
+
+            'ruleId' => $rule->getId(),
+            'ruleNumber' => $rule->getRuleNumber(),
+            'ruleDisplayName' => $rule->getDisplayName(),
+            'slotId' => $slot->getId(),
+            'broadcastRank' => $slot->getBroadcastRank(),
+
+            'startsAt' => $startsAt->format('Y-m-d H:i:s'),
+            'endsAt' => $endsAt->format('Y-m-d H:i:s'),
+
+            'hasConflict' => false,
+            'conflictType' => null,
+            'conflictSeverity' => null,
+            'conflictCount' => 0,
+            'conflictWith' => [],
+        ];
     }
 
     /**
