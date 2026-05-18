@@ -994,4 +994,92 @@ class EmissionRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    public function findProgramForDate(
+    \DateTimeInterface $date,
+    \DateTimeInterface $now
+): array {
+    $start = \DateTimeImmutable::createFromInterface($date)->setTime(0, 0, 0);
+    $end = $start->modify('+1 day');
+
+    $rows = $this->getEntityManager()->createQueryBuilder()
+        ->select('d', 'e', 'c')
+        ->from(\App\Entity\Diffusion::class, 'd')
+        ->innerJoin('d.emission', 'e')
+        ->leftJoin('e.categorie', 'c')
+        ->andWhere('d.horaireDiffusion >= :start')
+        ->andWhere('d.horaireDiffusion < :end')
+        ->setParameter('start', $start)
+        ->setParameter('end', $end)
+        ->orderBy('d.horaireDiffusion', 'ASC')
+        ->getQuery()
+        ->getResult();
+
+    $items = [];
+    $seen = [];
+    $activeIndex = 0;
+
+    foreach ($rows as $diffusion) {
+        if (!$diffusion instanceof \App\Entity\Diffusion) {
+            continue;
+        }
+
+        $emission = $diffusion->getEmission();
+
+        if (!$emission instanceof Emission) {
+            continue;
+        }
+
+        $horaireDiffusion = $diffusion->getHoraireDiffusion();
+
+        if (!$horaireDiffusion instanceof \DateTimeInterface) {
+            continue;
+        }
+
+        $startsAt = \DateTimeImmutable::createFromInterface($horaireDiffusion);
+
+        $key = sprintf(
+            '%d_%s',
+            $emission->getId() ?? 0,
+            $startsAt->format('Y-m-d H:i:s')
+        );
+
+        if (isset($seen[$key])) {
+            continue;
+        }
+
+        $seen[$key] = true;
+
+        $duration = $emission->getDuree() ?? 60;
+        if ($duration <= 0) {
+            $duration = 60;
+        }
+
+        $endsAt = $startsAt->modify(sprintf('+%d minutes', $duration));
+        $isCurrent = $now >= $startsAt && $now < $endsAt;
+
+        $items[] = [
+            'emission' => $emission,
+            'diffusion' => $startsAt,
+            'endDiffusion' => $endsAt,
+            'isCurrent' => $isCurrent,
+        ];
+    }
+
+    foreach ($items as $index => $item) {
+        if ($item['isCurrent']) {
+            $activeIndex = $index;
+            break;
+        }
+
+        if ($item['diffusion'] <= $now) {
+            $activeIndex = $index;
+        }
+    }
+
+    return [
+        'items' => $items,
+        'activeIndex' => $activeIndex,
+    ];
+}
 }

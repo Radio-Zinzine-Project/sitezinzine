@@ -17,28 +17,36 @@ use Symfony\Component\Routing\Attribute\Route;
 class HomeController extends AbstractController
 {
     #[Route("/", name: "home")]
-    public function index(EmissionRepository $emissionRepository, EvenementRepository $evenementRepository): Response
-    {
-        $date = new \DateTime('2026-04-07');
+    public function index(
+        EmissionRepository $emissionRepository,
+        EvenementRepository $evenementRepository
+    ): Response {
+        $timezone = new \DateTimeZone('Europe/Paris');
 
-        $emissions = $emissionRepository->findEmissionsByDate($date);
+        $date = new \DateTimeImmutable('today', $timezone);
+        $now = new \DateTimeImmutable('now', $timezone);
 
-        // On prépare une structure : une liste de couples [emission, diffusion]
-        $lastEmissions = [];
+        $programData = $emissionRepository->findProgramForDate($date, $now);
 
-        foreach ($emissions as $emission) {
-            foreach ($emission->getDiffusions() as $diffusion) {
-                if ($diffusion->getHoraireDiffusion()->format('Y-m-d') === $date->format('Y-m-d')) {
-                    $lastEmissions[] = [
-                        'emission' => $emission,
-                        'diffusion' => $diffusion->getHoraireDiffusion(),
-                    ];
-                }
-            }
+        // Fallback DEV si aucune programmation aujourd'hui
+        if (empty($programData['items'])) {
+            $fixedDate = new \DateTimeImmutable('2026-04-07', $timezone);
+
+            $fakeNow = $fixedDate->setTime(
+                (int) $now->format('H'),
+                (int) $now->format('i'),
+                (int) $now->format('s')
+            );
+
+            $programData = $emissionRepository->findProgramForDate(
+                $fixedDate,
+                $fakeNow
+            );
         }
 
         return $this->render('home/index.html.twig', [
-            'lastEmissions' => $lastEmissions,
+            'lastEmissions' => $programData['items'],
+            'activeIndex' => $programData['activeIndex'],
             'lastEmissionsByTheme' => $emissionRepository->lastEmissionsByGroupTheme(''),
             'evenements' => $evenementRepository->findUpcomingEvenements(),
         ]);

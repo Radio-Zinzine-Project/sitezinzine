@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.97] - 2026-05-xx
+### Ajout
+### Correction
+- Correction du partial ondes, cartes carousel en double, sécurité si rien dans diffusion, js qui met en actif le programme qui passe à ce moment à la radio.
+- Amélioration graphique du carousel.
+
+
 ## [1.0.96] - 2026-05-17
 ### Ajout
 - Ajout du tag rediff (1, 2 ou 3) sur la grille.
@@ -12,7 +19,6 @@
 - Correction du système de règle, maintenant les rediff sont calculées à partir de la première diffusion.
 - Suppression du tag ponctuelle.
 - Séparation du twig grille en deux pages car trop lourd pour une seule.
-
 
 
 ## [1.0.95] - 2026-05-01

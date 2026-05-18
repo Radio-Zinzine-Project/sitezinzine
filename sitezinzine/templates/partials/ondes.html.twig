@@ -1,301 +1,421 @@
 <style>
-/* =========================
-   Section full width (fond blanc)
-   ========================= */
 .ondes-section,
-.ondes-section *{
+.ondes-section * {
   box-sizing: border-box;
 }
 
-.ondes-section{
+.ondes-section {
   width: 100%;
-  background: #fff; /* ✅ les bords restent blancs */
+  background: #fff;
   font-family: "Montserrat Alternates", sans-serif;
 }
 
-/* =========================
-   Container principal (contenu centré)
-   ========================= */
-.bodyondes{
+.bodyondes {
+  width: min(100%, 1680px);
   margin: 0 auto;
-  max-width: 1400px;
-  padding: 0 100px;
+  padding: 0 72px 40px;
   position: relative;
 }
 
-/* =========================
-   Titres (même logique que Évènements)
-   ========================= */
-.bodyondes .ondestitres{
+.bodyondes .ondestitres {
   display: flex;
-  align-items: stretch;      /* image = hauteur du bloc titre */
+  align-items: center;
   justify-content: center;
   gap: 32px;
-  padding: 20px 0;
+  padding: 24px 0 10px;
 }
 
-.bodyondes .ondestitres img{
+.bodyondes .ondestitres img {
   display: block;
-  height: 100%;
-  max-height: 140px;
+  max-height: 130px;
   width: auto;
   object-fit: contain;
 }
 
-.bodyondes .ondestitres > div{
+.bodyondes .ondestitres > div {
   display: flex;
   flex-direction: column;
   justify-content: center;
   min-width: 0;
 }
 
-.bodyondes h1{
+.bodyondes h1 {
   margin: 0;
   font-weight: 900;
   color: #7E4093;
   text-align: left;
   line-height: 1.05;
-  font-size: clamp(22px, 5vw, 42px);
+  font-size: clamp(28px, 4vw, 54px);
 }
 
-.bodyondes h3{
-  margin: 8px 0 0 0;
+.bodyondes h3 {
+  margin: 8px 0 0;
   font-weight: 300;
   color: #7E4093;
   text-align: left;
   line-height: 1.15;
-  font-size: clamp(14px, 3vw, 26px);
+  font-size: clamp(16px, 2vw, 28px);
 }
 
 /* =========================
-   Glide container
+   Glide
    ========================= */
-.bodyondes .glide{
+
+.bodyondes .glide {
   position: relative;
   width: 100%;
   margin: 0 auto;
-  overflow: hidden;            /* ✅ au lieu de visible */
+  padding: 0 54px;
+  overflow: visible;
 }
 
-.bodyondes .glide__track{
+.bodyondes .glide__track {
   cursor: grab;
-  overflow: hidden;            /* ✅ masque ce qui dépasse (évite l’overlay) */
+
+  /* IMPORTANT :
+     laisse dépasser la carte live agrandie */
+  overflow: visible;
+
+  /* marge verticale pour la carte agrandie */
+  padding: 80px 0 90px;
 }
 
-.bodyondes .glide__track:active{ cursor: grabbing; }
+.bodyondes .glide__track:active {
+  cursor: grabbing;
+}
 
-.bodyondes .glide__slide{
+.bodyondes .glide__slides {
+  display: flex;
+  align-items: stretch;
+
+  /* évite que Glide coupe les éléments */
+  overflow: visible;
+}
+
+.bodyondes .glide__slide {
   user-select: none;
   -webkit-user-drag: none;
-  position: relative;          /* ✅ nécessaire pour z-index */
+  position: relative;
   z-index: 0;
-  display: flex;               /* ✅ centre la card dans sa slide */
+  display: flex;
   justify-content: center;
+  align-items: stretch;
+
+  /* espace de sécurité */
+  padding: 10px 0;
 }
 
-/* ✅ la slide active doit toujours être au-dessus des voisines */
-.bodyondes .glide__slide--active{
-  z-index: 2;
+.bodyondes .glide__slide--active,
+.bodyondes .glide__slide--live {
+  z-index: 4;
 }
-
 
 /* =========================
-   Carte carousel
+   Carte
    ========================= */
-.bodyondes .carousel{
-  width: 250px;
-  height: 400px;
-  margin: 50px 0;
+
+.bodyondes .carousel {
+  width: 100%;
+  max-width: 340px;
+  min-height: 430px;
   background: #fff;
-  border-radius: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid #eadff0;
+  border-radius: 22px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  transform: scale(0.95);
+
+  box-shadow: 0 10px 28px rgba(28, 28, 26, 0.08);
+
+  transform: scale(.96);
+
+  transition:
+    transform .25s ease,
+    box-shadow .25s ease,
+    border-color .25s ease,
+    background .25s ease;
 }
 
-.bodyondes .glide__slide--active .carousel{
-  background: linear-gradient(#7E4093, #6B3B7F);
-  transform: scale(1.05);
-  box-shadow: 0 15px 30px rgba(126, 64, 147, 0.3);
+.bodyondes .glide__slide--active .carousel {
+  transform: scale(1);
+}
+
+.bodyondes .glide__slide--live .carousel {
+  transform: scale(1.06);
+
+  border-color: #7E4093;
+
+  box-shadow:
+    0 24px 60px rgba(126,64,147,.30),
+    0 10px 25px rgba(0,0,0,.12);
 }
 
 /* =========================
-   Image
+   Image + badge
    ========================= */
-.bodyondes .image_carousel{
+
+.bodyondes .image_carousel {
   width: 100%;
-  height: 200px;
+  height: 210px;
   overflow: hidden;
+  position: relative;
+  background: #f2eef5;
 }
 
-.bodyondes .image_carousel img{
+.bodyondes .image_carousel img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
+.bodyondes .live-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #E4013A;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  box-shadow: 0 8px 18px rgba(228, 1, 58, 0.28);
+}
+
 /* =========================
-   Textes
+   Texte
    ========================= */
-.bodyondes .date_carousel,
-.bodyondes .titre_carousel,
-.bodyondes .categorie_carousel{
-  padding: 10px 15px;
+
+.bodyondes .date_carousel {
+  padding: 18px 22px 4px;
 }
 
-.bodyondes .date_carousel{
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
+.bodyondes .date_carousel p,
+.bodyondes .titre_carousel p,
+.bodyondes .categorie_carousel p {
+  margin: 0;
 }
 
-.bodyondes .titre_carousel a{
+.bodyondes .date_carousel p {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #f5edf8;
+  color: #7E4093;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.bodyondes .titre_carousel {
+  padding: 14px 22px 18px;
+  flex: 1;
+}
+
+.bodyondes .titre_carousel a {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-decoration: none;
-  font-weight: 800;
-  color: #000;
-  line-height: 1.5;
+  font-weight: 900;
+  color: #1c1c1a;
+  line-height: 1.25;
+  font-size: 19px;
   word-break: break-word;
   overflow-wrap: anywhere;
 }
 
-.bodyondes .glide__slide--active .titre_carousel a,
-.bodyondes .glide__slide--active .date_carousel,
-.bodyondes .glide__slide--active .categorie_carousel{
-  color: #fff;
+.bodyondes .titre_carousel a:hover {
+  text-decoration: underline;
 }
 
-.bodyondes .categorie_carousel{
+.bodyondes .categorie_carousel {
+  min-height: 64px;
+  padding: 12px 18px;
   background: #35BAC0;
   font-family: "Source Code Pro", monospace;
-  font-weight: 600;
-  font-size: 16px;
-  height: 60px;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.15;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
+}
+
+/* La vraie carte en direct, pas seulement la slide active Glide */
+.bodyondes .glide__slide--live .date_carousel p {
+  background: #7E4093;
+  color: #fff;
+}
+
+.bodyondes .glide__slide--live .titre_carousel a {
+  color: #7E4093;
+}
+
+.bodyondes .glide__slide--live .categorie_carousel {
+  background: linear-gradient(90deg, #7E4093, #6B3B7F);
 }
 
 /* =========================
-   Flèches (desktop)
+   Flèches
    ========================= */
-.bodyondes .glide__arrows{
+
+.bodyondes .glide__arrows {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
-.bodyondes .glide__arrow{
+.bodyondes .glide__arrow {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: none;
-  border: none;
+  width: 46px;
+  height: 46px;
+  border: 1px solid #eadff0;
+  border-radius: 999px;
+  background: #fff;
   cursor: pointer;
   pointer-events: auto;
-  z-index: 5; /* au-dessus des slides */
+  z-index: 10;
+  box-shadow: 0 10px 24px rgba(28, 28, 26, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* ✅ au lieu de valeurs négatives */
-.bodyondes .glide__arrow--left{ left: 10px; }
-.bodyondes .glide__arrow--right{ right: 10px; }
-
-.bodyondes .glide__arrow img{
-  width: 70px;
+.bodyondes .glide__arrow:hover {
+  background: #f8f1fa;
 }
 
-/* Ajustement pour petits desktops (14", etc.) */
-@media (max-width: 1440px){
-  .bodyondes .glide__arrow--left{ left: 6px; }
-  .bodyondes .glide__arrow--right{ right: 6px; }
-  .bodyondes .glide__arrow img{ width: 56px; }
+.bodyondes .glide__arrow--left {
+  left: 4px;
 }
 
+.bodyondes .glide__arrow--right {
+  right: 4px;
+}
+
+.bodyondes .glide__arrow img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
 
 /* =========================
    Responsive
    ========================= */
 
-/* <= 1024px */
-@media (max-width: 1024px){
-  .bodyondes{
-    padding: 0 40px;
+@media (max-width: 1200px) {
+  .bodyondes {
+    padding: 0 42px 34px;
   }
 
-  .bodyondes h1{ font-size: clamp(20px, 4.2vw, 34px); }
-  .bodyondes h3{ font-size: clamp(13px, 2.6vw, 20px); }
-
-  .bodyondes .carousel{
-    width: 220px;
-    height: 320px;
+  .bodyondes .glide {
+    padding: 0 44px;
   }
 
-  .bodyondes .glide__arrow--left{ left: -40px; }
-  .bodyondes .glide__arrow--right{ right: -40px; }
+  .bodyondes .carousel {
+    max-width: 320px;
+    min-height: 400px;
+  }
+
+  .bodyondes .image_carousel {
+    height: 190px;
+  }
 }
 
-/* <= 768px : mobile */
-@media (max-width: 768px){
-  .bodyondes{
-    padding: 0 16px;
+@media (max-width: 768px) {
+  .bodyondes {
+    padding: 0 16px 28px;
   }
 
-  .bodyondes h1{ font-size: clamp(18px, 6vw, 28px); }
-  .bodyondes h3{ font-size: clamp(12px, 3.8vw, 16px); }
-
-  .bodyondes .ondestitres{
+  .bodyondes .ondestitres {
     gap: 16px;
+    padding: 18px 0 4px;
   }
 
-  .bodyondes .ondestitres img{
-    max-height: 90px;
+  .bodyondes .ondestitres img {
+    max-height: 88px;
   }
 
-  .bodyondes .carousel{
-    width: min(320px, 78vw);
-    height: 260px;
-    margin: 24px 0;
+  .bodyondes h1 {
+    font-size: clamp(22px, 7vw, 32px);
   }
 
-  /* flèches désactivées en mobile */
-  .bodyondes .glide__arrows{
-    display: none;
+  .bodyondes h3 {
+    font-size: clamp(13px, 4vw, 17px);
   }
+
+  .bodyondes .glide {
+  padding: 0;
+  overflow: visible;
 }
 
-/* Mobile landscape */
-@media (max-width: 900px) and (orientation: landscape){
-  .bodyondes .carousel{
-    height: 240px;
+.bodyondes .glide__track {
+  padding: 25px 0 35px;
+}
+
+  .bodyondes .carousel {
+    max-width: none;
+    min-height: 360px;
+    transform: scale(1);
   }
 
-  .bodyondes .image_carousel{
-    height: 120px;
+  .bodyondes .glide__slide--live .carousel {
+    transform: scale(1);
   }
 
-  .bodyondes .categorie_carousel{
-    height: 46px;
+  .bodyondes .image_carousel {
+    height: 170px;
+  }
+
+  .bodyondes .titre_carousel a {
+    font-size: 17px;
+  }
+
+  .bodyondes .categorie_carousel {
+    min-height: 54px;
     font-size: 14px;
   }
 
-    /* flèches désactivées en mobile */
-  .bodyondes .glide__arrows{
+  .bodyondes .glide__arrows {
     display: none;
   }
 }
 
-/* Très petit */
-@media (max-width: 420px){
-  .bodyondes h1{ font-size: clamp(16px, 7vw, 24px); }
-  .bodyondes h3{ font-size: clamp(12px, 4.2vw, 14px); }
-   .bodyondes .carousel{
-    width: min(320px, 86vw); /* un peu plus “souple” */
+@media (max-width: 420px) {
+  .bodyondes .ondestitres {
+    align-items: center;
+  }
+
+  .bodyondes .ondestitres img {
+    max-height: 72px;
+  }
+
+  .bodyondes .carousel {
+    min-height: 340px;
+  }
+
+  .bodyondes .image_carousel {
+    height: 150px;
+  }
+
+  .bodyondes .date_carousel {
+    padding: 14px 16px 2px;
+  }
+
+  .bodyondes .titre_carousel {
+    padding: 12px 16px 14px;
   }
 }
 </style>
@@ -310,14 +430,18 @@
       </div>
     </div>
 
-    <div class="glide" data-controller="carousel">
+    <div
+    class="glide"
+    data-controller="carousel"
+    data-carousel-start-index="{{ activeIndex|default(0) }}">
       <div class="glide__track" data-glide-el="track">
         <ul class="glide__slides">
           {% for row in lastEmissions %}
             {% set emission = row.emission %}
             {% set diffusion = row.diffusion %}
+            {% set isCurrent = row.isCurrent %}
 
-            <li class="glide__slide">
+            <li class="glide__slide {{ isCurrent ? 'glide__slide--live' : '' }}">
               <div class="carousel">
                 <div class="image_carousel">
                   {% set imagePathEmission = vich_uploader_asset(emission, 'thumbnailFile') %}
@@ -329,6 +453,12 @@
                     <img src="{{ imagePathCategorie }}" alt="{{ emission.categorie.titre }}">
                   {% else %}
                     <img src="{{ asset('uploads/images/emission-zinzine.jpg') }}" alt="Image par défaut">
+                  {% endif %}
+
+                  {% if isCurrent %}
+                    <div class="live-badge">
+                        ● EN DIRECT
+                    </div>
                   {% endif %}
                 </div>
 
