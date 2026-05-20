@@ -3,10 +3,13 @@
 ## [1.0.97] - 2026-05-xx
 ### Ajout
 - Gestion des créneaux annulés, affichage et restauration des différentes diffusions.
+- Quand on déplace un créneau, on peut aussi gérer les rediffs associées.
 ### Correction
 - Correction du partial ondes, cartes carousel en double, sécurité si rien dans diffusion, js qui met en actif le programme qui passe à ce moment à la radio.
 - Amélioration graphique du carousel.
 - Correction du bug de token CSRF à la connection.
+- Quand on a déplacé une première diffusion, maintenant l'émission associée s'affiche correctement.
+- Restructuration complète de l'architecture gridController.js devenu trop lourd.
 
 
 ## [1.0.96] - 2026-05-17

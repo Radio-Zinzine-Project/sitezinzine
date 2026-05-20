@@ -84,4 +84,37 @@ class DiffusionDraftRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    /**
+     * @param array<int, array{slotId:int, startsAt:\DateTimeImmutable}> $pairs
+     *
+     * @return DiffusionDraft[]
+     */
+    public function findRegularDraftsBySlotAndStartsAtPairs(array $pairs): array
+    {
+        if ([] === $pairs) {
+            return [];
+        }
+
+        $qb = $this->createQueryBuilder('d');
+        $orX = $qb->expr()->orX();
+
+        foreach ($pairs as $index => $pair) {
+            $orX->add(sprintf(
+                '(IDENTITY(d.slot) = :slotId_%d AND d.horaireDiffusion = :startsAt_%d)',
+                $index,
+                $index
+            ));
+
+            $qb
+                ->setParameter(sprintf('slotId_%d', $index), $pair['slotId'])
+                ->setParameter(sprintf('startsAt_%d', $index), $pair['startsAt']);
+        }
+
+        return $qb
+            ->andWhere('d.slot IS NOT NULL')
+            ->andWhere($orX)
+            ->getQuery()
+            ->getResult();
+    }
 }

@@ -712,7 +712,7 @@ export default class extends Controller {
       ruleDisplayName: postit.dataset.ruleDisplayName || '',
       categoryTitle: postit.dataset.categoryTitle || 'Catégorie inconnue',
       broadcastRank: parseInt(postit.dataset.broadcastRank || '1', 10),
-      startsAt: postit.dataset.startsAt || '',
+      startsAt: postit.dataset.originalStartsAt || postit.dataset.startsAt || '',
       endsAt: postit.dataset.endsAt || '',
       isProjectedOverride: postit.dataset.isProjectedOverride === 'true',
       projectionType: postit.dataset.projectionType || '',
@@ -771,12 +771,12 @@ export default class extends Controller {
     }
 
     let html = `
-      <div class="conflict-section">
-        <div class="conflict-title">⚠ Résolution du conflit</div>
-        <div class="conflict-help">
-          Choisis directement une action sur le créneau que tu veux modifier.
-        </div>
-    `
+    <div class="conflict-section">
+      <div class="conflict-title">⚠ Résolution du conflit</div>
+      <div class="conflict-help">
+        Choisis directement une action sur le créneau que tu veux modifier.
+      </div>
+  `
 
     let otherConflictIndex = 0
 
@@ -786,77 +786,90 @@ export default class extends Controller {
       const endsAt = item.endsAt || ''
       const ruleDisplayName = item.ruleDisplayName || ''
       const typeLabel = this.buildOccurrenceTypeLabel(item)
-      const badge = item.isSelectedOccurrence
+      const isProjectedOverride = item.isProjectedOverride === true
+      const isSelected = item.isSelectedOccurrence === true
+
+      const badge = isSelected
         ? '<span class="conflict-card__badge">Sélectionné</span>'
         : '<span class="conflict-card__badge conflict-card__badge--other">En conflit</span>'
 
       let actionsHtml = ''
 
-      if (item.isSelectedOccurrence) {
+      if (isSelected && isProjectedOverride) {
         actionsHtml = `
-          <button type="button" class="btn-arbitration" data-action="click->grid#reschedulePreviousWeek">
-            Décaler à la semaine précédente
-          </button>
+        <button type="button" class="btn-arbitration" data-action="click->grid#clearReschedule">
+          Revenir au créneau d’origine
+        </button>
 
-          <button type="button" class="btn-arbitration" data-action="click->grid#rescheduleNextWeek">
-            Décaler à la semaine suivante
-          </button>
+        <button type="button" class="btn-arbitration btn-arbitration--danger" data-action="click->grid#cancelOccurrence">
+          Annuler ce créneau
+        </button>
+      `
+      } else if (isSelected) {
+        actionsHtml = `
+        <button type="button" class="btn-arbitration" data-action="click->grid#reschedulePreviousWeek">
+          Décaler à la semaine précédente
+        </button>
 
-          <button type="button" class="btn-arbitration" data-action="click->grid#toggleCustomRescheduleForm">
-            Choisir une autre date / heure
-          </button>
+        <button type="button" class="btn-arbitration" data-action="click->grid#rescheduleNextWeek">
+          Décaler à la semaine suivante
+        </button>
 
-          <div class="reschedule-form" data-grid-custom-reschedule-form style="display:none;">
-            <input type="date" data-grid-custom-date>
-            <input type="time" data-grid-custom-time step="900">
-            <button type="button" class="btn-arbitration" data-action="click->grid#submitCustomReschedule">
-              Confirmer le déplacement
-            </button>
-          </div>
+        <button type="button" class="btn-arbitration" data-action="click->grid#toggleCustomRescheduleForm">
+          Choisir une autre date / heure
+        </button>
 
-          <button type="button" class="btn-arbitration btn-arbitration--danger" data-action="click->grid#cancelOccurrence">
-            Annuler ce créneau
+        <div class="reschedule-form" data-grid-custom-reschedule-form style="display:none;">
+          <input type="date" data-grid-custom-date>
+          <input type="time" data-grid-custom-time step="900">
+          <button type="button" class="btn-arbitration" data-action="click->grid#submitCustomReschedule">
+            Confirmer le déplacement
           </button>
-        `
+        </div>
+
+        <button type="button" class="btn-arbitration btn-arbitration--danger" data-action="click->grid#cancelOccurrence">
+          Annuler ce créneau
+        </button>
+      `
       } else {
         actionsHtml = `
-          <button type="button" class="btn-arbitration" data-action="click->grid#arbitratePreviousWeek" data-conflict-index="${otherConflictIndex}">
-            Décaler -1 semaine
-          </button>
+        <button type="button" class="btn-arbitration" data-action="click->grid#arbitratePreviousWeek" data-conflict-index="${otherConflictIndex}">
+          Décaler -1 semaine
+        </button>
 
-          <button type="button" class="btn-arbitration" data-action="click->grid#arbitrateNextWeek" data-conflict-index="${otherConflictIndex}">
-            Décaler +1 semaine
-          </button>
+        <button type="button" class="btn-arbitration" data-action="click->grid#arbitrateNextWeek" data-conflict-index="${otherConflictIndex}">
+          Décaler +1 semaine
+        </button>
 
-          <button type="button" class="btn-arbitration btn-arbitration--danger" data-action="click->grid#arbitrateCancel" data-conflict-index="${otherConflictIndex}">
-            Annuler ce créneau
-          </button>
-        `
+        <button type="button" class="btn-arbitration btn-arbitration--danger" data-action="click->grid#arbitrateCancel" data-conflict-index="${otherConflictIndex}">
+          Annuler ce créneau
+        </button>
+      `
         otherConflictIndex++
       }
 
       html += `
-        <div class="conflict-card ${item.isSelectedOccurrence ? 'conflict-card--selected' : ''}">
-          <div class="conflict-card__header">
-            <div class="conflict-card__title">${this.escapeHtml(categoryTitle)}</div>
-            ${badge}
-          </div>
-
-          ${ruleDisplayName ? `<div class="conflict-card__meta">${this.escapeHtml(ruleDisplayName)}</div>` : ''}
-
-          <div class="conflict-card__meta">
-            ${this.escapeHtml(startsAt)}${endsAt ? ` → ${this.escapeHtml(endsAt)}` : ''}
-          </div>
-
-          <div class="conflict-card__meta">
-            ${this.escapeHtml(typeLabel)}
-          </div>
-
-          <div class="conflict-card__actions">
-            ${actionsHtml}
-          </div>
+      <div class="conflict-card ${isSelected ? 'conflict-card--selected' : ''}">
+        <div class="conflict-card__header">
+          <div class="conflict-card__title">${this.escapeHtml(categoryTitle)}</div>
+          ${badge}
         </div>
-      `
+
+        ${ruleDisplayName ? `<div class="conflict-card__meta">${this.escapeHtml(ruleDisplayName)}</div>` : ''}
+
+        <div class="conflict-card__meta">
+          ${this.escapeHtml(startsAt)}${endsAt ? ` → ${this.escapeHtml(endsAt)}` : ''}
+        </div>
+
+        <div class="conflict-card__meta">
+          ${this.escapeHtml(typeLabel)}
+        </div>
+
+        <div class="conflict-card__actions">
+          ${actionsHtml}
+        </div>
+      </div>
+    `
     })
 
     html += '</div>'
@@ -1429,7 +1442,7 @@ export default class extends Controller {
     }
 
     const slotId = this.selectedPostit?.dataset.slotId || ''
-    const startsAt = this.selectedPostit?.dataset.startsAt || ''
+    const startsAt = this.selectedPostit?.dataset.originalStartsAt || this.selectedPostit?.dataset.startsAt || ''
 
     if (!slotId || !startsAt || !emissionId) {
       alert('Informations incomplètes pour affecter cette émission.')
@@ -1497,7 +1510,7 @@ export default class extends Controller {
     }
 
     const slotId = this.selectedPostit.dataset.slotId || ''
-    const startsAt = this.selectedPostit.dataset.startsAt || ''
+    const startsAt = this.selectedPostit.dataset.originalStartsAt || this.selectedPostit.dataset.startsAt || ''
 
     if (!slotId || !startsAt) {
       alert('Informations incomplètes pour créer ce direct.')
@@ -1728,12 +1741,14 @@ export default class extends Controller {
     }
 
     const slotId = this.selectedPostit.dataset.slotId || ''
-    const startsAt = this.selectedPostit.dataset.startsAt || ''
+    const startsAt = this.selectedPostit.dataset.originalStartsAt || this.selectedPostit.dataset.startsAt || ''
 
     if (!slotId || !startsAt) {
       alert('Informations incomplètes pour déplacer ce créneau.')
       return
     }
+
+    const rebroadcastStrategy = await this.askRebroadcastStrategy('déplacer')
 
     try {
       const response = await fetch('/admin/grille/reschedule-week', {
@@ -1745,7 +1760,8 @@ export default class extends Controller {
         body: new URLSearchParams({
           slotId,
           startsAt,
-          direction
+          direction,
+          rebroadcastStrategy
         })
       })
 
@@ -1771,7 +1787,7 @@ export default class extends Controller {
     }
 
     const slotId = this.selectedPostit.dataset.slotId || ''
-    const startsAt = this.selectedPostit.dataset.startsAt || ''
+    const startsAt = this.selectedPostit.dataset.originalStartsAt || this.selectedPostit.dataset.startsAt || ''
 
     const dateInput = this.arbitrationActionsTarget.querySelector('[data-grid-custom-date]')
     const timeInput = this.arbitrationActionsTarget.querySelector('[data-grid-custom-time]')
@@ -1784,6 +1800,8 @@ export default class extends Controller {
       return
     }
 
+    const rebroadcastStrategy = await this.askRebroadcastStrategy('déplacer')
+
     try {
       const response = await fetch('/admin/grille/reschedule-custom', {
         method: 'POST',
@@ -1795,7 +1813,8 @@ export default class extends Controller {
           slotId,
           startsAt,
           newDate,
-          newTime
+          newTime,
+          rebroadcastStrategy
         })
       })
 
@@ -1821,12 +1840,14 @@ export default class extends Controller {
     }
 
     const slotId = this.selectedPostit.dataset.slotId || ''
-    const startsAt = this.selectedPostit.dataset.startsAt || ''
+    const startsAt = this.selectedPostit.dataset.originalStartsAt || this.selectedPostit.dataset.startsAt || ''
 
     if (!slotId || !startsAt) {
       alert('Informations incomplètes pour annuler cette occurrence.')
       return
     }
+
+    const rebroadcastStrategy = await this.askRebroadcastStrategy('annuler')
 
     const confirmed = window.confirm('Annuler cette occurrence de la grille ?')
     if (!confirmed) {
@@ -1842,7 +1863,8 @@ export default class extends Controller {
         },
         body: new URLSearchParams({
           slotId,
-          startsAt
+          startsAt,
+          rebroadcastStrategy
         })
       })
 
@@ -2109,5 +2131,60 @@ export default class extends Controller {
     } catch (error) {
       alert(`Erreur lors de la restauration : ${error.message}`)
     }
+  }
+
+  askRebroadcastStrategy(actionLabel = 'modifier') {
+    if (!this.selectedPostit) {
+      return Promise.resolve('keep')
+    }
+
+    const broadcastRank = parseInt(this.selectedPostit.dataset.broadcastRank || '1', 10)
+
+    if (broadcastRank > 1) {
+      return Promise.resolve('keep')
+    }
+
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div')
+      overlay.className = 'rebroadcast-modal-overlay'
+
+      overlay.innerHTML = `
+      <div class="rebroadcast-modal">
+        <h3>Que faire des rediffusions liées ?</h3>
+
+        <p>
+          Tu modifies une première diffusion. Choisis ce qu’il faut faire avec ses rediffusions.
+        </p>
+
+        <div class="rebroadcast-modal__actions">
+          <button type="button" data-choice="keep">
+            Garder les rediffs
+          </button>
+
+          <button type="button" data-choice="cancel">
+            Annuler les rediffs
+          </button>
+
+          <button type="button" data-choice="move">
+            Les ${this.escapeHtml(actionLabel)} aussi
+          </button>
+        </div>
+
+        <button type="button" class="rebroadcast-modal__close" data-choice="keep">
+          Fermer
+        </button>
+      </div>
+    `
+
+      document.body.appendChild(overlay)
+
+      overlay.querySelectorAll('[data-choice]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const choice = button.dataset.choice || 'keep'
+          overlay.remove()
+          resolve(choice)
+        })
+      })
+    })
   }
 }
