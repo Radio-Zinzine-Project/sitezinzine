@@ -55,4 +55,6 @@ class GridSlotArbitrationRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    
 }

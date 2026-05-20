@@ -60,17 +60,18 @@ class ProgrammationRuleSlotRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    public function findActiveByRule(ProgrammationRule $rule): array
-    {
-        return $this->createActiveQueryBuilder('s')
-            ->andWhere('s.rule = :rule')
-            ->setParameter('rule', $rule)
-            ->orderBy('s.broadcastRank', 'ASC')
-            ->addOrderBy('s.dayOfWeek', 'ASC')
-            ->addOrderBy('s.startTime', 'ASC')
-            ->getQuery()
-            ->getResult();
-    }
+public function findActiveByRule(ProgrammationRule $rule): array
+{
+    return $this->createActiveQueryBuilder('s')
+        ->andWhere('s.rule = :rule')
+        ->setParameter('rule', $rule)
+        ->orderBy('s.broadcastRank', 'ASC')
+        ->addOrderBy('s.weekOffset', 'ASC')
+        ->addOrderBy('s.dayOfWeek', 'ASC')
+        ->addOrderBy('s.startTime', 'ASC')
+        ->getQuery()
+        ->getResult();
+}
 
     public function findActiveByDay(int $dayOfWeek): array
     {
@@ -87,4 +88,6 @@ class ProgrammationRuleSlotRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    
 }

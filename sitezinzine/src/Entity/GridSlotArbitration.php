@@ -13,6 +13,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(columns: ['original_starts_at'], name: 'idx_grid_slot_arbitration_original_starts_at')]
 #[ORM\Index(columns: ['rescheduled_starts_at'], name: 'idx_grid_slot_arbitration_rescheduled_starts_at')]
 #[ORM\Index(columns: ['status'], name: 'idx_grid_slot_arbitration_status')]
+#[ORM\Index(columns: ['arbitration_group_key'], name: 'idx_grid_slot_arbitration_group_key')]
 class GridSlotArbitration
 {
     public const TYPE_RULE_OVERLAP = 'rule_overlap';
@@ -71,6 +72,9 @@ class GridSlotArbitration
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $resolvedAt = null;
+
+    #[ORM\Column(length: 120, nullable: true)]
+    private ?string $arbitrationGroupKey = null;
 
     public function __construct()
     {
@@ -241,5 +245,17 @@ class GridSlotArbitration
     public function getResolvedAt(): ?\DateTimeImmutable
     {
         return $this->resolvedAt;
+    }
+
+    public function getArbitrationGroupKey(): ?string
+    {
+        return $this->arbitrationGroupKey;
+    }
+
+    public function setArbitrationGroupKey(?string $arbitrationGroupKey): self
+    {
+        $this->arbitrationGroupKey = $arbitrationGroupKey;
+
+        return $this;
     }
 }

@@ -191,7 +191,7 @@
 
 <div class="bodylogin">
   <div class="form">
-    <form method="post" data-turbo="false">
+    <form method="post" action="{{ path('app_login') }}" data-turbo="false">
       {% if error %}
         <div class="alert">
           {{ error.messageKey|trans(error.messageData, 'security') }}

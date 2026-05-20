@@ -949,6 +949,22 @@
       opacity: 0.45;
     }
 
+    .postit--ghost,
+.postit--cancelled,
+.postit--rescheduled-origin {
+  opacity: 0.55;
+  border-style: dashed;
+  filter: grayscale(0.4);
+}
+
+.postit--non-blocking {
+  pointer-events: auto;
+}
+
+.postit--rescheduled {
+  outline: 2px dashed rgba(0, 0, 0, 0.25);
+}
+
     @media (max-width: 1200px) {
       :root {
         --sidebar-w: 290px;

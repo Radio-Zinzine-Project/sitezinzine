@@ -28,6 +28,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+
 #[Route('/admin/grille', name: 'admin.grille.')]
 #[IsGranted('ROLE_ADMIN')]
 class GrilleController extends AbstractController
@@ -788,19 +789,28 @@ class GrilleController extends AbstractController
         $startsAt = $request->request->get('startsAt');
 
         if (!$slotId || !$startsAt) {
-            return $this->json(['success' => false, 'error' => 'Paramètres manquants'], 400);
+            return $this->json([
+                'success' => false,
+                'error' => 'Paramètres manquants',
+            ], 400);
         }
 
         $slot = $slotRepository->find($slotId);
 
         if (!$slot instanceof ProgrammationRuleSlot || $slot->isDeleted() || !$slot->isActive()) {
-            return $this->json(['success' => false, 'error' => 'Créneau invalide'], 404);
+            return $this->json([
+                'success' => false,
+                'error' => 'Créneau invalide',
+            ], 404);
         }
 
         try {
             $originalStartsAt = new \DateTimeImmutable($startsAt);
         } catch (\Exception) {
-            return $this->json(['success' => false, 'error' => 'Date invalide'], 400);
+            return $this->json([
+                'success' => false,
+                'error' => 'Date invalide',
+            ], 400);
         }
 
         if (!$this->occurrenceExistsForSlot($slot, $originalStartsAt, $programmationGridBuilder)) {
@@ -810,32 +820,105 @@ class GrilleController extends AbstractController
             ], 400);
         }
 
-        $duration = $slot->getDurationMinutes() ?? 15;
-        if ($duration <= 0) {
-            $duration = 15;
+        $rule = $slot->getRule();
+
+        if (null === $rule || null === $rule->getId()) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Règle introuvable pour ce créneau.',
+            ], 400);
         }
 
-        $originalEndsAt = $originalStartsAt->modify(sprintf('+%d minutes', $duration));
+        $clickedWeekOffset = $slot->getWeekOffset() ?? 0;
+        $anchorWeekStart = $this->getRadioWeekStart($originalStartsAt)
+            ->modify(sprintf('-%d weeks', $clickedWeekOffset));
 
-        $arbitration = $gridSlotArbitrationRepository->findOneActiveForOccurrence($slot, $originalStartsAt)
-            ?? new GridSlotArbitration();
+        $arbitrationGroupKey = sprintf(
+            'rule_%d_origin_%s',
+            $rule->getId(),
+            $anchorWeekStart->format('Ymd_His')
+        );
 
-        $arbitration
-            ->setSlot($slot)
-            ->setOriginalStartsAt($originalStartsAt)
-            ->setOriginalEndsAt($originalEndsAt)
-            ->setType(GridSlotArbitration::TYPE_CALENDAR_ADJUSTMENT)
-            ->setAction(GridSlotArbitration::ACTION_CANCEL)
-            ->setRescheduledStartsAt(null)
-            ->setRescheduledEndsAt(null)
-            ->setStatus(GridSlotArbitration::STATUS_RESOLVED);
+        $linkedSlots = $slotRepository->findActiveByRule($rule);
 
-        $arbitration->markResolved();
+        if (count($linkedSlots) === 0) {
+            $linkedSlots = [$slot];
+        }
 
-        $em->persist($arbitration);
+        $createdCount = 0;
+
+        foreach ($linkedSlots as $linkedSlot) {
+            if (!$linkedSlot instanceof ProgrammationRuleSlot) {
+                continue;
+            }
+
+            if ($linkedSlot->isDeleted() || !$linkedSlot->isActive()) {
+                continue;
+            }
+
+            $linkedStartsAt = $this->buildStartsAtForLinkedSlot($linkedSlot, $anchorWeekStart);
+
+            if (!$this->occurrenceExistsForSlot($linkedSlot, $linkedStartsAt, $programmationGridBuilder)) {
+                continue;
+            }
+
+            $duration = $linkedSlot->getDurationMinutes() ?? 15;
+            if ($duration <= 0) {
+                $duration = 15;
+            }
+
+            $linkedEndsAt = $linkedStartsAt->modify(sprintf('+%d minutes', $duration));
+
+            $arbitration = $gridSlotArbitrationRepository->findOneActiveForOccurrence($linkedSlot, $linkedStartsAt)
+                ?? new GridSlotArbitration();
+
+            $arbitration
+                ->setSlot($linkedSlot)
+                ->setOriginalStartsAt($linkedStartsAt)
+                ->setOriginalEndsAt($linkedEndsAt)
+                ->setType(GridSlotArbitration::TYPE_CALENDAR_ADJUSTMENT)
+                ->setAction(GridSlotArbitration::ACTION_CANCEL)
+                ->setRescheduledStartsAt(null)
+                ->setRescheduledEndsAt(null)
+                ->setStatus(GridSlotArbitration::STATUS_RESOLVED)
+                ->setArbitrationGroupKey($arbitrationGroupKey);
+
+            $arbitration->markResolved();
+
+            $em->persist($arbitration);
+            $createdCount++;
+        }
+
         $em->flush();
 
-        return $this->json(['success' => true]);
+        return $this->json([
+            'success' => true,
+            'cancelledCount' => $createdCount,
+            'arbitrationGroupKey' => $arbitrationGroupKey,
+        ]);
+    }
+
+    private function buildStartsAtForLinkedSlot(
+        ProgrammationRuleSlot $slot,
+        \DateTimeImmutable $anchorWeekStart
+    ): \DateTimeImmutable {
+        $weekOffset = $slot->getWeekOffset() ?? 0;
+        $dayIndex = $this->radioDayIndexFromDayOfWeek((int) $slot->getDayOfWeek());
+        $startTime = $slot->getStartTime();
+
+        $startsAt = $anchorWeekStart
+            ->modify(sprintf('+%d weeks', $weekOffset))
+            ->modify(sprintf('+%d days', $dayIndex));
+
+        if ($startTime instanceof \DateTimeInterface) {
+            $startsAt = $startsAt->setTime(
+                (int) $startTime->format('H'),
+                (int) $startTime->format('i'),
+                0
+            );
+        }
+
+        return $startsAt;
     }
 
     private function computeStartsAtFromAnchor(
@@ -1005,5 +1088,75 @@ class GrilleController extends AbstractController
         }
 
         return 15;
+    }
+
+    #[Route('/restore-occurrence', name: 'restore_occurrence', methods: ['POST'])]
+    public function restoreOccurrence(
+        Request $request,
+        ProgrammationRuleSlotRepository $slotRepository,
+        GridSlotArbitrationRepository $gridSlotArbitrationRepository,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        $slotId = $request->request->get('slotId');
+        $originalStartsAt = $request->request->get('originalStartsAt');
+
+        if (!$slotId || !$originalStartsAt) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Paramètres manquants',
+            ], 400);
+        }
+
+        $slot = $slotRepository->find($slotId);
+
+        if (!$slot instanceof ProgrammationRuleSlot || $slot->isDeleted() || !$slot->isActive()) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Créneau invalide',
+            ], 404);
+        }
+
+        try {
+            $originalDate = new \DateTimeImmutable($originalStartsAt);
+        } catch (\Exception) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Date invalide',
+            ], 400);
+        }
+
+        $arbitration = $gridSlotArbitrationRepository->findOneActiveForOccurrence($slot, $originalDate);
+
+        if (!$arbitration instanceof GridSlotArbitration) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Aucune exception à restaurer.',
+            ], 404);
+        }
+
+        $groupKey = $arbitration->getArbitrationGroupKey();
+
+        if ($groupKey) {
+            $arbitrationsToRestore = $gridSlotArbitrationRepository->findBy([
+                'arbitrationGroupKey' => $groupKey,
+            ]);
+        } else {
+            $arbitrationsToRestore = [$arbitration];
+        }
+
+        foreach ($arbitrationsToRestore as $item) {
+            if ($item instanceof GridSlotArbitration) {
+                $em->remove($item);
+            }
+        }
+
+        $em->flush();
+
+        return $this->json([
+            'success' => true,
+            'restoredStartsAt' => $originalDate->format('Y-m-d H:i:s'),
+            'restoredCount' => count($arbitrationsToRestore),
+            'targetWeekStart' => $this->getRadioWeekStart($originalDate)->format('Y-m-d'),
+        ]);
     }
 }

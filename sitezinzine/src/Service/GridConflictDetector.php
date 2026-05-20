@@ -53,10 +53,18 @@ class GridConflictDetector
         $count = count($segments);
 
         for ($i = 0; $i < $count; $i++) {
+            if (($segments[$i]['isBlocking'] ?? true) === false) {
+                continue;
+            }
+
             $currentStart = new \DateTimeImmutable((string) $segments[$i]['startsAt']);
             $currentEnd = new \DateTimeImmutable((string) $segments[$i]['endsAt']);
 
             for ($j = $i + 1; $j < $count; $j++) {
+                if (($segments[$j]['isBlocking'] ?? true) === false) {
+                    continue;
+                }
+
                 $nextStart = new \DateTimeImmutable((string) $segments[$j]['startsAt']);
                 $nextEnd = new \DateTimeImmutable((string) $segments[$j]['endsAt']);
 
@@ -78,6 +86,7 @@ class GridConflictDetector
                     $segments[$i]['conflictType'],
                     $conflictType
                 );
+
                 $segments[$j]['conflictType'] = $this->mergeConflictType(
                     $segments[$j]['conflictType'],
                     $conflictType
@@ -87,6 +96,7 @@ class GridConflictDetector
                     $segments[$i]['conflictSeverity'],
                     $conflictSeverity
                 );
+
                 $segments[$j]['conflictSeverity'] = $this->mergeConflictSeverity(
                     $segments[$j]['conflictSeverity'],
                     $conflictSeverity
