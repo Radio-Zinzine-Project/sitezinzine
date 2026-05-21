@@ -439,6 +439,7 @@ class GrilleController extends AbstractController
     ): JsonResponse {
         $categoryId = $request->query->getInt('categoryId');
         $showAll = filter_var($request->query->get('all', false), FILTER_VALIDATE_BOOLEAN);
+        $search = trim((string) $request->query->get('q', ''));
         $limit = $showAll ? null : 20;
 
         if ($categoryId <= 0) {
@@ -462,11 +463,27 @@ class GrilleController extends AbstractController
         $isRegularCategory = $programmationRuleRepository->hasActiveRuleForCategory($category);
 
         if ($isRegularCategory) {
-            $rows = $emissionRepository->findSpecialCandidatesForRegularCategory($category, $limit);
-            $total = $emissionRepository->countSpecialCandidatesForRegularCategory($category);
+            $rows = $emissionRepository->findSpecialCandidatesForRegularCategory(
+                $category,
+                $limit,
+                $search
+            );
+
+            $total = $emissionRepository->countSpecialCandidatesForRegularCategory(
+                $category,
+                $search
+            );
         } else {
-            $rows = $emissionRepository->findSpecialCandidatesForNonRegularCategory($category, $limit);
-            $total = $emissionRepository->countSpecialCandidatesForNonRegularCategory($category);
+            $rows = $emissionRepository->findSpecialCandidatesForNonRegularCategory(
+                $category,
+                $limit,
+                $search
+            );
+
+            $total = $emissionRepository->countSpecialCandidatesForNonRegularCategory(
+                $category,
+                $search
+            );
         }
 
         $items = array_map(static function (array $row): array {
@@ -535,6 +552,8 @@ class GrilleController extends AbstractController
             'success' => true,
             'emissionTitle' => $emission->getTitre(),
             'propagated' => $propagated,
+            'emissionCategoryTitle' => $emission->getCategorie()?->getTitre(),
+            'emissionCategorySlug' => $emission->getCategorie()?->getSlug(),
         ]);
     }
 

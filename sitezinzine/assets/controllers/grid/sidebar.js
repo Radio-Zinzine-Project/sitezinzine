@@ -35,52 +35,44 @@ export function getStatusLabel(postit) {
     return '1re diffusion'
 }
 
-export function buildSlotSummary(context, postit, emissionTitle = null) {
-    const title =
-        emissionTitle ||
-        postit.dataset.assignedEmissionTitle ||
-        postit.dataset.categoryTitle ||
-        'Créneau'
-
+export function buildSlotSummary(context, postit, assignedEmissionTitle = '') {
+    const isManualDraft = postit.dataset.isManualDraft === 'true'
+    const categoryTitle = postit.dataset.categoryTitle || 'Catégorie inconnue'
+    const ruleDisplayName = postit.dataset.ruleDisplayName || categoryTitle
     const startsAt = postit.dataset.startsAt || ''
     const endsAt = postit.dataset.endsAt || ''
-    const status = context.getStatusLabel(postit)
+    const safeAssignedTitle =
+        assignedEmissionTitle ||
+        postit.dataset.assignedEmissionTitle ||
+        ''
+    const statusLabel = context.getStatusLabel(postit)
 
-    let html = `
-    <div class="slot-summary">
-
-      <div class="slot-summary__title">
-        ${escapeHtml(title)}
-      </div>
-
-      <div class="slot-summary__row">
-        <span class="label">Début :</span>
-        ${escapeHtml(startsAt)}
-      </div>
-
-      ${endsAt
-            ? `
-          <div class="slot-summary__row">
-            <span class="label">Fin :</span>
-            ${escapeHtml(endsAt)}
-          </div>
+    if (isManualDraft) {
+        return `
+            <div><span class="label">Type :</span> ${escapeHtml(statusLabel)}</div>
+            <div><span class="label">Catégorie :</span> ${escapeHtml(categoryTitle)}</div>
+            <div><span class="label">Début :</span> ${escapeHtml(startsAt)}</div>
+            ${endsAt ? `<div><span class="label">Fin :</span> ${escapeHtml(endsAt)}</div>` : ''}
+            ${safeAssignedTitle
+                ? `<div><span class="label">Émission :</span> ${escapeHtml(safeAssignedTitle)}</div>`
+                : ''
+            }
         `
-            : ''
-        }
-
-      <div class="slot-summary__row">
-        <span class="label">Type :</span>
-        ${escapeHtml(status)}
-      </div>
-  `
-
-    if (postit.dataset.hasConflict === 'true') {
-        html += context.buildConflictSummary(postit)
     }
 
-    html += '</div>'
-
-    return html
+    return `
+        <div><span class="label">Règle :</span> ${escapeHtml(ruleDisplayName)}</div>
+        <div><span class="label">Catégorie :</span> ${escapeHtml(categoryTitle)}</div>
+        <div><span class="label">Début :</span> ${escapeHtml(startsAt)}</div>
+        ${endsAt ? `<div><span class="label">Fin :</span> ${escapeHtml(endsAt)}</div>` : ''}
+        <div><span class="label">Type :</span> ${escapeHtml(statusLabel)}</div>
+        ${safeAssignedTitle
+            ? `<div><span class="label">Émission affectée :</span> ${escapeHtml(safeAssignedTitle)}</div>`
+            : ''
+        }
+        ${context.buildProjectionSummary(postit)}
+        ${context.buildConflictSummary(postit)}
+    `
 }
 
 export async function selectSlot(context, event) {

@@ -223,4 +223,42 @@ class GridConflictDetector
 
         $segment['conflictWith'][] = $reference;
     }
+
+    /**
+     * @param array<int, array<int, array<string, mixed>>> $daySegments
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function findBlockingOverlapsForRange(
+        array $daySegments,
+        \DateTimeImmutable $startsAt,
+        \DateTimeImmutable $endsAt
+    ): array {
+        $overlaps = [];
+
+        foreach ($daySegments as $segments) {
+            foreach ($segments as $segment) {
+                if (($segment['isBlocking'] ?? true) === false) {
+                    continue;
+                }
+
+                if (($segment['isCancelled'] ?? false) === true) {
+                    continue;
+                }
+
+                if (empty($segment['startsAt']) || empty($segment['endsAt'])) {
+                    continue;
+                }
+
+                $segmentStart = new \DateTimeImmutable((string) $segment['startsAt']);
+                $segmentEnd = new \DateTimeImmutable((string) $segment['endsAt']);
+
+                if ($this->segmentsOverlap($startsAt, $endsAt, $segmentStart, $segmentEnd)) {
+                    $overlaps[] = $segment;
+                }
+            }
+        }
+
+        return $overlaps;
+    }
 }

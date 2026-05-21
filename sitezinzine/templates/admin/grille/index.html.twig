@@ -1,12 +1,9 @@
 {% extends 'admin/admin.html.twig' %}
-
 {% block title %}
   Grille de programmation
 {% endblock %}
-
 {% block stylesheets %}
   {{ parent() }}
-
   <style>
     :root {
       --slot-h: 14px;
@@ -1080,358 +1077,169 @@
     }
   </style>
 {% endblock %}
-
 {% block body %}
-<h1>Grille de programmation</h1>
-
-<div class="week-nav">
+  <h1>
+    Grille de programmation
+  </h1>
+  <div class="week-nav">
     {% set weekNumber = startOfWeek|date('W') %}
-
     <h2 class="week-nav__title">
-        Semaine {{ weekNumber }}
-        — du {{ startOfWeek|date('d/m/Y') }}
+      Semaine
+      {{ weekNumber }}
+      — du
+      {{ startOfWeek|date('d/m/Y') }}
     </h2>
-
     <div class="week-nav__bar">
-
-        <a
-            class="week-nav__link week-nav__link--left"
-            href="{{ path('admin.grille.index',{
+      <a class="week-nav__link week-nav__link--left" href="{{ path('admin.grille.index',{
                 startOfWeek:startOfWeek|date_modify('-7 days')|date('Y-m-d')
-            }) }}"
-        >
-            ← Semaine précédente
+            }) }}">
+        ← Semaine précédente
+      </a>
+      <div class="week-nav__center">
+        <a class="week-nav__btn week-nav__btn--primary" href="{{ path('admin.grille.index_current') }}">
+          Aujourd’hui
         </a>
-
-        <div class="week-nav__center">
-
-            <a
-                class="week-nav__btn week-nav__btn--primary"
-                href="{{ path('admin.grille.index_current') }}"
-            >
-                Aujourd’hui
-            </a>
-
-            <form
-                method="get"
-                action="{{ path('admin.grille.goto') }}"
-                class="week-nav__form"
-            >
-
-                <input
-                    type="date"
-                    name="date"
-                    value="{{ startOfWeek|date('Y-m-d') }}"
-                    class="week-nav__date"
-                >
-
-                <button
-                    type="submit"
-                    class="week-nav__btn week-nav__btn--dark"
-                >
-                    Aller
-                </button>
-
-            </form>
-
+        <form method="get" action="{{ path('admin.grille.goto') }}" class="week-nav__form">
+          <input type="date" name="date" value="{{ startOfWeek|date('Y-m-d') }}" class="week-nav__date">
+            <button type="submit" class="week-nav__btn week-nav__btn--dark">
+              Aller
+            </button>
+          </form>
         </div>
-
-        <a
-            class="week-nav__link week-nav__link--right"
-            href="{{ path('admin.grille.index',{
+        <a class="week-nav__link week-nav__link--right" href="{{ path('admin.grille.index',{
                 startOfWeek:startOfWeek|date_modify('+7 days')|date('Y-m-d')
-            }) }}"
-        >
-            Semaine suivante →
+            }) }}">
+          Semaine suivante →
         </a>
-
+      </div>
     </div>
-
-</div>
-
-
-<div
-    class="schedule-layout"
-    data-controller="grid"
-    data-grid-week-start="{{ startOfWeek|date('Y-m-d') }}"
->
-
-<div class="grid-area">
-
-    {{ include('admin/grille/_grid.html.twig') }}
-
-</div>
-
-
-<aside class="sidebar">
-
-<h2>Programmation</h2>
-
-<div class="sidebar-mode-switch">
-
-<button
-type="button"
-class="mode-btn is-active"
-data-grid-target="modeRegularBtn"
-data-action="click->grid#showRegularMode"
->
-Régulières
-</button>
-
-<button
-type="button"
-class="mode-btn"
-data-grid-target="modeSpecialBtn"
-data-action="click->grid#showSpecialMode"
->
-Non régulières
-</button>
-
-</div>
-
-
-<div data-grid-target="regularPanel">
-
-<h2>Émissions disponibles</h2>
-
-<div
-id="slot-selection-empty"
-data-grid-target="emptyState"
->
-Sélectionne un créneau dans la grille pour afficher les émissions compatibles.
-</div>
-
-
-<div
-id="slot-selection-panel"
-data-grid-target="sidebarPanel"
-style="display:none;"
->
-
-<div class="sidebar-section">
-
-<h3>Créneau sélectionné</h3>
-
-<div
-class="slot-summary"
-data-grid-target="slotSummary"
-></div>
-
-
-<div
-class="slot-actions"
-data-grid-target="slotActions"
-style="display:none;"
->
-
-<button
-type="button"
-class="btn-remove-assignment"
-data-action="click->grid#removeAssignment"
->
-Retirer l’émission
-</button>
-
-</div>
-
-<div
-class="arbitration-box"
-data-grid-target="arbitrationActions"
-></div>
-
-</div>
-
-
-
-<div class="sidebar-section">
-
-<h3>Émissions suggérées</h3>
-
-<div class="regular-search-box">
-
-  <input
-    type="text"
-    placeholder="Rechercher une émission..."
-    class="regular-search-input"
-    data-grid-target="regularSearch"
-    data-action="input->grid#regularSearch"
-  >
-
-  <div class="regular-search-help">
-    Recherche dans les émissions de la catégorie active.
-  </div>
-
-  <button
-    type="button"
-    class="btn-regular-extended"
-    data-grid-target="regularShowAllBtn"
-    data-action="click->grid#toggleRegularExtended"
-  >
-    Afficher plus
-  </button>
-
-  <button
-    type="button"
-    class="btn-regular-extended"
-    data-grid-target="regularOtherCategoryBtn"
-    data-action="click->grid#toggleRegularOtherCategory"
-  >
-    Autre catégorie
-  </button>
-
-  <select
-    class="special-filter-select"
-    data-grid-target="regularCategorySelect"
-    data-action="change->grid#regularCategoryChanged"
-    style="display:none;"
-  >
-    <option value="">Catégorie du créneau</option>
-
-    {% for category in specialCategories %}
-      <option value="{{ category.id }}">
-        {{ category.titre }}
-      </option>
-    {% endfor %}
-  </select>
-
-</div>
-
-
-<div
-id="emissions-pool"
-data-grid-target="emissionsList"
-></div>
-
-</div>
-
-</div>
-
-</div>
-
-
-
-<div
-data-grid-target="specialPanel"
-style="display:none;"
->
-
-<h2>Émissions non régulières</h2>
-
-<div class="sidebar-section">
-
-<h3>Filtre</h3>
-
-<label
-for="special-category-select"
-class="special-filter-label"
->
-Catégorie
-</label>
-
-<select
-id="special-category-select"
-class="special-filter-select"
-data-grid-target="specialCategorySelect"
-data-action="change->grid#loadSpecialCandidates"
->
-
-<option value="">
-Choisir une catégorie
-</option>
-
-{% for category in specialCategories %}
-
-<option value="{{ category.id }}">
-{{ category.titre }}
-</option>
-
-{% endfor %}
-
-</select>
-
-<div class="special-filter-help">
-Choisis une catégorie puis glisse une émission dans la grille.
-</div>
-
-</div>
-
-
-<div
-id="special-selection-empty"
-data-grid-target="specialEmptyState"
->
-Sélectionne une catégorie.
-</div>
-
-
-<div
-data-grid-target="specialSidebarPanel"
-style="display:none;"
->
-
-<div class="sidebar-section">
-
-<h3>Programmation sélectionnée</h3>
-
-<div
-class="slot-summary"
-data-grid-target="specialSlotSummary"
-></div>
-
-</div>
-
-</div>
-
-
-<div class="sidebar-section">
-
-<div class="special-toolbar">
-
-<h3>Émissions ponctuelles</h3>
-
-<div
-class="special-toolbar__status"
-data-grid-target="specialStatus"
->
-Sélectionne une catégorie.
-</div>
-
-<button
-type="button"
-class="btn-show-all"
-data-grid-target="specialShowAllBtn"
-data-action="click->grid#loadAllSpecialCandidates"
->
-Afficher tout
-</button>
-
-</div>
-
-<div
-id="emissions-pool-special"
-data-grid-target="emissionsList"
-></div>
-
-</div>
-
-
-<div class="sidebar-section">
-
-<h3>Suppression</h3>
-
-<div
-class="trash-zone"
-data-grid-target="trashZone"
->
-🗑️ Glisser ici un draft manuel pour le supprimer
-</div>
-
-</div>
-
-</div>
-
-</aside>
-
-</div>
-
-{% endblock %}
+    <div class="schedule-layout" data-controller="grid" data-grid-week-start="{{ startOfWeek|date('Y-m-d') }}">
+      <div class="grid-area">
+        {{ include('admin/grille/_grid.html.twig') }}
+      </div>
+      <aside class="sidebar">
+        <h2>
+          Programmation
+        </h2>
+        <div class="sidebar-mode-switch">
+          <button type="button" class="mode-btn is-active" data-grid-target="modeRegularBtn" data-action="click->grid#showRegularMode">
+            Régulières
+          </button>
+          <button type="button" class="mode-btn" data-grid-target="modeSpecialBtn" data-action="click->grid#showSpecialMode">
+            Non régulières
+          </button>
+        </div>
+        <div data-grid-target="regularPanel">
+          <h2>
+            Émissions disponibles
+          </h2>
+          <div id="slot-selection-empty" data-grid-target="emptyState">
+            Sélectionne un créneau dans la grille pour afficher les émissions compatibles.
+          </div>
+          <div id="slot-selection-panel" data-grid-target="sidebarPanel" style="display:none;">
+            <div class="sidebar-section">
+              <h3>
+                Créneau sélectionné
+              </h3>
+              <div class="slot-summary" data-grid-target="slotSummary"></div>
+              <div class="slot-actions" data-grid-target="slotActions" style="display:none;">
+                <button type="button" class="btn-remove-assignment" data-action="click->grid#removeAssignment">
+                  Retirer l’émission
+                </button>
+              </div>
+              <div class="arbitration-box" data-grid-target="arbitrationActions"></div>
+            </div>
+            <div class="sidebar-section">
+              <h3>
+                Émissions suggérées
+              </h3>
+              <div class="regular-search-box">
+                <input type="text" placeholder="Rechercher une émission..." class="regular-search-input" data-grid-target="regularSearch" data-action="input->grid#regularSearch">
+                  <div class="regular-search-help">
+                    Recherche dans les émissions de la catégorie active.
+                  </div>
+                  <button type="button" class="btn-regular-extended" data-grid-target="regularShowAllBtn" data-action="click->grid#toggleRegularExtended">
+                    Afficher plus
+                  </button>
+                  <button type="button" class="btn-regular-extended" data-grid-target="regularOtherCategoryBtn" data-action="click->grid#toggleRegularOtherCategory">
+                    Autre catégorie
+                  </button>
+                  <select class="special-filter-select" data-grid-target="regularCategorySelect" data-action="change->grid#regularCategoryChanged" style="display:none;">
+                    <option value="">
+                      Catégorie du créneau
+                    </option>
+                    {% for category in specialCategories %}
+                      <option value="{{ category.id }}">
+                        {{ category.titre }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div id="emissions-pool" data-grid-target="emissionsList"></div>
+              </div>
+            </div>
+          </div>
+          <div data-grid-target="specialPanel" style="display:none;">
+            <h2>
+              Émissions non régulières
+            </h2>
+            <div class="sidebar-section">
+              <h3>
+                Filtre
+              </h3>
+              <label for="special-category-select" class="special-filter-label">
+                Catégorie
+              </label>
+              <select id="special-category-select" class="special-filter-select" data-grid-target="specialCategorySelect" data-action="change->grid#loadSpecialCandidates">
+                <option value="">
+                  Choisir une catégorie
+                </option>
+                {% for category in specialCategories %}
+                  <option value="{{ category.id }}">
+                    {{ category.titre }}
+                  </option>
+                {% endfor %}
+              </select>
+              <input type="search" class="regular-search-input" placeholder="Rechercher une émission..." data-grid-target="specialSearch" data-action="input->grid#specialSearch">
+                <div class="special-filter-help">
+                  Choisis une catégorie puis glisse une émission dans la grille.
+                </div>
+              </div>
+              <div id="special-selection-empty" data-grid-target="specialEmptyState">
+                Sélectionne une catégorie.
+              </div>
+              <div data-grid-target="specialSidebarPanel" style="display:none;">
+                <div class="sidebar-section">
+                  <h3>
+                    Programmation sélectionnée
+                  </h3>
+                  <div class="slot-summary" data-grid-target="specialSlotSummary"></div>
+                </div>
+              </div>
+              <div class="sidebar-section">
+                <div class="special-toolbar">
+                  <h3>
+                    Émissions ponctuelles
+                  </h3>
+                  <div class="special-toolbar__status" data-grid-target="specialStatus">
+                    Sélectionne une catégorie.
+                  </div>
+                  <button type="button" class="btn-show-all" data-grid-target="specialShowAllBtn" data-action="click->grid#loadAllSpecialCandidates">
+                    Afficher tout
+                  </button>
+                </div>
+                <div id="emissions-pool-special" data-grid-target="emissionsList"></div>
+              </div>
+              <div class="sidebar-section">
+                <h3>
+                  Suppression
+                </h3>
+                <div class="trash-zone" data-grid-target="trashZone">
+                  🗑️ Glisser ici un draft manuel pour le supprimer
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      {% endblock %}
+      

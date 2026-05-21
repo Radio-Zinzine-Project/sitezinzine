@@ -88,7 +88,14 @@ export function placePostIt(dayEl, startIndex) {
         return
     }
 
-    const duration = parseInt(this.dragged.dataset.duration || '15', 10)
+    const rawDuration =
+        this.dragged.dataset.duration ||
+        this.dragged.dataset.emissionDuration ||
+        '15'
+
+    const duration =
+        parseInt(rawDuration, 10) || 15
+
     const heightPx = this.durationToPx(duration)
     const cells = this.durationToCells(duration)
 
@@ -104,6 +111,8 @@ export function placePostIt(dayEl, startIndex) {
         dayEl.appendChild(this.dragged)
         this.dragged.dataset.source = 'grid'
     }
+
+    this.dragged.dataset.duration = String(duration)
 
     this.dragged.classList.add('postit')
     this.dragged.style.top = `${startIndex * this.CELL_H}px`

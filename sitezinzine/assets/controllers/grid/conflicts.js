@@ -1,83 +1,83 @@
 import { escapeHtml } from './utils'
 
 export function getConflictSeverityLabel(postit) {
-    const severity = postit.dataset.conflictSeverity || ''
+  const severity = postit.dataset.conflictSeverity || ''
 
-    switch (severity) {
-        case 'total':
-            return 'Conflit total'
-        case 'contained':
-            return 'Conflit inclus'
-        case 'partial':
-            return 'Conflit partiel'
-        default:
-            return 'Conflit'
-    }
+  switch (severity) {
+    case 'total':
+      return 'Conflit total'
+    case 'contained':
+      return 'Conflit inclus'
+    case 'partial':
+      return 'Conflit partiel'
+    default:
+      return 'Conflit'
+  }
 }
 
 export function getConflictTypeLabel(postit) {
-    const conflictType = postit.dataset.conflictType || ''
+  const conflictType = postit.dataset.conflictType || ''
 
-    switch (conflictType) {
-        case 'same_slot_overlap':
-            return 'Chevauchement sur le même slot'
-        case 'same_rule_overlap':
-            return 'Chevauchement dans la même règle'
-        case 'rule_overlap':
-            return 'Chevauchement entre règles'
-        case 'multiple':
-            return 'Conflits multiples'
-        default:
-            return 'Conflit détecté'
-    }
+  switch (conflictType) {
+    case 'same_slot_overlap':
+      return 'Chevauchement sur le même slot'
+    case 'same_rule_overlap':
+      return 'Chevauchement dans la même règle'
+    case 'rule_overlap':
+      return 'Chevauchement entre règles'
+    case 'multiple':
+      return 'Conflits multiples'
+    default:
+      return 'Conflit détecté'
+  }
 }
 
 export function parseConflictWith(postit) {
-    const raw = postit.dataset.conflictWith || '[]'
+  const raw = postit.dataset.conflictWith || '[]'
 
-    try {
-        const parsed = JSON.parse(raw)
-        return Array.isArray(parsed) ? parsed : []
-    } catch {
-        return []
-    }
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
 }
 
 export function buildConflictSummary(context, postit) {
-    const hasConflict = postit.dataset.hasConflict === 'true'
+  const hasConflict = postit.dataset.hasConflict === 'true'
 
-    if (!hasConflict) {
-        return ''
-    }
+  if (!hasConflict) {
+    return ''
+  }
 
-    const conflictCount = parseInt(postit.dataset.conflictCount || '0', 10)
-    const severityLabel = context.getConflictSeverityLabel(postit)
-    const typeLabel = context.getConflictTypeLabel(postit)
-    const conflicts = context.parseConflictWith(postit)
+  const conflictCount = parseInt(postit.dataset.conflictCount || '0', 10)
+  const severityLabel = context.getConflictSeverityLabel(postit)
+  const typeLabel = context.getConflictTypeLabel(postit)
+  const conflicts = context.parseConflictWith(postit)
 
-    let html = `
+  let html = `
     <div style="margin-top:10px; padding-top:10px; border-top:1px solid #ececec;">
       <div><span class="label">Conflit :</span> ${escapeHtml(typeLabel)}</div>
       <div><span class="label">Niveau :</span> ${escapeHtml(severityLabel)}</div>
       <div><span class="label">Nombre :</span> ${escapeHtml(conflictCount)}</div>
   `
 
-    if (conflicts.length > 0) {
-        html += '<div style="margin-top:8px;"><span class="label">Créneaux concernés :</span></div>'
-        html += '<ul style="margin:6px 0 0 18px; padding:0;">'
+  if (conflicts.length > 0) {
+    html += '<div style="margin-top:8px;"><span class="label">Créneaux concernés :</span></div>'
+    html += '<ul style="margin:6px 0 0 18px; padding:0;">'
 
-        conflicts.forEach((item) => {
-            const categoryTitle = item.categoryTitle || 'Catégorie inconnue'
-            const startsAt = item.startsAt || ''
-            const endsAt = item.endsAt || ''
-            const ruleDisplayName = item.ruleDisplayName || ''
-            const broadcastRank = parseInt(item.broadcastRank || '1', 10)
+    conflicts.forEach((item) => {
+      const categoryTitle = item.categoryTitle || 'Catégorie inconnue'
+      const startsAt = item.startsAt || ''
+      const endsAt = item.endsAt || ''
+      const ruleDisplayName = item.ruleDisplayName || ''
+      const broadcastRank = parseInt(item.broadcastRank || '1', 10)
 
-            const typeLabelItem = broadcastRank > 1
-                ? `Rediffusion ${broadcastRank - 1}`
-                : '1re diffusion'
+      const typeLabelItem = broadcastRank > 1
+        ? `Rediffusion ${broadcastRank - 1}`
+        : '1re diffusion'
 
-            html += `
+      html += `
         <li style="margin-bottom:6px;">
           <div>${escapeHtml(categoryTitle)}</div>
           ${ruleDisplayName ? `<div style="font-size:12px; color:#555;">${escapeHtml(ruleDisplayName)}</div>` : ''}
@@ -87,23 +87,23 @@ export function buildConflictSummary(context, postit) {
           <div style="font-size:12px; color:#555;">${escapeHtml(typeLabelItem)}</div>
         </li>
       `
-        })
+    })
 
-        html += '</ul>'
-    }
+    html += '</ul>'
+  }
 
-    html += '</div>'
+  html += '</div>'
 
-    return html
+  return html
 }
 
 export function buildConflictActionButton(
-    label,
-    action,
-    slotId,
-    startsAt
+  label,
+  action,
+  slotId,
+  startsAt
 ) {
-    return `
+  return `
     <button
       type="button"
       class="conflict-action-btn"
@@ -117,13 +117,13 @@ export function buildConflictActionButton(
 }
 
 export function buildConflictHeader(context, postit) {
-    const severity =
-        context.getConflictSeverityLabel(postit)
+  const severity =
+    context.getConflictSeverityLabel(postit)
 
-    const type =
-        context.getConflictTypeLabel(postit)
+  const type =
+    context.getConflictTypeLabel(postit)
 
-    return `
+  return `
     <div class="conflict-panel__header">
 
       <div class="conflict-panel__title">
@@ -139,19 +139,19 @@ export function buildConflictHeader(context, postit) {
 }
 
 export function buildConflictArbitrationUI(context, postit) {
-    const hasConflict = postit.dataset.hasConflict === 'true'
+  const hasConflict = postit.dataset.hasConflict === 'true'
 
-    if (!hasConflict) {
-        return ''
-    }
+  if (!hasConflict) {
+    return ''
+  }
 
-    const occurrences = context.buildConflictGroup(postit)
+  const occurrences = context.buildConflictGroup(postit)
 
-    if (!occurrences.length) {
-        return ''
-    }
+  if (!occurrences.length) {
+    return ''
+  }
 
-    let html = `
+  let html = `
     <div class="conflict-section">
       <div class="conflict-title">⚠ Résolution du conflit</div>
       <div class="conflict-help">
@@ -159,25 +159,25 @@ export function buildConflictArbitrationUI(context, postit) {
       </div>
   `
 
-    let otherConflictIndex = 0
+  let otherConflictIndex = 0
 
-    occurrences.forEach((item) => {
-        const categoryTitle = item.categoryTitle || 'Catégorie inconnue'
-        const startsAt = item.startsAt || ''
-        const endsAt = item.endsAt || ''
-        const ruleDisplayName = item.ruleDisplayName || ''
-        const typeLabel = context.buildOccurrenceTypeLabel(item)
-        const isProjectedOverride = item.isProjectedOverride === true
-        const isSelected = item.isSelectedOccurrence === true
+  occurrences.forEach((item) => {
+    const categoryTitle = item.categoryTitle || 'Catégorie inconnue'
+    const startsAt = item.startsAt || ''
+    const endsAt = item.endsAt || ''
+    const ruleDisplayName = item.ruleDisplayName || ''
+    const typeLabel = context.buildOccurrenceTypeLabel(item)
+    const isProjectedOverride = item.isProjectedOverride === true
+    const isSelected = item.isSelectedOccurrence === true
 
-        const badge = isSelected
-            ? '<span class="conflict-card__badge">Sélectionné</span>'
-            : '<span class="conflict-card__badge conflict-card__badge--other">En conflit</span>'
+    const badge = isSelected
+      ? '<span class="conflict-card__badge">Sélectionné</span>'
+      : '<span class="conflict-card__badge conflict-card__badge--other">En conflit</span>'
 
-        let actionsHtml = ''
+    let actionsHtml = ''
 
-        if (isSelected && isProjectedOverride) {
-            actionsHtml = `
+    if (isSelected && isProjectedOverride) {
+      actionsHtml = `
         <button type="button" class="btn-arbitration" data-action="click->grid#clearReschedule">
           Revenir au créneau d’origine
         </button>
@@ -186,8 +186,8 @@ export function buildConflictArbitrationUI(context, postit) {
           Annuler ce créneau
         </button>
       `
-        } else if (isSelected) {
-            actionsHtml = `
+    } else if (isSelected) {
+      actionsHtml = `
         <button type="button" class="btn-arbitration" data-action="click->grid#reschedulePreviousWeek">
           Décaler à la semaine précédente
         </button>
@@ -212,8 +212,8 @@ export function buildConflictArbitrationUI(context, postit) {
           Annuler ce créneau
         </button>
       `
-        } else {
-            actionsHtml = `
+    } else {
+      actionsHtml = `
         <button type="button" class="btn-arbitration" data-action="click->grid#arbitratePreviousWeek" data-conflict-index="${otherConflictIndex}">
           Décaler -1 semaine
         </button>
@@ -227,10 +227,10 @@ export function buildConflictArbitrationUI(context, postit) {
         </button>
       `
 
-            otherConflictIndex++
-        }
+      otherConflictIndex++
+    }
 
-        html += `
+    html += `
       <div class="conflict-card ${isSelected ? 'conflict-card--selected' : ''}">
         <div class="conflict-card__header">
           <div class="conflict-card__title">${escapeHtml(categoryTitle)}</div>
@@ -252,55 +252,68 @@ export function buildConflictArbitrationUI(context, postit) {
         </div>
       </div>
     `
-    })
+  })
 
-    html += '</div>'
+  html += '</div>'
 
-    return html
+  return html
 }
 
 export function buildConflictGroup(context, postit) {
-    const group = []
+  const selected = {
+    segmentKey: postit.dataset.segmentKey || '',
+    slotId: postit.dataset.slotId || '',
+    ruleId: postit.dataset.ruleId || '',
+    ruleDisplayName: postit.dataset.ruleDisplayName || '',
+    categoryTitle: postit.dataset.categoryTitle || 'Catégorie inconnue',
+    broadcastRank: parseInt(postit.dataset.broadcastRank || '1', 10),
+    startsAt:
+      postit.dataset.originalStartsAt ||
+      postit.dataset.startsAt ||
+      '',
+    endsAt: postit.dataset.endsAt || '',
+    isProjectedOverride: postit.dataset.isProjectedOverride === 'true',
+    projectionType: postit.dataset.projectionType || '',
+    isSelectedOccurrence: true
+  }
 
-    const selectedOccurrence = {
-        slotId: postit.dataset.slotId || '',
-        categoryTitle: postit.dataset.categoryTitle || '',
-        startsAt:
-            postit.dataset.originalStartsAt ||
-            postit.dataset.startsAt ||
-            '',
-        endsAt: postit.dataset.endsAt || '',
-        ruleDisplayName: postit.dataset.ruleDisplayName || '',
-        broadcastRank: parseInt(postit.dataset.broadcastRank || '1', 10),
-        isProjectedOverride: postit.dataset.isProjectedOverride === 'true',
-        isSelectedOccurrence: true
-    }
+  const conflicts = context.parseConflictWith(postit)
 
-    group.push(selectedOccurrence)
+  const all = [selected, ...conflicts]
+  const deduped = []
 
-    const conflictItems = context.parseConflictWith(postit)
+  all.forEach((item) => {
+    const key =
+      item.segmentKey ||
+      `${item.slotId || ''}|${item.startsAt || ''}`
 
-    conflictItems.forEach((item) => {
-        group.push({
-            ...item,
-            isSelectedOccurrence: false
-        })
+    const exists = deduped.some((existing) => {
+      const existingKey =
+        existing.segmentKey ||
+        `${existing.slotId || ''}|${existing.startsAt || ''}`
+
+      return existingKey === key
     })
 
-    return group
+    if (!exists) {
+      deduped.push(item)
+    }
+  })
+
+  return deduped
 }
 
 export function buildOccurrenceTypeLabel(item) {
-    const broadcastRank = parseInt(item.broadcastRank || '1', 10)
-    const isProjectedOverride = item.isProjectedOverride === true
+  const broadcastRank = parseInt(item.broadcastRank || '1', 10)
+  const isProjectedOverride = item.isProjectedOverride === true
 
-    if (isProjectedOverride) {
-        return 'Occurrence déplacée'
-    }
+  if (isProjectedOverride) {
+    return 'Occurrence déplacée'
+  }
 
-    if (broadcastRank > 1) {
-        return `Rediffusion ${broadcastRank - 1}`
-    }
+  if (broadcastRank > 1) {
+    return `Rediffusion ${broadcastRank - 1}`
+  }
 
-    return '1re diffusion'
+  return '1re diffusion'
 }

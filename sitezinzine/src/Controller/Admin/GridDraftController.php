@@ -16,6 +16,9 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use App\Service\GridConflictDetector;
+use App\Service\GridOccurrenceProjectionService;
+use App\Service\ProgrammationGridBuilder;
 
 #[Route('/admin/grid-drafts', name: 'admin.grid_draft.')]
 #[IsGranted('ROLE_ADMIN')]
@@ -26,7 +29,10 @@ class GridDraftController extends AbstractController
         Request $request,
         EmissionRepository $emissionRepository,
         DiffusionDraftRepository $draftRepository,
-        EntityManagerInterface $em
+        EntityManagerInterface $em,
+        ProgrammationGridBuilder $programmationGridBuilder,
+        GridOccurrenceProjectionService $gridOccurrenceProjectionService,
+        GridConflictDetector $gridConflictDetector
     ): JsonResponse {
         $emissionId = $request->request->get('emissionId');
         $startsAtRaw = $request->request->get('startsAt');
@@ -90,6 +96,19 @@ class GridDraftController extends AbstractController
         }
 
         $endsAt = $startsAt->modify(sprintf('+%d minutes', $duration));
+        if ($this->hasRegularBlockingOverlap(
+            $startsAt,
+            $endsAt,
+            $programmationGridBuilder,
+            $gridOccurrenceProjectionService,
+            $gridConflictDetector
+        )) {
+            return $this->json([
+                'success' => false,
+                'conflict' => true,
+                'error' => 'Ce créneau chevauche déjà une programmation régulière.',
+            ], 409);
+        }
         $overlaps = $draftRepository->findOverlappingDrafts($startsAt, $endsAt);
 
         if (\count($overlaps) > 0) {
@@ -141,7 +160,10 @@ class GridDraftController extends AbstractController
         CategoriesRepository $categoriesRepository,
         DiffusionDraftRepository $draftRepository,
         LiveEmissionCreator $liveEmissionCreator,
-        EntityManagerInterface $em
+        EntityManagerInterface $em,
+        ProgrammationGridBuilder $programmationGridBuilder,
+        GridOccurrenceProjectionService $gridOccurrenceProjectionService,
+        GridConflictDetector $gridConflictDetector,
     ): JsonResponse {
         $categoryId = $request->request->get('categoryId');
         $startsAtRaw = $request->request->get('startsAt');
@@ -201,6 +223,19 @@ class GridDraftController extends AbstractController
         }
 
         $endsAt = $startsAt->modify(sprintf('+%d minutes', $duration));
+        if ($this->hasRegularBlockingOverlap(
+            $startsAt,
+            $endsAt,
+            $programmationGridBuilder,
+            $gridOccurrenceProjectionService,
+            $gridConflictDetector
+        )) {
+            return $this->json([
+                'success' => false,
+                'conflict' => true,
+                'error' => 'Ce créneau chevauche déjà une programmation régulière.',
+            ], 409);
+        }
         $overlaps = $draftRepository->findOverlappingDrafts($startsAt, $endsAt);
 
         if (\count($overlaps) > 0) {
@@ -303,7 +338,10 @@ class GridDraftController extends AbstractController
     public function move(
         Request $request,
         DiffusionDraftRepository $draftRepository,
-        EntityManagerInterface $em
+        EntityManagerInterface $em,
+        ProgrammationGridBuilder $programmationGridBuilder,
+        GridOccurrenceProjectionService $gridOccurrenceProjectionService,
+        GridConflictDetector $gridConflictDetector,
     ): JsonResponse {
         $draftId = $request->request->getInt('draftId');
         $startsAt = $request->request->get('startsAt');
@@ -349,6 +387,19 @@ class GridDraftController extends AbstractController
         }
 
         $newEndsAt = $newStartsAt->modify(sprintf('+%d minutes', $duration));
+        if ($this->hasRegularBlockingOverlap(
+            $newStartsAt,
+            $newEndsAt,
+            $programmationGridBuilder,
+            $gridOccurrenceProjectionService,
+            $gridConflictDetector
+        )) {
+            return $this->json([
+                'success' => false,
+                'conflict' => true,
+                'error' => 'Ce déplacement chevauche déjà une programmation régulière.',
+            ], 409);
+        }
 
         $overlappingDrafts = $draftRepository->findOverlappingDrafts(
             $newStartsAt,
@@ -373,5 +424,37 @@ class GridDraftController extends AbstractController
             'startsAt' => $draft->getHoraireDiffusion()?->format('Y-m-d H:i:s'),
             'endsAt' => $draft->getEndsAt()?->format('Y-m-d H:i:s'),
         ]);
+    }
+
+    private function hasRegularBlockingOverlap(
+        \DateTimeImmutable $startsAt,
+        \DateTimeImmutable $endsAt,
+        ProgrammationGridBuilder $programmationGridBuilder,
+        GridOccurrenceProjectionService $gridOccurrenceProjectionService,
+        GridConflictDetector $gridConflictDetector
+    ): bool {
+        $weekStart = $this->getRadioWeekStart($startsAt);
+        $weekEnd = $weekStart->modify('+7 days');
+
+        $daySegments = $programmationGridBuilder->buildForWeek($weekStart, $weekEnd);
+        $daySegments = $gridOccurrenceProjectionService->applyForWeek($daySegments, $weekStart, $weekEnd);
+
+        $overlaps = $gridConflictDetector->findBlockingOverlapsForRange(
+            $daySegments,
+            $startsAt,
+            $endsAt
+        );
+
+        return \count($overlaps) > 0;
+    }
+
+    private function getRadioWeekStart(\DateTimeImmutable $date): \DateTimeImmutable
+    {
+        $dayOfWeek = (int) $date->format('N');
+        $daysSinceTuesday = ($dayOfWeek + 5) % 7;
+
+        return $date
+            ->modify(sprintf('-%d days', $daysSinceTuesday))
+            ->setTime(0, 0);
     }
 }

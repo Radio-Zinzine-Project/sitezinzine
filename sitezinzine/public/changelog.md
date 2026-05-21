@@ -5,12 +5,16 @@
 - Gestion des créneaux annulés, affichage et restauration des différentes diffusions.
 - Quand on déplace un créneau, on peut aussi gérer les rediffs associées.
 - Ajout gestion restauration liée des rediffusions et arbitrage complet.
+- Contrôle des conflits entre créneaux réguliers et non réguliers.
+- Quand on modifie la catégorie d'un créneau, c'est la nouvelle catégorie qui s'affiche, pas l'ancienne.
+- Ajout du champ de recherche dans la liste des émissions non régulières.
 ### Correction
 - Correction du partial ondes, cartes carousel en double, sécurité si rien dans diffusion, js qui met en actif le programme qui passe à ce moment à la radio.
 - Amélioration graphique du carousel.
 - Correction du bug de token CSRF à la connection.
 - Quand on a déplacé une première diffusion, maintenant l'émission associée s'affiche correctement.
 - Audit et refactor complet de l'architecture gridController.js devenu trop lourd.
+- Modification du fonctionnement de l'affichage, si le créneau est vide, nom catégorie complet, si créneau rempli, slug catégorie + titre émission.
 
 
 ## [1.0.96] - 2026-05-17
