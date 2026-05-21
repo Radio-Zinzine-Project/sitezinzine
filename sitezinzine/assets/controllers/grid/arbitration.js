@@ -24,7 +24,7 @@ export async function cancelOccurrence() {
         return
     }
 
-    const rebroadcastStrategy =
+    const rebroadcast =
         await this.askRebroadcastStrategy('annuler')
 
     const confirmed =
@@ -38,7 +38,8 @@ export async function cancelOccurrence() {
         await postForm('/admin/grille/cancel-occurrence', {
             slotId,
             startsAt,
-            rebroadcastStrategy
+            rebroadcastStrategy: rebroadcast.strategy,
+            rebroadcastTargets: JSON.stringify(rebroadcast.targets || [])
         })
 
         window.location.reload()
@@ -70,19 +71,17 @@ export async function restoreOccurrence() {
         return
     }
 
-    const confirmed =
-        window.confirm('Restaurer ce créneau régulier ?')
-
-    if (!confirmed) {
-        return
-    }
+    const restoreStrategy =
+        await this.askRestoreRebroadcastStrategy()
 
     try {
         const data = await postForm(
             '/admin/grille/restore-occurrence',
             {
                 slotId,
-                originalStartsAt
+                originalStartsAt,
+                restoreLinkedRebroadcasts:
+                    restoreStrategy.restoreLinkedRebroadcasts ? '1' : '0'
             }
         )
 
@@ -120,14 +119,16 @@ export async function submitWeekReschedule(direction) {
         return
     }
 
-    const rebroadcastStrategy = await this.askRebroadcastStrategy('déplacer')
+    const rebroadcast =
+        await this.askRebroadcastStrategy('déplacer')
 
     try {
         const data = await postForm('/admin/grille/reschedule-week', {
             slotId,
             startsAt,
             direction,
-            rebroadcastStrategy
+            rebroadcastStrategy: rebroadcast.strategy,
+            rebroadcastTargets: JSON.stringify(rebroadcast.targets || [])
         })
 
         if (!data.targetWeekStart) {
@@ -178,7 +179,7 @@ export async function submitCustomReschedule() {
         return
     }
 
-    const rebroadcastStrategy =
+    const rebroadcast =
         await this.askRebroadcastStrategy('déplacer')
 
     try {
@@ -189,7 +190,8 @@ export async function submitCustomReschedule() {
                 startsAt,
                 newDate,
                 newTime,
-                rebroadcastStrategy
+                rebroadcastStrategy: rebroadcast.strategy,
+                rebroadcastTargets: JSON.stringify(rebroadcast.targets || [])
             }
         )
 
@@ -227,10 +229,15 @@ export async function clearReschedule() {
         return
     }
 
+    const restoreStrategy =
+        await this.askRestoreRebroadcastStrategy()
+
     try {
         const data = await postForm('/admin/grille/clear-reschedule', {
             slotId,
-            originalStartsAt
+            originalStartsAt,
+            restoreLinkedRebroadcasts:
+                restoreStrategy.restoreLinkedRebroadcasts ? '1' : '0'
         })
 
         if (!data.targetWeekStart) {
@@ -257,14 +264,16 @@ export async function callConflictReschedule(item, direction) {
         return
     }
 
-    const rebroadcastStrategy = await this.askRebroadcastStrategy('déplacer')
+    const rebroadcast =
+        await this.askRebroadcastStrategy('déplacer')
 
     try {
         const data = await postForm('/admin/grille/reschedule-week', {
             slotId,
             startsAt,
             direction,
-            rebroadcastStrategy
+            rebroadcastStrategy: rebroadcast.strategy,
+            rebroadcastTargets: JSON.stringify(rebroadcast.targets || [])
         })
 
         if (!data.targetWeekStart) {
@@ -291,7 +300,8 @@ export async function callConflictCancel(item) {
         return
     }
 
-    const rebroadcastStrategy = await this.askRebroadcastStrategy('annuler')
+    const rebroadcast =
+        await this.askRebroadcastStrategy('annuler')
 
     const confirmed = window.confirm('Annuler cette occurrence en conflit ?')
 
@@ -303,7 +313,8 @@ export async function callConflictCancel(item) {
         await postForm('/admin/grille/cancel-occurrence', {
             slotId,
             startsAt,
-            rebroadcastStrategy
+            rebroadcastStrategy: rebroadcast.strategy,
+            rebroadcastTargets: JSON.stringify(rebroadcast.targets || [])
         })
 
         window.location.reload()
