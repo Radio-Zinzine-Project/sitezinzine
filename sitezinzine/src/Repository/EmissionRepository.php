@@ -1041,7 +1041,23 @@ class EmissionRepository extends ServiceEntityRepository
         \DateTimeInterface $date,
         \DateTimeInterface $now
     ): array {
-        $start = \DateTimeImmutable::createFromInterface($date)->setTime(0, 0, 0);
+        $timezone = new \DateTimeZone('Europe/Paris');
+
+        /*
+     * Date demandée : on la considère comme un jour local.
+     */
+        $dateLocal = new \DateTimeImmutable(
+            $date->format('Y-m-d 00:00:00'),
+            $timezone
+        );
+
+        /*
+     * Maintenant : on convertit vraiment dans le fuseau Europe/Paris.
+     */
+        $nowLocal = \DateTimeImmutable::createFromInterface($now)
+            ->setTimezone($timezone);
+
+        $start = $dateLocal;
         $end = $start->modify('+1 day');
 
         $rows = $this->getEntityManager()->createQueryBuilder()
@@ -1078,7 +1094,21 @@ class EmissionRepository extends ServiceEntityRepository
                 continue;
             }
 
-            $startsAt = \DateTimeImmutable::createFromInterface($horaireDiffusion);
+            /*
+         * Important :
+         * Doctrine renvoie l'horaire en UTC.
+         * Ici on convertit réellement vers Europe/Paris.
+         */
+            $startsAt = \DateTimeImmutable::createFromInterface($horaireDiffusion)
+                ->setTimezone($timezone);
+
+            $duration = (int) ($emission->getDuree() ?? 60);
+
+            if ($duration <= 0) {
+                $duration = 60;
+            }
+
+            $endsAt = $startsAt->modify(sprintf('+%d minutes', $duration));
 
             $key = sprintf(
                 '%d_%s',
@@ -1092,13 +1122,9 @@ class EmissionRepository extends ServiceEntityRepository
 
             $seen[$key] = true;
 
-            $duration = $emission->getDuree() ?? 60;
-            if ($duration <= 0) {
-                $duration = 60;
-            }
-
-            $endsAt = $startsAt->modify(sprintf('+%d minutes', $duration));
-            $isCurrent = $now >= $startsAt && $now < $endsAt;
+            $isCurrent =
+                $nowLocal >= $startsAt &&
+                $nowLocal < $endsAt;
 
             $items[] = [
                 'emission' => $emission,
@@ -1114,7 +1140,7 @@ class EmissionRepository extends ServiceEntityRepository
                 break;
             }
 
-            if ($item['diffusion'] <= $now) {
+            if ($item['diffusion'] <= $nowLocal) {
                 $activeIndex = $index;
             }
         }

@@ -30,7 +30,7 @@ class HomeController extends AbstractController
 
         // Fallback DEV si aucune programmation aujourd'hui
         if (empty($programData['items'])) {
-            $fixedDate = new \DateTimeImmutable('2026-04-07', $timezone);
+            $fixedDate = new \DateTimeImmutable('2026-03-07', $timezone);
 
             $fakeNow = $fixedDate->setTime(
                 (int) $now->format('H'),

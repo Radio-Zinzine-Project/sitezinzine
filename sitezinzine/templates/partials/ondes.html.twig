@@ -11,9 +11,9 @@
 }
 
 .bodyondes {
-  width: min(100%, 1680px);
+  width: min(100%, 1900px);
   margin: 0 auto;
-  padding: 0 72px 40px;
+  padding: 0 20px 40px;
   position: relative;
 }
 
@@ -61,22 +61,22 @@
    Glide
    ========================= */
 
+.bodyondes {
+  overflow: hidden;
+}
+
 .bodyondes .glide {
   position: relative;
   width: 100%;
+  max-width: 100%;
   margin: 0 auto;
   padding: 0 54px;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .bodyondes .glide__track {
   cursor: grab;
-
-  /* IMPORTANT :
-     laisse dépasser la carte live agrandie */
   overflow: visible;
-
-  /* marge verticale pour la carte agrandie */
   padding: 80px 0 90px;
 }
 
@@ -87,9 +87,8 @@
 .bodyondes .glide__slides {
   display: flex;
   align-items: stretch;
-
-  /* évite que Glide coupe les éléments */
-  overflow: visible;
+  margin: 0;
+  padding: 0;
 }
 
 .bodyondes .glide__slide {
@@ -100,8 +99,7 @@
   display: flex;
   justify-content: center;
   align-items: stretch;
-
-  /* espace de sécurité */
+  min-width: 0;
   padding: 10px 0;
 }
 
@@ -109,7 +107,6 @@
 .bodyondes .glide__slide--live {
   z-index: 4;
 }
-
 /* =========================
    Carte
    ========================= */
@@ -358,7 +355,7 @@
 
   .bodyondes .glide {
   padding: 0;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .bodyondes .glide__track {
@@ -419,79 +416,77 @@
   }
 }
 </style>
-
 <div class="ondes-section">
   <div class="bodyondes">
     <div class="ondestitres">
       <img src="/images/illu-ondes.gif" alt="">
-      <div>
-        <h1>SUR LES ONDES</h1>
-        <h3>La programmation d'aujourd'hui</h3>
+        <div>
+          <h1>
+            SUR LES ONDES
+          </h1>
+          <h3>
+            La programmation d'aujourd'hui
+          </h3>
+        </div>
       </div>
-    </div>
-
-    <div
-    class="glide"
-    data-controller="carousel"
-    data-carousel-start-index="{{ activeIndex|default(0) }}">
-      <div class="glide__track" data-glide-el="track">
-        <ul class="glide__slides">
-          {% for row in lastEmissions %}
-            {% set emission = row.emission %}
-            {% set diffusion = row.diffusion %}
-            {% set isCurrent = row.isCurrent %}
-
-            <li class="glide__slide {{ isCurrent ? 'glide__slide--live' : '' }}">
-              <div class="carousel">
-                <div class="image_carousel">
-                  {% set imagePathEmission = vich_uploader_asset(emission, 'thumbnailFile') %}
-                  {% set imagePathCategorie = vich_uploader_asset(emission.categorie, 'thumbnailFile') %}
-
-                  {% if imagePathEmission %}
-                    <img src="{{ imagePathEmission }}" alt="{{ emission.titre }}">
-                  {% elseif imagePathCategorie %}
-                    <img src="{{ imagePathCategorie }}" alt="{{ emission.categorie.titre }}">
-                  {% else %}
-                    <img src="{{ asset('uploads/images/emission-zinzine.jpg') }}" alt="Image par défaut">
-                  {% endif %}
-
-                  {% if isCurrent %}
-                    <div class="live-badge">
-                        ● EN DIRECT
-                    </div>
-                  {% endif %}
+      <div class="glide" data-controller="carousel" data-carousel-start-index="{{ activeIndex|default(0) }}">
+        <div class="glide__track" data-glide-el="track">
+          <ul class="glide__slides">
+            {% for row in lastEmissions %}
+              {% set emission = row.emission %}
+              {% set diffusion = row.diffusion %}
+              {% set isCurrent = row.isCurrent %}
+              <li class="glide__slide {{ isCurrent ? 'glide__slide--live' : '' }}">
+                <div class="carousel">
+                  <div class="image_carousel">
+                    {% set imagePathEmission = vich_uploader_asset(emission, 'thumbnailFile') %}
+                    {% set imagePathCategorie = vich_uploader_asset(emission.categorie, 'thumbnailFile') %}
+                    {% if imagePathEmission %}
+                      <img
+                      src="{{ imagePathEmission }}" alt="{{ emission.titre }}">
+                        {% elseif imagePathCategorie %}
+                        <img
+                        src="{{ imagePathCategorie }}" alt="{{ emission.categorie.titre }}">
+                          {% else %}
+                          <img src="{{ asset('uploads/images/emission-zinzine.jpg') }}" alt="Image par défaut">
+                          {% endif %}
+                          {% if isCurrent %}
+                            <div class="live-badge">
+                              ● EN DIRECT
+                            </div>
+                          {% endif %}
+                        </div>
+                        <div class="date_carousel">
+                          <p>
+                            {{ diffusion | format_datetime('none', 'short', locale='fr') }}
+                          </p>
+                          </div>
+                          <div class="titre_carousel">
+                            <p>
+                              <a href="{{ path('emission.show', { id: emission.id }) }}">
+                                {{ emission.titre | upper }}
+                              </a>
+                            </p>
+                          </div>
+                          <div class="categorie_carousel">
+                            <p>
+                              {{ emission.categorie.titre | upper }}
+                            </p>
+                          </div>
+                        </div>
+                      </li>
+                    {% endfor %}
+                  </ul>
                 </div>
-
-                <div class="date_carousel">
-                  <p>{{ diffusion | format_datetime('none', 'short', locale='fr') }}</p>
-                </div>
-
-                <div class="titre_carousel">
-                  <p>
-                    <a href="{{ path('emission.show', { id: emission.id }) }}">
-                      {{ emission.titre | upper }}
-                    </a>
-                  </p>
-                </div>
-
-                <div class="categorie_carousel">
-                  <p>{{ emission.categorie.titre | upper }}</p>
+                <div class="glide__arrows" data-glide-el="controls">
+                  <button class="glide__arrow glide__arrow--left" data-glide-dir="<">
+                  <img src=" /images/previous.png" alt=" Précédent"></button>
+                  <button class="glide__arrow glide__arrow--right" data-glide-dir=">
+                    ">
+                    <img src="/images/next.png" alt="Suivant"></button>
+                  </div>
                 </div>
               </div>
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
-
-      <div class="glide__arrows" data-glide-el="controls">
-        <button class="glide__arrow glide__arrow--left" data-glide-dir="<">
-          <img src="/images/previous.png" alt="Précédent">
-        </button>
-
-        <button class="glide__arrow glide__arrow--right" data-glide-dir=">">
-          <img src="/images/next.png" alt="Suivant">
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
+            </div>
+          </li>
+          

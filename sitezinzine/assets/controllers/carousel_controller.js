@@ -25,7 +25,7 @@ export default class extends Controller {
       type: 'slider',
       startAt: startIndex,
       focusAt: 'center',
-      gap: 28,
+      gap: 12,
       perView: 4,
       animationDuration: 600,
       autoplay: false,
