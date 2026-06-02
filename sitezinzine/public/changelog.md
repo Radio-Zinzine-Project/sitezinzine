@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.99] - 2026-06-03
+### Correction
+- Reset des migrations doctrine avec une base propre pour la prod.
+
 ## [1.0.98] - 2026-06-02
 ### Correction
 - Correction du carrousel qui faisait n'importe quoi à cause de ces ù&!$ de fuseaux horaires de $ù!&^... les dates et heures c'est une plaie à coder quelque soit le language. De toute façon je sais que personne lit mon change log alors je râle si je veux !.
