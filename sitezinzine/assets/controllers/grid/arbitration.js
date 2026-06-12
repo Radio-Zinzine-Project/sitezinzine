@@ -42,6 +42,7 @@ export async function cancelOccurrence() {
             rebroadcastTargets: JSON.stringify(rebroadcast.targets || [])
         })
 
+        this.saveScrollTarget(startsAt)
         window.location.reload()
 
     } catch (error) {
@@ -92,6 +93,7 @@ export async function restoreOccurrence() {
             return
         }
 
+        this.saveScrollTarget(originalStartsAt)
         window.location.reload()
 
     } catch (error) {
@@ -317,6 +319,7 @@ export async function callConflictCancel(item) {
             rebroadcastTargets: JSON.stringify(rebroadcast.targets || [])
         })
 
+        this.saveScrollTarget(startsAt)
         window.location.reload()
     } catch (error) {
         alert(`Erreur lors de l’annulation du conflit : ${error.message}`)

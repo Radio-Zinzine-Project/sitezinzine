@@ -3,6 +3,12 @@ import { postForm, postJson } from './api'
 export async function dropOnTrash(event) {
     event.preventDefault()
 
+    const dragged = this.dragged
+
+    if (!dragged) {
+        return
+    }
+
     if (this.hasTrashZoneTarget) {
         this.trashZoneTarget.classList.remove('is-active')
     }
@@ -11,8 +17,9 @@ export async function dropOnTrash(event) {
         return
     }
 
-    const draftId = this.dragged.dataset.draftId || ''
-    const groupKey = this.dragged.dataset.assignmentGroupKey || ''
+    const draftId = dragged.dataset.draftId || ''
+    const groupKey = dragged.dataset.assignmentGroupKey || ''
+    const startsAt = dragged.dataset.startsAt || ''
 
     if (!draftId) {
         alert('Impossible de supprimer ce draft : identifiant manquant.')
@@ -44,6 +51,7 @@ export async function dropOnTrash(event) {
         })
 
         this.saveCurrentMode()
+        this.saveScrollTarget(startsAt)
         window.location.reload()
     } catch (error) {
         alert(
@@ -73,6 +81,7 @@ export async function moveManualDraftFromDrop(dayEl, startIndex) {
         })
 
         this.saveCurrentMode()
+        this.saveScrollTarget(startsAt)
         window.location.reload()
     } catch (error) {
         alert(
@@ -122,7 +131,7 @@ export async function createSpecialDraftFromDrop(dayEl, startIndex) {
                 draftType: 'manual_special'
             })
         }
-
+        this.saveScrollTarget(startsAt)
         window.location.reload()
     } catch (error) {
         alert(error.message || 'Impossible de créer la programmation.')
@@ -264,7 +273,9 @@ export async function openRebroadcastModal() {
                         deleteMode: 'single'
                     })
 
+                    this.saveScrollTarget(startsAt)
                     window.location.reload()
+
                 } catch (error) {
                     alert(
                         error.message ||

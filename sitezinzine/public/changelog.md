@@ -1,8 +1,19 @@
 # Changelog
 
+## [1.0.100] - 2026-06-13
+### Ajout
+- Ajout d'une ancre permettant de se retrouvé au même endroit de la grille une fois celle ci rechargée.
+### Correction
+- Correction du bug ne permettant pas de mettre une émission sur un créneau annulé ou déplacé.
+- Correction de la numérotation des diffusions en cas de changement sur la grille.
+- Correction UX : Quand on change de contexte, on vide la recherche.
+- Correction : quand on change la catégorie d'un créneau régulier, le nom de la nouvelle catégorie s'affiche.
+
+
 ## [1.0.99] - 2026-06-03
 ### Correction
 - Reset des migrations doctrine avec une base propre pour la prod.
+
 
 ## [1.0.98] - 2026-06-02
 ### Correction

@@ -298,123 +298,123 @@ class GridDraftController extends AbstractController
         ]);
     }
 
-#[Route('/delete', name: 'delete', methods: ['POST'])]
-public function delete(
-    Request $request,
-    DiffusionDraftRepository $draftRepository,
-    EntityManagerInterface $em
-): JsonResponse {
-    $data = json_decode($request->getContent(), true);
+    #[Route('/delete', name: 'delete', methods: ['POST'])]
+    public function delete(
+        Request $request,
+        DiffusionDraftRepository $draftRepository,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        $data = json_decode($request->getContent(), true);
 
-    if (!\is_array($data)) {
-        return $this->json([
-            'success' => false,
-            'error' => 'Payload JSON invalide',
-        ], 400);
-    }
+        if (!\is_array($data)) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Payload JSON invalide',
+            ], 400);
+        }
 
-    $draftId = $data['draftId'] ?? null;
-    $deleteMode = $data['deleteMode'] ?? 'single';
+        $draftId = $data['draftId'] ?? null;
+        $deleteMode = $data['deleteMode'] ?? 'single';
 
-    if (null === $draftId || '' === $draftId) {
-        return $this->json([
-            'success' => false,
-            'error' => 'Paramètre draftId manquant',
-        ], 400);
-    }
+        if (null === $draftId || '' === $draftId) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Paramètre draftId manquant',
+            ], 400);
+        }
 
-    if (!\in_array($deleteMode, ['single', 'rebroadcasts', 'group'], true)) {
-        return $this->json([
-            'success' => false,
-            'error' => 'Mode de suppression invalide',
-        ], 400);
-    }
+        if (!\in_array($deleteMode, ['single', 'rebroadcasts', 'group'], true)) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Mode de suppression invalide',
+            ], 400);
+        }
 
-    $draft = $draftRepository->find((int) $draftId);
+        $draft = $draftRepository->find((int) $draftId);
 
-    if (!$draft instanceof DiffusionDraft) {
-        return $this->json([
-            'success' => false,
-            'error' => 'Draft introuvable',
-        ], 404);
-    }
+        if (!$draft instanceof DiffusionDraft) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Draft introuvable',
+            ], 404);
+        }
 
-    if (!\in_array($draft->getDraftType(), [
-        DiffusionDraft::TYPE_MANUAL_SPECIAL,
-        DiffusionDraft::TYPE_MANUAL_REBROADCAST,
-        DiffusionDraft::TYPE_MANUAL_LIVE,
-    ], true)) {
-        return $this->json([
-            'success' => false,
-            'error' => 'Ce draft ne peut pas être supprimé via cette action',
-        ], 403);
-    }
+        if (!\in_array($draft->getDraftType(), [
+            DiffusionDraft::TYPE_MANUAL_SPECIAL,
+            DiffusionDraft::TYPE_MANUAL_REBROADCAST,
+            DiffusionDraft::TYPE_MANUAL_LIVE,
+        ], true)) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Ce draft ne peut pas être supprimé via cette action',
+            ], 403);
+        }
 
-    $draftsToDelete = [$draft];
-    $groupKey = $draft->getAssignmentGroupKey();
+        $draftsToDelete = [$draft];
+        $groupKey = $draft->getAssignmentGroupKey();
 
-    if ($groupKey && 'single' !== $deleteMode) {
-        $groupDrafts = $draftRepository->findBy([
-            'assignmentGroupKey' => $groupKey,
-        ]);
+        if ($groupKey && 'single' !== $deleteMode) {
+            $groupDrafts = $draftRepository->findBy([
+                'assignmentGroupKey' => $groupKey,
+            ]);
 
-        if ('rebroadcasts' === $deleteMode) {
-            $draftsToDelete = array_values(array_filter(
-                $groupDrafts,
-                static fn (DiffusionDraft $item): bool =>
+            if ('rebroadcasts' === $deleteMode) {
+                $draftsToDelete = array_values(array_filter(
+                    $groupDrafts,
+                    static fn(DiffusionDraft $item): bool =>
                     DiffusionDraft::TYPE_MANUAL_REBROADCAST === $item->getDraftType()
-            ));
+                ));
+            }
+
+            if ('group' === $deleteMode) {
+                $draftsToDelete = $groupDrafts;
+            }
         }
 
-        if ('group' === $deleteMode) {
-            $draftsToDelete = $groupDrafts;
+        if ([] === $draftsToDelete) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Aucun draft à supprimer.',
+            ], 400);
         }
-    }
 
-    if ([] === $draftsToDelete) {
+        foreach ($draftsToDelete as $item) {
+            if ($item instanceof DiffusionDraft) {
+                $em->remove($item);
+            }
+        }
+
+        if ($groupKey && 'group' !== $deleteMode) {
+            $remainingDrafts = $draftRepository->findBy(
+                ['assignmentGroupKey' => $groupKey],
+                ['horaireDiffusion' => 'ASC']
+            );
+
+            $rank = 1;
+
+            foreach ($remainingDrafts as $remainingDraft) {
+                if (!$remainingDraft instanceof DiffusionDraft) {
+                    continue;
+                }
+
+                if (\in_array($remainingDraft, $draftsToDelete, true)) {
+                    continue;
+                }
+
+                $remainingDraft->setNombreDiffusion($rank);
+                ++$rank;
+            }
+        }
+
+        $em->flush();
+
         return $this->json([
-            'success' => false,
-            'error' => 'Aucun draft à supprimer.',
-        ], 400);
+            'success' => true,
+            'draftId' => (int) $draftId,
+            'deleteMode' => $deleteMode,
+            'deletedCount' => \count($draftsToDelete),
+        ]);
     }
-
-    foreach ($draftsToDelete as $item) {
-        if ($item instanceof DiffusionDraft) {
-            $em->remove($item);
-        }
-    }
-
-    if ($groupKey && 'group' !== $deleteMode) {
-        $remainingDrafts = $draftRepository->findBy(
-            ['assignmentGroupKey' => $groupKey],
-            ['horaireDiffusion' => 'ASC']
-        );
-
-        $rank = 1;
-
-        foreach ($remainingDrafts as $remainingDraft) {
-            if (!$remainingDraft instanceof DiffusionDraft) {
-                continue;
-            }
-
-            if (\in_array($remainingDraft, $draftsToDelete, true)) {
-                continue;
-            }
-
-            $remainingDraft->setNombreDiffusion($rank);
-            ++$rank;
-        }
-    }
-
-    $em->flush();
-
-    return $this->json([
-        'success' => true,
-        'draftId' => (int) $draftId,
-        'deleteMode' => $deleteMode,
-        'deletedCount' => \count($draftsToDelete),
-    ]);
-}
 
     #[Route('/move', name: 'move', methods: ['POST'])]
     public function move(
@@ -497,6 +497,15 @@ public function delete(
         }
 
         $draft->setSchedule($newStartsAt, $duration);
+
+        $groupKey = $draft->getAssignmentGroupKey();
+
+        if ($groupKey) {
+            $this->renumberDraftGroupChronologically(
+                $groupKey,
+                $draftRepository
+            );
+        }
 
         $em->flush();
 
@@ -715,6 +724,11 @@ public function delete(
             ], 400);
         }
 
+        $this->renumberDraftGroupChronologically(
+            $groupKey,
+            $draftRepository
+        );
+
         $em->flush();
 
         return $this->json([
@@ -747,7 +761,7 @@ public function delete(
 
         $groupDrafts = $draftRepository->findBy(
             ['assignmentGroupKey' => $groupKey],
-            ['nombreDiffusion' => 'ASC']
+            ['horaireDiffusion' => 'ASC']
         );
 
         $items = [];
@@ -810,7 +824,7 @@ public function delete(
 
         $groupDrafts = $draftRepository->findBy(
             ['assignmentGroupKey' => $groupKey],
-            ['nombreDiffusion' => 'ASC']
+            ['horaireDiffusion' => 'ASC']
         );
 
         $items = [];
@@ -849,5 +863,26 @@ public function delete(
             'Rediffusion %d',
             $nombreDiffusion - 1
         );
+    }
+
+    private function renumberDraftGroupChronologically(
+        string $assignmentGroupKey,
+        DiffusionDraftRepository $draftRepository
+    ): void {
+        $groupDrafts = $draftRepository->findBy(
+            ['assignmentGroupKey' => $assignmentGroupKey],
+            ['horaireDiffusion' => 'ASC']
+        );
+
+        $rank = 1;
+
+        foreach ($groupDrafts as $groupDraft) {
+            if (!$groupDraft instanceof DiffusionDraft) {
+                continue;
+            }
+
+            $groupDraft->setNombreDiffusion($rank);
+            ++$rank;
+        }
     }
 }

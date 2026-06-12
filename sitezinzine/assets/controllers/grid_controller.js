@@ -125,8 +125,53 @@ export default class extends Controller {
       this.showRegularMode()
     }
 
+    this.restoreScrollTarget()
+
     this.syncSidebarHeight()
     window.addEventListener('resize', this.syncSidebarHeight)
+  }
+
+  saveScrollTarget(startsAt) {
+    if (!startsAt) {
+      return
+    }
+
+    sessionStorage.setItem(
+      'gridScrollTargetStartsAt',
+      startsAt
+    )
+  }
+
+  restoreScrollTarget() {
+    const startsAt = sessionStorage.getItem(
+      'gridScrollTargetStartsAt'
+    )
+
+    if (!startsAt) {
+      return
+    }
+
+    sessionStorage.removeItem(
+      'gridScrollTargetStartsAt'
+    )
+
+    requestAnimationFrame(() => {
+      const target = this.element.querySelector(
+        `[data-starts-at="${CSS.escape(startsAt)}"]`
+      )
+
+      if (!target) {
+        return
+      }
+
+      target.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      })
+
+      target.classList.add('is-selected')
+      this.selectedPostit = target
+    })
   }
 
   disconnect() {
@@ -212,6 +257,7 @@ export default class extends Controller {
   }
 
   showRegularMode() {
+    this.clearSpecialSearch()
     this.currentMode = 'regular'
     this.saveCurrentMode()
 
@@ -230,6 +276,7 @@ export default class extends Controller {
   }
 
   showSpecialMode() {
+    this.clearRegularSearch()
     this.currentMode = 'special'
     this.saveCurrentMode()
 
@@ -247,6 +294,11 @@ export default class extends Controller {
     this.specialEmptyStateTarget.style.display = 'block'
     this.specialSidebarPanelTarget.style.display = 'none'
     this.setEmissionsListHtml('')
+  }
+
+  specialCategoryChanged() {
+    this.clearSpecialSearch()
+    return this.loadSpecialCandidates()
   }
 
   durationToCells(duration) {
@@ -739,4 +791,13 @@ export default class extends Controller {
   loadLinkedDiffusions() {
     return sidebar.loadLinkedDiffusions.call(this)
   }
+
+  clearRegularSearch() {
+    return emissions.clearRegularSearch.call(this)
+  }
+
+  clearSpecialSearch() {
+    return emissions.clearSpecialSearch.call(this)
+  }
+
 }

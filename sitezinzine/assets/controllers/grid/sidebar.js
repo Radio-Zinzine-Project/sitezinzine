@@ -218,7 +218,7 @@ export async function selectSlot(context, event) {
         )
         return
     }
-
+    context.clearRegularSearch()
     await context.loadCandidatesForSelectedPostit()
 }
 
@@ -235,7 +235,7 @@ export async function loadLinkedDiffusions() {
 
     const root =
         this.currentMode === 'special' ||
-        this.selectedPostit.dataset.isManualDraft === 'true'
+            this.selectedPostit.dataset.isManualDraft === 'true'
             ? this.specialSlotSummaryTarget
             : this.slotSummaryTarget
 
