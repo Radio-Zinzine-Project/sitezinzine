@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.101] - 2026-06-14
+### Correction
+- Correction du bug ne permettant pas de mettre une émission sur un créneau annulé ou déplacé. (méthode plus robuste).
+- Correction de la numérotation des diffusions en cas de changement sur la grille. (méthode plus robuste).
+
+
 ## [1.0.100] - 2026-06-13
 ### Ajout
 - Ajout d'une ancre permettant de se retrouvé au même endroit de la grille une fois celle ci rechargée.

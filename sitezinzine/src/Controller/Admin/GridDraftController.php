@@ -19,6 +19,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use App\Service\GridConflictDetector;
 use App\Service\GridOccurrenceProjectionService;
 use App\Service\ProgrammationGridBuilder;
+use App\Repository\GridSlotArbitrationRepository;
+use App\Entity\GridSlotArbitration;
 
 #[Route('/admin/grid-drafts', name: 'admin.grid_draft.')]
 #[IsGranted('ROLE_ADMIN')]
@@ -32,7 +34,8 @@ class GridDraftController extends AbstractController
         EntityManagerInterface $em,
         ProgrammationGridBuilder $programmationGridBuilder,
         GridOccurrenceProjectionService $gridOccurrenceProjectionService,
-        GridConflictDetector $gridConflictDetector
+        GridConflictDetector $gridConflictDetector,
+        GridSlotArbitrationRepository $arbitrationRepository
     ): JsonResponse {
         $emissionId = $request->request->get('emissionId');
         $startsAtRaw = $request->request->get('startsAt');
@@ -109,7 +112,10 @@ class GridDraftController extends AbstractController
                 'error' => 'Ce créneau chevauche déjà une programmation régulière.',
             ], 409);
         }
-        $overlaps = $draftRepository->findOverlappingDrafts($startsAt, $endsAt);
+        $overlaps = $this->filterBlockingDraftOverlaps(
+            $draftRepository->findOverlappingDrafts($startsAt, $endsAt),
+            $arbitrationRepository
+        );
 
         if (\count($overlaps) > 0) {
             return $this->json([
@@ -175,6 +181,7 @@ class GridDraftController extends AbstractController
         ProgrammationGridBuilder $programmationGridBuilder,
         GridOccurrenceProjectionService $gridOccurrenceProjectionService,
         GridConflictDetector $gridConflictDetector,
+        GridSlotArbitrationRepository $arbitrationRepository
     ): JsonResponse {
         $categoryId = $request->request->get('categoryId');
         $startsAtRaw = $request->request->get('startsAt');
@@ -247,7 +254,10 @@ class GridDraftController extends AbstractController
                 'error' => 'Ce créneau chevauche déjà une programmation régulière.',
             ], 409);
         }
-        $overlaps = $draftRepository->findOverlappingDrafts($startsAt, $endsAt);
+        $overlaps = $this->filterBlockingDraftOverlaps(
+            $draftRepository->findOverlappingDrafts($startsAt, $endsAt),
+            $arbitrationRepository
+        );
 
         if (\count($overlaps) > 0) {
             return $this->json([
@@ -296,6 +306,41 @@ class GridDraftController extends AbstractController
             'durationMinutes' => $draft->getDurationMinutes(),
             'draftType' => $draft->getDraftType(),
         ]);
+    }
+
+    private function filterBlockingDraftOverlaps(
+        array $drafts,
+        GridSlotArbitrationRepository $arbitrationRepository
+    ): array {
+        return array_values(array_filter(
+            $drafts,
+            static function (DiffusionDraft $draft) use ($arbitrationRepository): bool {
+                if (DiffusionDraft::TYPE_REGULAR !== $draft->getDraftType()) {
+                    return true;
+                }
+
+                $slot = $draft->getSlot();
+                $startsAt = $draft->getHoraireDiffusion();
+
+                if (!$slot || !$slot->getId() || !$startsAt instanceof \DateTimeImmutable) {
+                    return true;
+                }
+
+                $arbitration = $arbitrationRepository->findOneBy([
+                    'slot' => $slot,
+                    'originalStartsAt' => $startsAt,
+                ]);
+
+                if (!$arbitration instanceof GridSlotArbitration) {
+                    return true;
+                }
+
+                return !(
+                    $arbitration->isCancelAction() ||
+                    $arbitration->isRescheduleAction()
+                );
+            }
+        ));
     }
 
     #[Route('/delete', name: 'delete', methods: ['POST'])]
@@ -424,6 +469,7 @@ class GridDraftController extends AbstractController
         ProgrammationGridBuilder $programmationGridBuilder,
         GridOccurrenceProjectionService $gridOccurrenceProjectionService,
         GridConflictDetector $gridConflictDetector,
+        GridSlotArbitrationRepository $arbitrationRepository
     ): JsonResponse {
         $draftId = $request->request->getInt('draftId');
         $startsAt = $request->request->get('startsAt');
@@ -483,10 +529,13 @@ class GridDraftController extends AbstractController
             ], 409);
         }
 
-        $overlappingDrafts = $draftRepository->findOverlappingDrafts(
-            $newStartsAt,
-            $newEndsAt,
-            $draft->getId()
+        $overlappingDrafts = $this->filterBlockingDraftOverlaps(
+            $draftRepository->findOverlappingDrafts(
+                $newStartsAt,
+                $newEndsAt,
+                $draft->getId()
+            ),
+            $arbitrationRepository
         );
 
         if (count($overlappingDrafts) > 0) {
@@ -497,6 +546,8 @@ class GridDraftController extends AbstractController
         }
 
         $draft->setSchedule($newStartsAt, $duration);
+
+        $em->flush();
 
         $groupKey = $draft->getAssignmentGroupKey();
 
@@ -570,7 +621,8 @@ class GridDraftController extends AbstractController
         EntityManagerInterface $em,
         ProgrammationGridBuilder $programmationGridBuilder,
         GridOccurrenceProjectionService $gridOccurrenceProjectionService,
-        GridConflictDetector $gridConflictDetector
+        GridConflictDetector $gridConflictDetector,
+        GridSlotArbitrationRepository $arbitrationRepository
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
@@ -690,9 +742,12 @@ class GridDraftController extends AbstractController
                 ], 409);
             }
 
-            $overlappingDrafts = $draftRepository->findOverlappingDrafts(
-                $startsAt,
-                $endsAt
+            $overlappingDrafts = $this->filterBlockingDraftOverlaps(
+                $draftRepository->findOverlappingDrafts(
+                    $startsAt,
+                    $endsAt
+                ),
+                $arbitrationRepository
             );
 
             if (\count($overlappingDrafts) > 0) {
@@ -723,6 +778,8 @@ class GridDraftController extends AbstractController
                 'error' => 'Aucune rediffusion valide à créer.',
             ], 400);
         }
+
+        $em->flush();
 
         $this->renumberDraftGroupChronologically(
             $groupKey,
