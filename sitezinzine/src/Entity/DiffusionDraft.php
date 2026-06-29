@@ -15,6 +15,9 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_diffusion_draft_slot', columns: ['slot_id'])]
 #[ORM\Index(name: 'idx_diffusion_draft_type', columns: ['draft_type'])]
 #[ORM\Index(name: 'idx_diffusion_draft_assignment_group', columns: ['assignment_group_key'])]
+#[ORM\Index(name: 'idx_diffusion_draft_publication_status', columns: ['publication_status'])]
+#[ORM\Index(name: 'idx_diffusion_draft_deleted_at', columns: ['deleted_at'])]
+#[ORM\Index(name: 'idx_diffusion_draft_published_diffusion', columns: ['published_diffusion_id'])]
 class DiffusionDraft
 {
     public const TYPE_REGULAR = 'regular';
@@ -27,6 +30,16 @@ class DiffusionDraft
         self::TYPE_MANUAL_REBROADCAST,
         self::TYPE_MANUAL_SPECIAL,
         self::TYPE_MANUAL_LIVE,
+    ];
+
+    public const STATUS_DRAFT = 'draft';
+    public const STATUS_PUBLISHED = 'published';
+    public const STATUS_CANCELLED = 'cancelled';
+
+    public const ALLOWED_PUBLICATION_STATUSES = [
+        self::STATUS_DRAFT,
+        self::STATUS_PUBLISHED,
+        self::STATUS_CANCELLED,
     ];
 
     #[ORM\Id]
@@ -75,6 +88,19 @@ class DiffusionDraft
 
     #[ORM\Column(length: 80, nullable: true)]
     private ?string $assignmentGroupKey = null;
+
+    #[ORM\Column(length: 30, options: ['default' => self::STATUS_DRAFT])]
+    private string $publicationStatus = self::STATUS_DRAFT;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $publishedAt = null;
+
+    #[ORM\ManyToOne(targetEntity: Diffusion::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Diffusion $publishedDiffusion = null;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $deletedAt = null;
 
     public function __construct()
     {
@@ -316,5 +342,107 @@ class DiffusionDraft
         $this->touch();
 
         return $this;
+    }
+
+    public function getPublicationStatus(): string
+    {
+        return $this->publicationStatus;
+    }
+
+    public function setPublicationStatus(string $publicationStatus): static
+    {
+        if (!\in_array($publicationStatus, self::ALLOWED_PUBLICATION_STATUSES, true)) {
+            throw new \InvalidArgumentException(sprintf('Statut de publication invalide : %s', $publicationStatus));
+        }
+
+        $this->publicationStatus = $publicationStatus;
+        $this->touch();
+
+        return $this;
+    }
+
+    public function isPublished(): bool
+    {
+        return self::STATUS_PUBLISHED === $this->publicationStatus;
+    }
+
+    public function isCancelled(): bool
+    {
+        return self::STATUS_CANCELLED === $this->publicationStatus;
+    }
+
+    public function isDraft(): bool
+    {
+        return self::STATUS_DRAFT === $this->publicationStatus;
+    }
+
+    public function getPublishedAt(): ?\DateTimeImmutable
+    {
+        return $this->publishedAt;
+    }
+
+    public function setPublishedAt(?\DateTimeImmutable $publishedAt): static
+    {
+        $this->publishedAt = $publishedAt;
+        $this->touch();
+
+        return $this;
+    }
+
+    public function getPublishedDiffusion(): ?Diffusion
+    {
+        return $this->publishedDiffusion;
+    }
+
+    public function setPublishedDiffusion(?Diffusion $publishedDiffusion): static
+    {
+        $this->publishedDiffusion = $publishedDiffusion;
+        $this->touch();
+
+        return $this;
+    }
+
+    public function markAsPublished(Diffusion $diffusion, ?\DateTimeImmutable $publishedAt = null): static
+    {
+        $this->publishedDiffusion = $diffusion;
+        $this->publishedAt = $publishedAt ?? new \DateTimeImmutable();
+        $this->publicationStatus = self::STATUS_PUBLISHED;
+        $this->touch();
+
+        return $this;
+    }
+
+    public function getDeletedAt(): ?\DateTimeImmutable
+    {
+        return $this->deletedAt;
+    }
+
+    public function setDeletedAt(?\DateTimeImmutable $deletedAt): static
+    {
+        $this->deletedAt = $deletedAt;
+        $this->touch();
+
+        return $this;
+    }
+
+    public function softDelete(): static
+    {
+        $this->deletedAt = new \DateTimeImmutable();
+        $this->touch();
+
+        return $this;
+    }
+
+    public function restore(): static
+    {
+        $this->deletedAt = null;
+        $this->touch();
+
+        return $this;
+    }
+
+    public function isDeleted(): bool
+    {
+        return null !== $this->deletedAt;
     }
 }
