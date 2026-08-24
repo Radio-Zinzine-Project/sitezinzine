@@ -14,6 +14,15 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_diffusion_assignment_group', columns: ['assignment_group_key'])]
 class Diffusion
 {
+
+    public const STATUS_PUBLISHED = 'published';
+    public const STATUS_UNPUBLISHED = 'unpublished';
+
+    public const ALLOWED_PUBLICATION_STATUSES = [
+        self::STATUS_PUBLISHED,
+        self::STATUS_UNPUBLISHED,
+    ];
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -42,15 +51,18 @@ class Diffusion
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $updatedAt;
 
+    #[ORM\Column]
+    private ?int $nombreDiffusion = null;
+
+    #[ORM\Column(length: 20, options: ['default' => 'published'])]
+    private string $publicationStatus = self::STATUS_PUBLISHED;
+
     public function __construct()
     {
         $now = new \DateTimeImmutable();
         $this->createdAt = $now;
         $this->updatedAt = $now;
     }
-
-    #[ORM\Column]
-    private ?int $nombreDiffusion = null;
 
     public function getId(): ?int
     {
@@ -178,5 +190,48 @@ class Diffusion
     private function touch(): void
     {
         $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function getPublicationStatus(): string
+    {
+        return $this->publicationStatus;
+    }
+
+    public function setPublicationStatus(string $publicationStatus): static
+    {
+        if (!\in_array($publicationStatus, self::ALLOWED_PUBLICATION_STATUSES, true)) {
+            throw new \InvalidArgumentException(sprintf(
+                'Statut de publication invalide : %s',
+                $publicationStatus
+            ));
+        }
+
+        $this->publicationStatus = $publicationStatus;
+
+        return $this;
+    }
+
+    public function isPublished(): bool
+    {
+        return self::STATUS_PUBLISHED === $this->publicationStatus;
+    }
+
+    public function isUnpublished(): bool
+    {
+        return self::STATUS_UNPUBLISHED === $this->publicationStatus;
+    }
+
+    public function markAsPublished(): static
+    {
+        $this->publicationStatus = self::STATUS_PUBLISHED;
+
+        return $this;
+    }
+
+    public function markAsUnpublished(): static
+    {
+        $this->publicationStatus = self::STATUS_UNPUBLISHED;
+
+        return $this;
     }
 }

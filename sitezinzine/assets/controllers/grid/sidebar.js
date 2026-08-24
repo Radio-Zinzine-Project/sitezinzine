@@ -167,6 +167,10 @@ export async function selectSlot(context, event) {
 
         await context.loadLinkedDiffusions()
 
+        if (context.isReadonly()) {
+            return
+        }
+
         return
     }
 
@@ -186,6 +190,18 @@ export async function selectSlot(context, event) {
         )
 
     await context.loadLinkedDiffusions()
+
+    if (context.isReadonly()) {
+        context.arbitrationActionsTarget.innerHTML = ''
+        context.arbitrationActionsTarget.style.display = 'none'
+        context.slotActionsTarget.style.display = 'none'
+
+        context.setEmissionsListHtml(
+            '<div>Cette semaine est validée. Le créneau est affiché en lecture seule.</div>'
+        )
+
+        return
+    }
 
     if (hasConflict && !isGhost) {
         context.arbitrationActionsTarget.innerHTML =
@@ -218,6 +234,7 @@ export async function selectSlot(context, event) {
         )
         return
     }
+
     context.clearRegularSearch()
     await context.loadCandidatesForSelectedPostit()
 }

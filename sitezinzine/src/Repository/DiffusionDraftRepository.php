@@ -153,4 +153,114 @@ class DiffusionDraftRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Retourne uniquement les drafts actifs et publiables de la semaine.
+     *
+     * Un draft dévalidé reste publiable même s’il conserve un lien
+     * vers une ancienne Diffusion via publishedDiffusion.
+     *
+     * @return DiffusionDraft[]
+     */
+    public function findPublishableByWeek(
+        \DateTimeImmutable $start,
+        \DateTimeImmutable $end
+    ): array {
+        return $this->createQueryBuilder('d')
+            ->addSelect('e', 'publishedDiffusion')
+            ->join('d.emission', 'e')
+            ->leftJoin('d.publishedDiffusion', 'publishedDiffusion')
+            ->andWhere('d.horaireDiffusion >= :start')
+            ->andWhere('d.horaireDiffusion < :end')
+            ->andWhere('d.deletedAt IS NULL')
+            ->andWhere('d.publicationStatus = :status')
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
+            ->setParameter('status', DiffusionDraft::STATUS_DRAFT)
+            ->orderBy('d.horaireDiffusion', 'ASC')
+            ->addOrderBy('d.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Recherche les rediffusions futures encore en brouillon pour les groupes
+     * présents dans la semaine que l’on envisage de valider.
+     *
+     * @param string[] $assignmentGroupKeys
+     *
+     * @return DiffusionDraft[]
+     */
+    public function findFutureDraftsByAssignmentGroupKeys(
+        array $assignmentGroupKeys,
+        \DateTimeImmutable $from
+    ): array {
+        $assignmentGroupKeys = array_values(array_unique(array_filter(
+            $assignmentGroupKeys,
+            static fn(mixed $key): bool => \is_string($key) && '' !== trim($key)
+        )));
+
+        if ([] === $assignmentGroupKeys) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('d')
+            ->addSelect('e')
+            ->join('d.emission', 'e')
+            ->andWhere('d.assignmentGroupKey IN (:groupKeys)')
+            ->andWhere('d.horaireDiffusion >= :from')
+            ->andWhere('d.deletedAt IS NULL')
+            ->andWhere('d.publicationStatus = :status')
+            ->setParameter('groupKeys', $assignmentGroupKeys)
+            ->setParameter('from', $from)
+            ->setParameter('status', DiffusionDraft::STATUS_DRAFT)
+            ->orderBy('d.horaireDiffusion', 'ASC')
+            ->addOrderBy('d.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findOneActiveDraftBySlotAndHoraire(
+        ProgrammationRuleSlot $slot,
+        \DateTimeImmutable $horaireDiffusion
+    ): ?DiffusionDraft {
+        return $this->createQueryBuilder('d')
+            ->andWhere('d.slot = :slot')
+            ->andWhere('d.horaireDiffusion = :horaire')
+            ->andWhere('d.deletedAt IS NULL')
+            ->andWhere('d.publicationStatus = :status')
+            ->setParameter('slot', $slot)
+            ->setParameter('horaire', $horaireDiffusion)
+            ->setParameter('status', DiffusionDraft::STATUS_DRAFT)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
+     * Retourne tous les DiffusionDraft liés à une liste de Diffusion publiées.
+     *
+     * @param int[] $diffusionIds
+     *
+     * @return DiffusionDraft[]
+     */
+    public function findByPublishedDiffusionIds(array $diffusionIds): array
+    {
+        $diffusionIds = array_values(array_unique(array_filter(
+            array_map('intval', $diffusionIds),
+            static fn(int $id): bool => $id > 0
+        )));
+
+        if ([] === $diffusionIds) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('d')
+            ->addSelect('pd')
+            ->leftJoin('d.publishedDiffusion', 'pd')
+            ->andWhere('IDENTITY(d.publishedDiffusion) IN (:diffusionIds)')
+            ->setParameter('diffusionIds', $diffusionIds)
+            ->orderBy('d.horaireDiffusion', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

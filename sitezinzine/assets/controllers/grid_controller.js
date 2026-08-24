@@ -39,7 +39,20 @@ export default class extends Controller {
     'trashZone'
   ]
 
+  isReadonly() {
+    return this.readonlyValue === true
+  }
+
+  static values = {
+    weekStart: String,
+    readonly: Boolean
+  }
+
   connect() {
+    console.log('readonlyValue =', this.readonlyValue)
+    console.log('weekStartValue =', this.weekStartValue)
+    console.log('dataset =', this.element.dataset)
+
     this.CELL_MIN = 15
     this.CELL_H = this.getSlotHeight()
 
@@ -55,12 +68,22 @@ export default class extends Controller {
 
     this.syncSidebarHeight = this.syncSidebarHeight.bind(this)
 
-    this.element.querySelectorAll('.postit').forEach((el) => {
-      this.makeDraggable(el, 'grid')
-    })
+    if (this.isReadonly()) {
+      this.element.querySelectorAll('[draggable="true"]').forEach((el) => {
+        el.setAttribute('draggable', 'false')
+      })
+    }
+
+    if (!this.isReadonly()) {
+      this.element.querySelectorAll('.postit').forEach((el) => {
+        this.makeDraggable(el, 'grid')
+      })
+    }
 
     this.dayTargets.forEach((day) => {
       day.addEventListener('dragover', (e) => {
+        if (this.isReadonly()) return
+
         e.preventDefault()
         day.classList.add('drag-over')
       })
@@ -69,12 +92,19 @@ export default class extends Controller {
         day.classList.remove('drag-over')
       })
 
-      day.addEventListener('drop', (e) => this.dropOnDay(e, day))
+      day.addEventListener('drop', (e) => {
+        if (this.isReadonly()) return
+
+        this.dropOnDay(e, day)
+      })
     })
 
     const regularPool = this.element.querySelector('#emissions-pool')
+
     if (regularPool) {
       regularPool.addEventListener('dragover', (e) => {
+        if (this.isReadonly()) return
+
         e.preventDefault()
         regularPool.classList.add('drop-pool-hover')
       })
@@ -83,12 +113,19 @@ export default class extends Controller {
         regularPool.classList.remove('drop-pool-hover')
       })
 
-      regularPool.addEventListener('drop', (e) => this.dropBackToPool(e, regularPool))
+      regularPool.addEventListener('drop', (e) => {
+        if (this.isReadonly()) return
+
+        this.dropBackToPool(e, regularPool)
+      })
     }
 
     const specialPool = this.element.querySelector('#emissions-pool-special')
+
     if (specialPool) {
       specialPool.addEventListener('dragover', (e) => {
+        if (this.isReadonly()) return
+
         e.preventDefault()
         specialPool.classList.add('drop-pool-hover')
       })
@@ -97,14 +134,17 @@ export default class extends Controller {
         specialPool.classList.remove('drop-pool-hover')
       })
 
-      specialPool.addEventListener('drop', (e) => this.dropBackToPool(e, specialPool))
+      specialPool.addEventListener('drop', (e) => {
+        if (this.isReadonly()) return
+
+        this.dropBackToPool(e, specialPool)
+      })
     }
 
     if (this.hasTrashZoneTarget) {
       this.trashZoneTarget.addEventListener('dragover', (e) => {
-        if (!this.canDropInTrash()) {
-          return
-        }
+        if (this.isReadonly()) return
+        if (!this.canDropInTrash()) return
 
         e.preventDefault()
         this.trashZoneTarget.classList.add('is-active')
@@ -114,7 +154,11 @@ export default class extends Controller {
         this.trashZoneTarget.classList.remove('is-active')
       })
 
-      this.trashZoneTarget.addEventListener('drop', (e) => this.dropOnTrash(e))
+      this.trashZoneTarget.addEventListener('drop', (e) => {
+        if (this.isReadonly()) return
+
+        this.dropOnTrash(e)
+      })
     }
 
     const savedMode = this.getSavedMode()
@@ -798,6 +842,70 @@ export default class extends Controller {
 
   clearSpecialSearch() {
     return emissions.clearSpecialSearch.call(this)
+  }
+
+  async createLiveEmission() {
+    if (this.isReadonly()) {
+      return
+    }
+
+    return emissions.createLiveEmission.call(this)
+  }
+
+  async removeAssignment() {
+    if (this.isReadonly()) {
+      return
+    }
+
+    return emissions.removeAssignment.call(this)
+  }
+
+  async selectEmission(event) {
+    if (this.isReadonly()) {
+      return
+    }
+
+    return emissions.selectEmission.call(this, event)
+  }
+
+  async submitWeekReschedule(direction) {
+    if (this.isReadonly()) {
+      return
+    }
+
+    return arbitration.submitWeekReschedule.call(this, direction)
+  }
+
+  async submitCustomReschedule() {
+    if (this.isReadonly()) {
+      return
+    }
+
+    return arbitration.submitCustomReschedule.call(this)
+  }
+
+  async cancelOccurrence() {
+    if (this.isReadonly()) {
+      return
+    }
+
+    return arbitration.cancelOccurrence.call(this)
+  }
+
+  async restoreOccurrence() {
+    if (this.isReadonly()) {
+      return
+    }
+
+    return arbitration.restoreOccurrence.call(this)
+  }
+
+  async clearReschedule() {
+    if (this.isReadonly()) {
+      return
+    }
+
+    return arbitration.clearReschedule.call(this)
   }
 
 }

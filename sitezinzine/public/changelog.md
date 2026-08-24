@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.102] - 2026-08-24
+### Ajout
+- Système de validation d'une grille.
+- Gestion des diffusions historiques (ancienne table grille), afin qu'elle correspondent au nouveau système de groupement de programmation.
+- Système de validation et dévalidation de la grille de programmation. ( *\o/* <= Joëlle en Pom-pom girl )
+### Correction
+- Correction de l'adresse no-reply de zinzine pour les courrier du site (reset password).
+
+
 ## [1.0.101] - 2026-06-14
 ### Correction
 - Correction du bug ne permettant pas de mettre une émission sur un créneau annulé ou déplacé. (méthode plus robuste).

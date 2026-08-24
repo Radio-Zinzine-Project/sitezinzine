@@ -61,7 +61,8 @@ class ProgrammationGridBuilder
                             $rule,
                             $firstSlot,
                             $firstStartsAt,
-                            $startOfWeek
+                            $startOfWeek,
+                            $firstStartsAt
                         );
                     }
 
@@ -80,7 +81,8 @@ class ProgrammationGridBuilder
                             $rule,
                             $rebroadcastSlot,
                             $rebroadcastStartsAt,
-                            $startOfWeek
+                            $startOfWeek,
+                            $firstStartsAt
                         );
                     }
                 }
@@ -112,70 +114,70 @@ class ProgrammationGridBuilder
     }
 
     private function generateSlotOccurrencesForWeekWithLookAround(
-    ProgrammationRule $rule,
-    ProgrammationRuleSlot $slot,
-    \DateTimeImmutable $startOfWeek,
-    \DateTimeImmutable $endOfWeek
-): array {
-    $rangeStart = $startOfWeek->modify('-8 weeks');
-    $rangeEnd = $endOfWeek->modify('+8 weeks');
+        ProgrammationRule $rule,
+        ProgrammationRuleSlot $slot,
+        \DateTimeImmutable $startOfWeek,
+        \DateTimeImmutable $endOfWeek
+    ): array {
+        $rangeStart = $startOfWeek->modify('-8 weeks');
+        $rangeEnd = $endOfWeek->modify('+8 weeks');
 
-    $occurrences = [];
+        $occurrences = [];
 
-    if ($slot->isWeekly()) {
-        $cursorWeekStart = $this->getRadioWeekStart($rangeStart);
+        if ($slot->isWeekly()) {
+            $cursorWeekStart = $this->getRadioWeekStart($rangeStart);
 
-        while ($cursorWeekStart < $rangeEnd) {
-            $visibleDate = $this->findDayInDisplayedWeek($cursorWeekStart, $slot->getDayOfWeek());
+            while ($cursorWeekStart < $rangeEnd) {
+                $visibleDate = $this->findDayInDisplayedWeek($cursorWeekStart, $slot->getDayOfWeek());
 
-            if ($visibleDate !== null) {
-                $startsAt = $this->applyTime($visibleDate, $slot);
-
-                if (
-                    $startsAt >= $rangeStart
-                    && $startsAt < $rangeEnd
-                    && $this->weeklyOccurrenceMatchesRule($rule, $slot, $startsAt)
-                    && $this->weekMatchesParity($slot, $startsAt)
-                ) {
-                    $occurrences[$startsAt->format('Y-m-d H:i:s')] = $startsAt;
-                }
-            }
-
-            $cursorWeekStart = $cursorWeekStart->modify('+7 days');
-        }
-    }
-
-    if ($slot->isMonthly()) {
-        $monthCursor = $rangeStart->modify('first day of this month')->setTime(0, 0, 0);
-        $lastMonth = $rangeEnd->modify('first day of this month')->setTime(0, 0, 0);
-
-        while ($monthCursor <= $lastMonth) {
-            if ($this->monthMatchesInterval($rule, $monthCursor, $slot->getMonthInterval())) {
-                $baseDate = $this->resolveMonthlyOccurrenceDate(
-                    (int) $monthCursor->format('Y'),
-                    (int) $monthCursor->format('m'),
-                    $slot->getDayOfWeek(),
-                    $slot->getMonthlyOccurrence()
-                );
-
-                if ($baseDate !== null && $this->dateMatchesRuleWindow($rule, $baseDate)) {
-                    $visibleDate = $baseDate->modify(sprintf('+%d days', $slot->getWeekOffset() * 7));
+                if ($visibleDate !== null) {
                     $startsAt = $this->applyTime($visibleDate, $slot);
 
-                    if ($startsAt >= $rangeStart && $startsAt < $rangeEnd) {
+                    if (
+                        $startsAt >= $rangeStart
+                        && $startsAt < $rangeEnd
+                        && $this->weeklyOccurrenceMatchesRule($rule, $slot, $startsAt)
+                        && $this->weekMatchesParity($slot, $startsAt)
+                    ) {
                         $occurrences[$startsAt->format('Y-m-d H:i:s')] = $startsAt;
                     }
                 }
+
+                $cursorWeekStart = $cursorWeekStart->modify('+7 days');
             }
-
-            $monthCursor = $monthCursor->modify('first day of next month')->setTime(0, 0, 0);
         }
+
+        if ($slot->isMonthly()) {
+            $monthCursor = $rangeStart->modify('first day of this month')->setTime(0, 0, 0);
+            $lastMonth = $rangeEnd->modify('first day of this month')->setTime(0, 0, 0);
+
+            while ($monthCursor <= $lastMonth) {
+                if ($this->monthMatchesInterval($rule, $monthCursor, $slot->getMonthInterval())) {
+                    $baseDate = $this->resolveMonthlyOccurrenceDate(
+                        (int) $monthCursor->format('Y'),
+                        (int) $monthCursor->format('m'),
+                        $slot->getDayOfWeek(),
+                        $slot->getMonthlyOccurrence()
+                    );
+
+                    if ($baseDate !== null && $this->dateMatchesRuleWindow($rule, $baseDate)) {
+                        $visibleDate = $baseDate->modify(sprintf('+%d days', $slot->getWeekOffset() * 7));
+                        $startsAt = $this->applyTime($visibleDate, $slot);
+
+                        if ($startsAt >= $rangeStart && $startsAt < $rangeEnd) {
+                            $occurrences[$startsAt->format('Y-m-d H:i:s')] = $startsAt;
+                        }
+                    }
+                }
+
+                $monthCursor = $monthCursor->modify('first day of next month')->setTime(0, 0, 0);
+            }
+        }
+
+        ksort($occurrences);
+
+        return array_values($occurrences);
     }
-
-    ksort($occurrences);
-
-    return array_values($occurrences);
-}
 
     private function computeStartsAtFromAnchor(
         \DateTimeImmutable $anchorDate,
@@ -209,7 +211,8 @@ class ProgrammationGridBuilder
         ProgrammationRule $rule,
         ProgrammationRuleSlot $slot,
         \DateTimeImmutable $startsAt,
-        \DateTimeImmutable $startOfWeek
+        \DateTimeImmutable $startOfWeek,
+        \DateTimeImmutable $firstBroadcastStartsAt
     ): void {
         $dayIndex = (int) $startOfWeek->diff($startsAt)->days;
 
@@ -219,6 +222,7 @@ class ProgrammationGridBuilder
 
         $hour = (int) $startsAt->format('H');
         $minute = (int) $startsAt->format('i');
+
         $startIndex = $hour * 4 + intdiv($minute, 15);
         $startIndex = max(0, min(95, $startIndex));
 
@@ -249,8 +253,21 @@ class ProgrammationGridBuilder
             'ruleId' => $rule->getId(),
             'ruleNumber' => $rule->getRuleNumber(),
             'ruleDisplayName' => $rule->getDisplayName(),
+
             'slotId' => $slot->getId(),
             'broadcastRank' => $slot->getBroadcastRank(),
+
+            /*
+         * Occurrence de rang 1 à l'origine de ce segment.
+         *
+         * Pour une première diffusion :
+         * firstBroadcastStartsAt === startsAt
+         *
+         * Pour une rediffusion :
+         * firstBroadcastStartsAt correspond à l'occurrence
+         * de la première diffusion liée à cette rediffusion.
+         */
+            'firstBroadcastStartsAt' => $firstBroadcastStartsAt->format('Y-m-d H:i:s'),
 
             'startsAt' => $startsAt->format('Y-m-d H:i:s'),
             'endsAt' => $endsAt->format('Y-m-d H:i:s'),

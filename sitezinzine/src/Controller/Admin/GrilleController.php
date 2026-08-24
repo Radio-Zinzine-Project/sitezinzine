@@ -4,20 +4,19 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
-use App\Entity\DiffusionDraft;
-use App\Entity\Emission;
 use App\Entity\Categories;
+use App\Entity\Emission;
 use App\Entity\GridSlotArbitration;
 use App\Entity\ProgrammationRuleSlot;
 use App\Repository\CategoriesRepository;
-use App\Repository\DiffusionDraftRepository;
 use App\Repository\EmissionRepository;
 use App\Repository\GridSlotArbitrationRepository;
 use App\Repository\ProgrammationRuleRepository;
 use App\Repository\ProgrammationRuleSlotRepository;
+use App\Service\GridRebroadcastCoverageService;
 use App\Service\GridAssignmentService;
-use App\Service\GridConflictDetector;
-use App\Service\GridOccurrenceProjectionService;
+use App\Service\GridViewBuilder;
+use App\Service\GridUnpublicationService;
 use App\Service\LiveEmissionCreator;
 use App\Service\ProgrammationGridBuilder;
 use Doctrine\ORM\EntityManagerInterface;
@@ -27,7 +26,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-
+use App\Service\GridPublicationService;
 
 #[Route('/admin/grille', name: 'admin.grille.')]
 #[IsGranted('ROLE_ADMIN')]
@@ -35,290 +34,150 @@ class GrilleController extends AbstractController
 {
     #[Route('', name: 'index_current', methods: ['GET'])]
     public function indexCurrent(
-        ProgrammationGridBuilder $programmationGridBuilder,
-        DiffusionDraftRepository $draftRepository,
-        GridOccurrenceProjectionService $gridOccurrenceProjectionService,
-        GridConflictDetector $gridConflictDetector,
-        CategoriesRepository $categoriesRepository
+        GridViewBuilder $gridViewBuilder,
+        GridUnpublicationService $gridUnpublicationService,
     ): Response {
-        return $this->renderGrid(
-            null,
-            $programmationGridBuilder,
-            $draftRepository,
-            $gridOccurrenceProjectionService,
-            $gridConflictDetector,
-            $categoriesRepository
+        return $this->renderGrid(null, $gridViewBuilder,
+        $gridUnpublicationService);
+    }
+
+#[Route(
+    '/{startOfWeek}',
+    name: 'index',
+    methods: ['GET'],
+    requirements: ['startOfWeek' => '\d{4}-\d{2}-\d{2}']
+)]
+public function index(
+    string $startOfWeek,
+    GridViewBuilder $gridViewBuilder,
+    GridUnpublicationService $gridUnpublicationService,
+): Response {
+    return $this->renderGrid(
+        $startOfWeek,
+        $gridViewBuilder,
+        $gridUnpublicationService
+    );
+}
+
+private function renderGrid(
+    ?string $startOfWeek,
+    GridViewBuilder $gridViewBuilder,
+    GridUnpublicationService $gridUnpublicationService,
+): Response {
+    $startDate = $startOfWeek
+        ? \DateTime::createFromFormat('Y-m-d', $startOfWeek)
+        : new \DateTime();
+
+    if (!$startDate) {
+        throw $this->createNotFoundException(
+            'Date de semaine invalide.'
         );
     }
 
-    #[Route('/{startOfWeek}', name: 'index', methods: ['GET'], requirements: ['startOfWeek' => '\d{4}-\d{2}-\d{2}'])]
-    public function index(
+    $startOfWeekDate = (clone $startDate)
+        ->modify('this week')
+        ->modify('+1 day')
+        ->setTime(0, 0, 0);
+
+    $endOfWeekDate = (clone $startOfWeekDate)
+        ->modify('+7 days');
+
+    $jours = [];
+
+    for ($i = 0; $i < 7; $i++) {
+        $jours[] = (clone $startOfWeekDate)
+            ->modify("+{$i} days");
+    }
+
+    $startImmutable = \DateTimeImmutable::createFromMutable(
+        $startOfWeekDate
+    );
+
+    $endImmutable = \DateTimeImmutable::createFromMutable(
+        $endOfWeekDate
+    );
+
+    $gridView = $gridViewBuilder->build(
+        $startImmutable,
+        $endImmutable
+    );
+
+    /*
+     * Par défaut, une semaine n'est pas dévalidable.
+     *
+     * On vérifie seulement les semaines affichées depuis Diffusion.
+     */
+    $canUnpublish = false;
+
+    if (($gridView['gridMode'] ?? null) === 'diffusion') {
+        $unpublicationPreview = $gridUnpublicationService->previewWeek(
+            $startImmutable
+        );
+
+        $canUnpublish = (bool) (
+            $unpublicationPreview['canUnpublish']
+            ?? false
+        );
+    }
+
+    return $this->render(
+        'admin/grille/index.html.twig',
+        [
+            'startOfWeek' => $startOfWeekDate,
+            'jours' => $jours,
+            'canUnpublish' => $canUnpublish,
+            ...$gridView,
+        ]
+    );
+}
+
+
+    #[Route(
+        '/{startOfWeek}/publish',
+        name: 'publish',
+        methods: ['POST'],
+        requirements: ['startOfWeek' => '\d{4}-\d{2}-\d{2}']
+    )]
+    public function publishWeek(
         string $startOfWeek,
-        ProgrammationGridBuilder $programmationGridBuilder,
-        DiffusionDraftRepository $draftRepository,
-        GridOccurrenceProjectionService $gridOccurrenceProjectionService,
-        GridConflictDetector $gridConflictDetector,
-        CategoriesRepository $categoriesRepository
+        Request $request,
+        GridPublicationService $gridPublicationService
     ): Response {
-        return $this->renderGrid(
-            $startOfWeek,
-            $programmationGridBuilder,
-            $draftRepository,
-            $gridOccurrenceProjectionService,
-            $gridConflictDetector,
-            $categoriesRepository
-        );
-    }
+        if (!$this->isCsrfTokenValid(
+            'publish_grid_week_' . $startOfWeek,
+            (string) $request->request->get('_token')
+        )) {
+            throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+        }
 
-    private function renderGrid(
-        ?string $startOfWeek,
-        ProgrammationGridBuilder $programmationGridBuilder,
-        DiffusionDraftRepository $draftRepository,
-        GridOccurrenceProjectionService $gridOccurrenceProjectionService,
-        GridConflictDetector $gridConflictDetector,
-        CategoriesRepository $categoriesRepository
-    ): Response {
-        $startDate = $startOfWeek
-            ? \DateTime::createFromFormat('Y-m-d', $startOfWeek)
-            : new \DateTime();
-
-        if (!$startDate) {
+        try {
+            $weekStart = new \DateTimeImmutable($startOfWeek);
+        } catch (\Exception) {
             throw $this->createNotFoundException('Date de semaine invalide.');
         }
 
-        $startOfWeekDate = (clone $startDate)
-            ->modify('this week')
-            ->modify('+1 day')
-            ->setTime(0, 0, 0);
+        try {
+            $result = $gridPublicationService->publishWeek($weekStart);
+        } catch (\DomainException | \LogicException $e) {
+            $this->addFlash('danger', $e->getMessage());
 
-        $endOfWeekDate = (clone $startOfWeekDate)->modify('+7 days');
-
-        $jours = [];
-        for ($i = 0; $i < 7; $i++) {
-            $jours[] = (clone $startOfWeekDate)->modify("+$i days");
+            return $this->redirectToRoute('admin.grille.index', [
+                'startOfWeek' => $startOfWeek,
+            ]);
         }
 
-        $startImmutable = \DateTimeImmutable::createFromMutable($startOfWeekDate);
-        $endImmutable = \DateTimeImmutable::createFromMutable($endOfWeekDate);
-
-        $daySegments = $programmationGridBuilder->buildForWeek($startImmutable, $endImmutable);
-        $daySegments = $gridOccurrenceProjectionService->applyForWeek(
-            $daySegments,
-            $startImmutable,
-            $endImmutable
+        $this->addFlash(
+            'success',
+            sprintf(
+                'Semaine validée : %d diffusion(s) créée(s), %d mise(s) à jour.',
+                $result['createdCount'],
+                $result['updatedCount']
+            )
         );
-        $daySegments = $gridConflictDetector->detectForWeek($daySegments);
 
-        $drafts = $draftRepository->findByWeek($startImmutable, $endImmutable);
-
-        $extraDraftLookupPairs = [];
-
-        foreach ($daySegments as $segments) {
-            foreach ($segments as $seg) {
-                $slotId = $seg['slotId'] ?? null;
-                $originalStartsAt = $seg['originalStartsAt'] ?? null;
-                $startsAt = $seg['startsAt'] ?? null;
-
-                if (!$slotId || !$originalStartsAt || !$startsAt) {
-                    continue;
-                }
-
-                if ($originalStartsAt === $startsAt) {
-                    continue;
-                }
-
-                $originalDate = $originalStartsAt instanceof \DateTimeInterface
-                    ? \DateTimeImmutable::createFromInterface($originalStartsAt)
-                    : new \DateTimeImmutable((string) $originalStartsAt);
-
-                $key = sprintf('%d|%s', (int) $slotId, $originalDate->format('Y-m-d H:i:s'));
-
-                $extraDraftLookupPairs[$key] = [
-                    'slotId' => (int) $slotId,
-                    'startsAt' => $originalDate,
-                ];
-            }
-        }
-
-        if ([] !== $extraDraftLookupPairs) {
-            $extraDrafts = $draftRepository->findRegularDraftsBySlotAndStartsAtPairs(
-                array_values($extraDraftLookupPairs)
-            );
-
-            $drafts = array_merge($drafts, $extraDrafts);
-        }
-
-        $draftIndex = [];
-        $manualDraftsByDay = array_fill(0, 7, []);
-
-        foreach ($drafts as $draft) {
-            if (!$draft instanceof DiffusionDraft) {
-                continue;
-            }
-
-            $startsAt = $draft->getHoraireDiffusion();
-            if (!$startsAt instanceof \DateTimeInterface) {
-                continue;
-            }
-
-            if ($draft->getSlot() instanceof ProgrammationRuleSlot) {
-                $key = $this->buildDraftKey(
-                    $draft->getSlot()->getId(),
-                    $startsAt
-                );
-
-                if (null !== $key) {
-                    $draftIndex[$key] = $draft;
-                }
-
-                continue;
-            }
-
-            $dayIndex = $this->getManualDraftDayIndex($startsAt, $startImmutable, $endImmutable);
-            if (null === $dayIndex) {
-                continue;
-            }
-
-            $duration = $draft->getDurationMinutes() ?? $draft->getEmission()?->getDuree() ?? 15;
-            if ($duration < 1) {
-                $duration = 15;
-            }
-
-            $minutesFromMidnight = ((int) $startsAt->format('H') * 60) + (int) $startsAt->format('i');
-            $startIndex = max(0, min(95, (int) floor($minutesFromMidnight / 15)));
-
-            $manualDraftsByDay[$dayIndex][] = [
-                'id' => $draft->getId(),
-                'startIndex' => $startIndex,
-                'duration' => $duration,
-                'startsAt' => $startsAt->format('Y-m-d H:i:s'),
-                'endsAt' => $draft->getEndsAt()?->format('Y-m-d H:i:s'),
-                'title' => $draft->getEmission()?->getTitre() ?? 'Émission',
-                'categoryTitle' => $draft->getEmission()?->getCategorie()?->getTitre() ?? 'Hors règle',
-                'categorySlug' => $draft->getEmission()?->getCategorie()?->getSlug() ?? '',
-                'draftType' => $draft->getDraftType(),
-                'emissionId' => $draft->getEmission()?->getId(),
-                'assigned' => true,
-                'isManualDraft' => true,
-                'emissionIsAutoGenerated' => $draft->getEmission()?->isAutoGenerated() ?? false,
-                'broadcastRank' => $draft->getNombreDiffusion(),
-                'nombreDiffusion' => $draft->getNombreDiffusion(),
-                'assignmentGroupKey' => $draft->getAssignmentGroupKey(),
-            ];
-        }
-
-        foreach ($manualDraftsByDay as &$draftsForDay) {
-            usort(
-                $draftsForDay,
-                static fn(array $a, array $b): int => strcmp($a['startsAt'], $b['startsAt'])
-            );
-        }
-        unset($draftsForDay);
-
-        foreach ($daySegments as &$segments) {
-            foreach ($segments as &$seg) {
-                $seg['assigned'] = false;
-                $seg['emissionId'] = null;
-                $seg['emissionTitle'] = null;
-                $seg['emissionIsAutoGenerated'] = false;
-                $seg['draftId'] = null;
-                $seg['categoryTitle'] = $seg['categoryTitle'] ?? ($seg['title'] ?? 'Catégorie inconnue');
-                $seg['categorySlug'] = $seg['categorySlug'] ?? null;
-                $seg['displayTitle'] = $seg['title'] ?? 'Créneau';
-
-                $slotId = $seg['slotId'] ?? null;
-                $startsAt = $seg['originalStartsAt'] ?? $seg['startsAt'] ?? null;
-
-                if (!$slotId || !$startsAt) {
-                    continue;
-                }
-
-                if (
-                    ($seg['isBlocking'] ?? true) === false ||
-                    ($seg['isCancelled'] ?? false) === true ||
-                    ($seg['isRescheduledOrigin'] ?? false) === true
-                ) {
-                    continue;
-                }
-
-                $startsAtDate = $startsAt instanceof \DateTimeInterface
-                    ? \DateTimeImmutable::createFromInterface($startsAt)
-                    : new \DateTimeImmutable((string) $startsAt);
-
-                $key = $this->buildDraftKey((int) $slotId, $startsAtDate);
-
-                if (!isset($draftIndex[$key])) {
-                    continue;
-                }
-
-                /** @var DiffusionDraft $draft */
-                $draft = $draftIndex[$key];
-                $emission = $draft->getEmission();
-
-                if ($emission instanceof Emission) {
-                    $seg['assigned'] = true;
-                    $seg['draftId'] = $draft->getId();
-
-                    $seg['emissionId'] = $emission->getId();
-                    $seg['emissionTitle'] = $emission->getTitre();
-                    $seg['displayTitle'] = $emission->getTitre();
-                    $seg['emissionIsAutoGenerated'] = $emission->isAutoGenerated();
-
-                    $seg['categoryTitle'] = $emission->getCategorie()?->getTitre()
-                        ?? $seg['categoryTitle'];
-
-                    $seg['categorySlug'] = $emission->getCategorie()?->getSlug()
-                        ?? $seg['categorySlug'];
-                }
-            }
-        }
-        unset($segments, $seg);
-
-        $specialCategories = $categoriesRepository->createQueryBuilder('c')
-            ->andWhere('c.active = :active')
-            ->andWhere('c.softDelete = :softDelete')
-            ->setParameter('active', true)
-            ->setParameter('softDelete', false)
-            ->orderBy('c.titre', 'ASC')
-            ->getQuery()
-            ->getResult();
-
-        return $this->render('admin/grille/index.html.twig', [
-            'startOfWeek' => $startOfWeekDate,
-            'jours' => $jours,
-            'daySegments' => $daySegments,
-            'manualDraftsByDay' => $manualDraftsByDay,
-            'specialCategories' => $specialCategories,
+        return $this->redirectToRoute('admin.grille.index', [
+            'startOfWeek' => $result['weekStart']->format('Y-m-d'),
         ]);
-    }
-
-    private function getManualDraftDayIndex(
-        \DateTimeInterface $startsAt,
-        \DateTimeImmutable $weekStart,
-        \DateTimeImmutable $weekEnd
-    ): ?int {
-        $date = \DateTimeImmutable::createFromInterface($startsAt);
-
-        if ($date < $weekStart || $date >= $weekEnd) {
-            return null;
-        }
-
-        $diffDays = $weekStart->diff($date->setTime(0, 0, 0))->days;
-
-        if (false === $diffDays || $diffDays < 0 || $diffDays > 6) {
-            return null;
-        }
-
-        return $diffDays;
-    }
-
-    private function buildDraftKey(?int $slotId, ?\DateTimeInterface $horaire): ?string
-    {
-        if (null === $slotId || null === $horaire) {
-            return null;
-        }
-
-        return $slotId . '|' . $horaire->format('Y-m-d H:i:s');
     }
 
     #[Route('/candidates', name: 'candidates', methods: ['GET'])]
@@ -622,7 +481,6 @@ class GrilleController extends AbstractController
 
         try {
             $emission = $liveCreator->createFromSlot($slot, $date);
-
             $propagated = $gridAssignmentService->assign($slot, $emission, $date);
 
             return $this->json([
@@ -769,6 +627,7 @@ class GrilleController extends AbstractController
             }
 
             $duration = $slotToHandle->getDurationMinutes() ?? 15;
+
             if ($duration <= 0) {
                 $duration = 15;
             }
@@ -1146,6 +1005,7 @@ class GrilleController extends AbstractController
             }
 
             $duration = $slotToCancel->getDurationMinutes() ?? 15;
+
             if ($duration <= 0) {
                 $duration = 15;
             }
@@ -1381,11 +1241,13 @@ class GrilleController extends AbstractController
     private function resolveDurationMinutes(ProgrammationRuleSlot $slot, Emission $emission): int
     {
         $slotDuration = $slot->getDurationMinutes();
+
         if (\is_int($slotDuration) && $slotDuration > 0) {
             return $slotDuration;
         }
 
         $emissionDuration = $emission->getDuree();
+
         if (\is_int($emissionDuration) && $emissionDuration > 0) {
             return $emissionDuration;
         }
@@ -1569,6 +1431,54 @@ class GrilleController extends AbstractController
         return $this->json([
             'success' => true,
             'items' => $items,
+        ]);
+    }
+
+    #[Route(
+        '/{startOfWeek}/unpublish',
+        name: 'unpublish',
+        methods: ['POST'],
+        requirements: ['startOfWeek' => '\d{4}-\d{2}-\d{2}']
+    )]
+    public function unpublishWeek(
+        string $startOfWeek,
+        Request $request,
+        GridUnpublicationService $gridUnpublicationService
+    ): Response {
+        if (!$this->isCsrfTokenValid(
+            'unpublish_grid_week_' . $startOfWeek,
+            (string) $request->request->get('_token')
+        )) {
+            throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+        }
+
+        try {
+            $weekStart = new \DateTimeImmutable($startOfWeek);
+        } catch (\Exception) {
+            throw $this->createNotFoundException('Date de semaine invalide.');
+        }
+
+        try {
+            $result = $gridUnpublicationService->unpublishWeek($weekStart);
+        } catch (\DomainException | \LogicException $e) {
+            $this->addFlash('danger', $e->getMessage());
+
+            return $this->redirectToRoute('admin.grille.index', [
+                'startOfWeek' => $startOfWeek,
+            ]);
+        }
+
+        $this->addFlash(
+            'success',
+            sprintf(
+                'Semaine dévalidée : %d diffusion(s) désactivée(s), %d draft(s) restauré(s).',
+                $result['unpublishedDiffusionCount'],
+                $result['restoredDraftCount']
+            )
+        );
+
+        return $this->redirectToRoute('admin.grille.index', [
+            'startOfWeek' => $result['weekStart']->format('Y-m-d'),
         ]);
     }
 }
