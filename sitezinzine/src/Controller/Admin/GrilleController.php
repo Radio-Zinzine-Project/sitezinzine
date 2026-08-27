@@ -37,99 +37,169 @@ class GrilleController extends AbstractController
         GridViewBuilder $gridViewBuilder,
         GridUnpublicationService $gridUnpublicationService,
     ): Response {
-        return $this->renderGrid(null, $gridViewBuilder,
-        $gridUnpublicationService);
-    }
-
-#[Route(
-    '/{startOfWeek}',
-    name: 'index',
-    methods: ['GET'],
-    requirements: ['startOfWeek' => '\d{4}-\d{2}-\d{2}']
-)]
-public function index(
-    string $startOfWeek,
-    GridViewBuilder $gridViewBuilder,
-    GridUnpublicationService $gridUnpublicationService,
-): Response {
-    return $this->renderGrid(
-        $startOfWeek,
-        $gridViewBuilder,
-        $gridUnpublicationService
-    );
-}
-
-private function renderGrid(
-    ?string $startOfWeek,
-    GridViewBuilder $gridViewBuilder,
-    GridUnpublicationService $gridUnpublicationService,
-): Response {
-    $startDate = $startOfWeek
-        ? \DateTime::createFromFormat('Y-m-d', $startOfWeek)
-        : new \DateTime();
-
-    if (!$startDate) {
-        throw $this->createNotFoundException(
-            'Date de semaine invalide.'
+        return $this->renderGrid(
+            null,
+            $gridViewBuilder,
+            $gridUnpublicationService
         );
     }
 
-    $startOfWeekDate = (clone $startDate)
-        ->modify('this week')
-        ->modify('+1 day')
-        ->setTime(0, 0, 0);
-
-    $endOfWeekDate = (clone $startOfWeekDate)
-        ->modify('+7 days');
-
-    $jours = [];
-
-    for ($i = 0; $i < 7; $i++) {
-        $jours[] = (clone $startOfWeekDate)
-            ->modify("+{$i} days");
+    #[Route(
+        '/{startOfWeek}',
+        name: 'index',
+        methods: ['GET'],
+        requirements: ['startOfWeek' => '\d{4}-\d{2}-\d{2}']
+    )]
+    public function index(
+        string $startOfWeek,
+        GridViewBuilder $gridViewBuilder,
+        GridUnpublicationService $gridUnpublicationService,
+    ): Response {
+        return $this->renderGrid(
+            $startOfWeek,
+            $gridViewBuilder,
+            $gridUnpublicationService
+        );
     }
 
-    $startImmutable = \DateTimeImmutable::createFromMutable(
-        $startOfWeekDate
-    );
+    #[Route(
+        '/{startOfWeek}/print',
+        name: 'print',
+        methods: ['GET'],
+        requirements: ['startOfWeek' => '\d{4}-\d{2}-\d{2}']
+    )]
+    public function printWeek(
+        string $startOfWeek,
+        GridViewBuilder $gridViewBuilder,
+    ): Response {
+        $startDate = \DateTime::createFromFormat('Y-m-d', $startOfWeek);
 
-    $endImmutable = \DateTimeImmutable::createFromMutable(
-        $endOfWeekDate
-    );
+        if (!$startDate) {
+            throw $this->createNotFoundException(
+                'Date de semaine invalide.'
+            );
+        }
 
-    $gridView = $gridViewBuilder->build(
-        $startImmutable,
-        $endImmutable
-    );
+        $startOfWeekDate = (clone $startDate)
+            ->modify('this week')
+            ->modify('+1 day')
+            ->setTime(0, 0, 0);
 
-    /*
+        $endOfWeekDate = (clone $startOfWeekDate)
+            ->modify('+7 days');
+
+        $startImmutable = \DateTimeImmutable::createFromMutable(
+            $startOfWeekDate
+        );
+
+        $endImmutable = \DateTimeImmutable::createFromMutable(
+            $endOfWeekDate
+        );
+
+        $gridView = $gridViewBuilder->build(
+            $startImmutable,
+            $endImmutable
+        );
+
+        if (($gridView['gridMode'] ?? null) !== 'diffusion') {
+            $this->addFlash(
+                'warning',
+                'La grille doit être validée avant de pouvoir être imprimée.'
+            );
+
+            return $this->redirectToRoute('admin.grille.index', [
+                'startOfWeek' => $startOfWeekDate->format('Y-m-d'),
+            ]);
+        }
+
+        $jours = [];
+
+        for ($i = 0; $i < 7; $i++) {
+            $jours[] = (clone $startOfWeekDate)
+                ->modify("+{$i} days");
+        }
+
+        return $this->render(
+            'admin/grille/print.html.twig',
+            [
+                'startOfWeek' => $startOfWeekDate,
+                'jours' => $jours,
+                ...$gridView,
+            ]
+        );
+    }
+
+    private function renderGrid(
+        ?string $startOfWeek,
+        GridViewBuilder $gridViewBuilder,
+        GridUnpublicationService $gridUnpublicationService,
+    ): Response {
+        $startDate = $startOfWeek
+            ? \DateTime::createFromFormat('Y-m-d', $startOfWeek)
+            : new \DateTime();
+
+        if (!$startDate) {
+            throw $this->createNotFoundException(
+                'Date de semaine invalide.'
+            );
+        }
+
+        $startOfWeekDate = (clone $startDate)
+            ->modify('this week')
+            ->modify('+1 day')
+            ->setTime(0, 0, 0);
+
+        $endOfWeekDate = (clone $startOfWeekDate)
+            ->modify('+7 days');
+
+        $jours = [];
+
+        for ($i = 0; $i < 7; $i++) {
+            $jours[] = (clone $startOfWeekDate)
+                ->modify("+{$i} days");
+        }
+
+        $startImmutable = \DateTimeImmutable::createFromMutable(
+            $startOfWeekDate
+        );
+
+        $endImmutable = \DateTimeImmutable::createFromMutable(
+            $endOfWeekDate
+        );
+
+        $gridView = $gridViewBuilder->build(
+            $startImmutable,
+            $endImmutable
+        );
+
+        /*
      * Par défaut, une semaine n'est pas dévalidable.
      *
      * On vérifie seulement les semaines affichées depuis Diffusion.
      */
-    $canUnpublish = false;
+        $canUnpublish = false;
 
-    if (($gridView['gridMode'] ?? null) === 'diffusion') {
-        $unpublicationPreview = $gridUnpublicationService->previewWeek(
-            $startImmutable
-        );
+        if (($gridView['gridMode'] ?? null) === 'diffusion') {
+            $unpublicationPreview = $gridUnpublicationService->previewWeek(
+                $startImmutable
+            );
 
-        $canUnpublish = (bool) (
-            $unpublicationPreview['canUnpublish']
-            ?? false
+            $canUnpublish = (bool) (
+                $unpublicationPreview['canUnpublish']
+                ?? false
+            );
+        }
+
+        return $this->render(
+            'admin/grille/index.html.twig',
+            [
+                'startOfWeek' => $startOfWeekDate,
+                'jours' => $jours,
+                'canUnpublish' => $canUnpublish,
+                ...$gridView,
+            ]
         );
     }
-
-    return $this->render(
-        'admin/grille/index.html.twig',
-        [
-            'startOfWeek' => $startOfWeekDate,
-            'jours' => $jours,
-            'canUnpublish' => $canUnpublish,
-            ...$gridView,
-        ]
-    );
-}
 
 
     #[Route(

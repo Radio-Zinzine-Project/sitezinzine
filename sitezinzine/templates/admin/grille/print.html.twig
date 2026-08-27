@@ -1,0 +1,1189 @@
+{% set printFormat = app.request.query.get('format') == 'a3' ? 'a3' : 'a4' %}
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <title>
+            Grille de programmation -
+            semaine du
+            {{ startOfWeek|date('d/m/Y') }}
+        </title>
+        <style>
+        /* =========================================================
+           Format de page
+           ========================================================= */
+
+        
+        @page print-a4 {
+            size: A4 landscape;
+            margin: 6mm;
+        }
+
+        @page print-a3 {
+            size: A3 landscape;
+            margin: 8mm;
+        }
+        
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            color: #000000;
+            background: #ffffff;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            --grid-line: #8d8d8d;
+            --grid-line-strong: #000000;
+            --header-bg: #eeeeee;
+        }
+
+
+        /* =========================================================
+           Dimensions A4
+           ========================================================= */
+
+        body.print-a4 {
+            page: print-a4;
+
+            --slot-h: 2.15mm;
+            --grid-body-h: 163.4mm;
+
+            --head-h: 12mm;
+            --time-col-w: 14mm;
+
+            --day-font-size: 9pt;
+            --date-font-size: 7pt;
+            --hour-font-size: 6.5pt;
+
+            --title-font-size: 13pt;
+            --subtitle-font-size: 8pt;
+        }
+
+
+        /* =========================================================
+           Dimensions A3
+           ========================================================= */
+
+        body.print-a3 {
+            page: print-a3;
+
+            --slot-h: 2.8mm;
+            --grid-body-h: 212.8mm;
+
+            --head-h: 14mm;
+            --info-col-w: 52mm;
+            --time-col-w: 18mm;
+
+            --day-font-size: 12pt;
+            --date-font-size: 9pt;
+            --hour-font-size: 8pt;
+
+            --title-font-size: 17pt;
+            --subtitle-font-size: 10pt;
+        }
+
+        body.print-a3 .print-document {
+            width: 100%;
+            max-width: none;
+        }
+
+        body.print-a3 .print-grid {
+            width: 100%;
+            max-width: none;
+        }
+
+
+        /* =========================================================
+           Barre hors impression
+           ========================================================= */
+
+        .print-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+
+            margin: 16px auto;
+            padding: 12px;
+
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .print-toolbar a,
+        .print-toolbar button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            min-height: 38px;
+            padding: 0 14px;
+
+            color: #000000;
+            background: #ffffff;
+
+            border: 1px solid #888888;
+            border-radius: 5px;
+
+            font-size: 14px;
+            font-weight: 700;
+
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .print-toolbar a.is-active {
+            color: #ffffff;
+            background: #000000;
+            border-color: #000000;
+        }
+
+        .print-toolbar button {
+            color: #ffffff;
+            background: #333333;
+            border-color: #333333;
+        }
+
+
+        /* =========================================================
+           Document
+           ========================================================= */
+
+        .print-document {
+            width: 100%;
+        }
+
+        .print-title {
+            margin: 0 0 2mm;
+            text-align: center;
+            font-size: var(--title-font-size);
+            font-weight: 700;
+            line-height: 1.1;
+        }
+
+        .print-subtitle {
+            margin: 0 0 3mm;
+            text-align: center;
+            font-size: var(--subtitle-font-size);
+            font-weight: 600;
+            line-height: 1.1;
+        }
+
+
+        /* =========================================================
+           Grille
+           ========================================================= */
+
+        .print-grid {
+            display: grid;
+
+            grid-template-columns:
+                var(--time-col-w)
+                repeat(7, minmax(0, 1fr));
+
+            grid-template-rows:
+                var(--head-h)
+                var(--grid-body-h);
+
+            width: 100%;
+
+            border-top: 1px solid var(--grid-line-strong);
+            border-right: 1px solid var(--grid-line-strong);
+            border-bottom: 1px solid var(--grid-line-strong);
+            border-left: 1px solid var(--grid-line-strong);
+        }
+
+        .print-a3 .print-grid {
+            grid-template-columns:
+                var(--time-col-w)
+                repeat(4, minmax(0, 1fr))
+                var(--info-col-w)
+                repeat(3, minmax(0, 1fr));
+        }
+
+        .print-info-column {
+            position: relative;
+
+            display: flex;
+            flex-direction: column;
+
+            height: var(--grid-body-h);
+            min-width: 0;
+
+            border-right: 1px solid var(--grid-line);
+            border-left: 1px solid var(--grid-line);
+
+            overflow: hidden;
+        }
+
+        .print-info-block {
+            padding: 2mm 1.5mm;
+
+            border-bottom: 1px solid var(--grid-line);
+
+            font-size: 9pt;
+            line-height: 1.25;
+            text-align: center;
+        }
+
+        .print-info-block h2 {
+            margin: 0 0 2mm;
+
+            font-size: 10pt;
+            line-height: 1.1;
+            text-transform: uppercase;
+        }
+
+        .print-info-block p {
+            margin: 0 0 2.5mm;
+        }
+
+        .print-info-block p:last-child {
+            margin-bottom: 0;
+        }
+
+        .print-info-block--regular {
+            padding-top: 1mm;
+            padding-bottom: 1mm;
+            flex: 0 0 auto;
+            font-size: 9pt;
+        }
+
+        .print-info-block--regular p {
+            margin-bottom: 1mm;
+        }
+
+        .print-info-block--technicians {
+            flex: 0 0 auto;
+            font-size: 9pt;
+        }
+
+        .print-info-block--weekly {
+            flex: 0 0 18mm;
+            font-size: 10pt;
+        }
+
+        .print-info-block--studio,
+        .print-info-block--frequencies {
+            padding: 0.8mm 1.2mm;
+            font-size: 8pt;
+            line-height: 1.05;
+        }
+
+        .print-info-block--studio h2,
+        .print-info-block--frequencies h2 {
+            margin-bottom: 0.6mm;
+            font-size: 9pt;
+        }
+
+        .print-info-block--studio p,
+        .print-info-block--frequencies p {
+            margin-bottom: 0.6mm;
+        }
+
+        /* =========================================================
+           En-tête
+           ========================================================= */
+
+        .print-head {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
+            min-width: 0;
+
+            padding: 1mm;
+
+            background: var(--header-bg);
+
+            border-right: 1px solid var(--grid-line);
+            border-bottom: 1px solid var(--grid-line-strong);
+
+            text-align: center;
+            line-height: 1.05;
+        }
+
+        .print-head:last-child {
+            border-right: 0;
+        }
+
+        .print-head--hour {
+            font-size: var(--hour-font-size);
+            font-weight: 700;
+        }
+
+        .print-head__day {
+            font-size: var(--day-font-size);
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .print-head__date {
+            margin-top: 1mm;
+
+            font-size: var(--date-font-size);
+            font-weight: 400;
+        }
+
+
+        /* =========================================================
+           Colonne horaires
+           ========================================================= */
+
+        .print-hours {
+            position: relative;
+
+            grid-column: 1;
+            grid-row: 2;
+
+            height: var(--grid-body-h);
+
+            border-right: 1px solid var(--grid-line-strong);
+        }
+
+
+        /* =========================================================
+           Colonnes jours
+           ========================================================= */
+
+        .print-day {
+            position: relative;
+
+            grid-row: 2;
+
+            height: var(--grid-body-h);
+
+            min-width: 0;
+
+            border-right: 1px solid var(--grid-line);
+        }
+
+        .print-day:last-child {
+            border-right: 0;
+        }
+
+
+        /* =========================================================
+           Lignes horaires
+           ========================================================= */
+
+        .print-hour-line {
+            position: absolute;
+
+            right: 0;
+            left: 0;
+
+            height: 0;
+
+            border-top: 0.25mm solid var(--grid-line);
+        }
+
+        .print-hour-line--strong {
+            border-top-color: var(--grid-line-strong);
+        }
+
+
+        /* =========================================================
+           Libellés horaires
+           ========================================================= */
+
+        .print-hour-label {
+            position: absolute;
+
+            right: 1.5mm;
+
+            padding: 0 0.5mm;
+
+            background: #ffffff;
+
+            font-size: var(--hour-font-size);
+            font-weight: 700;
+            line-height: 1;
+
+            white-space: nowrap;
+
+            transform: translateY(-50%);
+        }
+
+        .print-hour-label--first {
+            transform: translateY(0);
+        }
+
+        .print-hour-label--last {
+            transform: translateY(-100%);
+        }
+
+        /* =========================================================
+           Créneaux réguliers
+           ========================================================= */
+
+        .print-postit {
+            position: absolute;
+
+            right: 0.7mm;
+            left: 0.7mm;
+
+            z-index: 2;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            box-sizing: border-box;
+
+            padding: 0.5mm;
+
+            overflow: hidden;
+
+            color: #000000;
+            background: #ffffff;
+
+            border: 0.3mm solid #000000;
+            border-radius: 1mm;
+
+            font-size: 6pt;
+            font-weight: 700;
+            line-height: 1.05;
+            text-align: center;
+        }
+
+        .print-a3 .print-postit {
+            right: 1mm;
+            left: 1mm;
+
+            padding: 0.8mm;
+
+            font-size: 8pt;
+        }
+
+        .print-postit--empty {
+            border-style: dashed;
+        }
+
+        .print-postit--manual {
+            border-width: 0.4mm;
+        }
+
+        .print-postit__label {
+            display: block;
+
+            width: 100%;
+
+            overflow: hidden;
+
+            text-overflow: ellipsis;
+        }
+
+        .print-postit[data-slots="1"] {
+            padding-top: 0;
+            padding-bottom: 0;
+
+            font-size: 5pt;
+        }
+
+        .print-postit__content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
+            width: 100%;
+            height: 100%;
+
+            overflow: hidden;
+        }
+
+        .print-postit__category {
+            display: block;
+
+            width: 100%;
+
+            font-weight: 800;
+            text-transform: uppercase;
+
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .print-postit__category--full {
+            white-space: normal;
+        }
+
+        .print-postit__title {
+            display: -webkit-box;
+
+            width: 100%;
+            margin-top: 0.4mm;
+
+            overflow: hidden;
+
+            font-weight: 600;
+            line-height: 1.05;
+
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+        }
+
+        .print-postit[data-slots="3"] .print-postit__title {
+            display: block;
+
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .print-postit__order {
+            display: block;
+
+            width: 100%;
+
+            margin-top: 0.4mm;
+
+            font-size: 0.85em;
+            font-weight: 700;
+
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .print-a3 .print-postit[data-slots="1"] {
+            font-size: 6.5pt;
+        }
+
+        .print-postit__meta {
+            position: relative;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            width: 100%;
+            min-width: 0;
+
+            white-space: nowrap;
+        }
+
+        .print-postit__meta .print-postit__category {
+            width: auto;
+            max-width: calc(100% - 18mm);
+
+            margin: 0;
+
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            font-weight: 800;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .print-postit__meta .print-postit__order {
+            position: absolute;
+            top: 50%;
+            right: 0;
+
+            width: auto;
+            margin: 0;
+
+            font-size: 0.85em;
+            font-weight: 700;
+            white-space: nowrap;
+
+            transform: translateY(-50%);
+        }
+
+        .print-postit__compact-line {
+            position: relative;
+
+            display: flex;
+            align-items: center;
+
+            width: 100%;
+            min-width: 0;
+
+            padding-right: 15mm;
+
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .print-postit__compact-line .print-postit__category {
+            flex: 0 0 auto;
+            width: auto;
+            margin: 0 0.7mm 0 0;
+        }
+
+        .print-postit__compact-line .print-postit__title {
+            flex: 1 1 auto;
+
+            width: auto;
+            min-width: 0;
+            margin: 0;
+
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .print-postit__compact-line .print-postit__order {
+            position: absolute;
+            top: 50%;
+            right: 0;
+
+            width: auto;
+            margin: 0;
+
+            font-size: 0.85em;
+            font-weight: 700;
+            white-space: nowrap;
+
+            transform: translateY(-50%);
+        }
+
+        /* =========================================================
+           Impression
+           ========================================================= */
+
+        @media print {
+            .print-toolbar {
+                display: none !important;
+            }
+
+            html,
+            body {
+                width: 100%;
+                height: auto;
+            }
+
+            .print-document {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+        {% if printFormat == 'a3' %}
+            {% else %}
+        {% endif %}
+    </head>
+    <body class="print-{{ printFormat }}">
+        {# =========================================================
+            Contrôles uniquement à l'écran
+        ========================================================= #}
+        <div class="print-toolbar">
+            <a href="{{ path('admin.grille.print', {
+                startOfWeek: startOfWeek|date('Y-m-d'),
+                format: 'a4'
+            }) }}" class="{{ printFormat == 'a4' ? 'is-active' : '' }}">
+                A4 paysage
+            </a>
+            <a href="{{ path('admin.grille.print', {
+                startOfWeek: startOfWeek|date('Y-m-d'),
+                format: 'a3'
+            }) }}" class="{{ printFormat == 'a3' ? 'is-active' : '' }}">
+                A3 paysage
+            </a>
+            <button type="button" onclick="window.print()">
+                Imprimer
+            </button>
+        </div>
+        {# =========================================================
+            Document imprimable
+        ========================================================= #}
+        <main class="print-document">
+            <h1 class="print-title">
+                Grille de programmation
+            </h1>
+            <p class="print-subtitle">
+                Semaine du
+                {{ startOfWeek|date('d/m/Y') }}
+                au
+                {{ startOfWeek|date_modify('+6 days')|date('d/m/Y') }}
+            </p>
+            <div class="print-grid">
+                {# =====================================================
+                    En-têtes
+                ===================================================== #}
+                <div class="print-head print-head--hour" style="grid-column: 1; grid-row: 1;">
+                    Heure
+                </div>
+                {% for dayIndex in 0..6 %}
+                    {% set jour = jours[dayIndex] %}
+                    {#
+                        En A3, la colonne Infos est placée
+                        entre vendredi (index 3) et samedi (index 4).
+                        Les jours samedi, dimanche et lundi sont donc
+                        décalés d'une colonne.
+                    #}
+                    {% if printFormat == 'a3' and dayIndex >= 4 %}
+                        {% set gridColumn = dayIndex + 3 %}
+                    {% else %}
+                        {% set gridColumn = dayIndex + 2 %}
+                    {% endif %}
+                    <div class="print-head" style="
+                            grid-column: {{ gridColumn }};
+                            grid-row: 1;
+                        ">
+                        <span class="print-head__day">
+                            {{ jour|format_date(
+                pattern='EEEE',
+                locale='fr'
+            ) }}
+                        </span>
+                        <span class="print-head__date">
+                            {{ jour|date('d/m') }}
+                        </span>
+                    </div>
+                {% endfor %}
+                {% if printFormat == 'a3' %}
+                    <div class="print-head print-head--info" style="
+                            grid-column: 6;
+                            grid-row: 1;
+                        ">
+                        Infos
+                    </div>
+                {% endif %}
+                {# =====================================================
+                    Colonne des heures
+                ===================================================== #}
+                <div class="print-hours">
+                    {# 00:00 = index print 0 #}
+                    <div class="
+                        print-hour-line
+                        print-hour-line--strong
+                    " style="top: 0;"></div>
+                    <div class="
+                        print-hour-label
+                        print-hour-label--first
+                    " style="top: 1mm;">
+                        00:00
+                    </div>
+                    {# 06:00 = index print 4
+                        car 00:00 -> 01:00 représente 4 quarts d'heure
+                        et 01:00 -> 06:00 est supprimé.
+                    #}
+                    <div class="
+                        print-hour-line
+                        print-hour-line--strong
+                    " style="
+                        top: calc(4 * var(--slot-h));
+                    "></div>
+                    <div class="print-hour-label" style="
+                            top: calc(4 * var(--slot-h));
+                        ">
+                        06:00
+                    </div>
+                    {# 07:00 -> 24:00 #}
+                    {% for hour in 7..24 %}
+                        {#
+                            07:00 = index 8
+                            08:00 = index 12
+                            ...
+                            24:00 = index 76
+                            
+                            Formule :
+                            (heure - 5) * 4
+                        #}
+                        {% set printIndex = (hour - 5) * 4 %}
+                        <div class="
+                            print-hour-line
+                            {{ hour == 24
+                            ? 'print-hour-line--strong'
+                            : '' }}
+                        " style="
+                            top:
+                            calc(
+                            {{ printIndex }}
+                            * var(--slot-h)
+                            );
+                        "></div>
+                        <div class="
+                            print-hour-label
+                            {{ hour == 24
+                            ? 'print-hour-label--last'
+                            : '' }}
+                        " style="
+                                top:
+                                calc(
+                                {{ printIndex }}
+                                * var(--slot-h)
+                                );
+                            ">
+                            {{ '%02d:00'|format(hour) }}
+                        </div>
+                    {% endfor %}
+                </div>
+                {# =====================================================
+                    Sept jours
+                ===================================================== #}
+                {% for dayIndex in 0..6 %}
+                    {% if printFormat == 'a3' and dayIndex >= 4 %}
+                        {% set gridColumn = dayIndex + 3 %}
+                    {% else %}
+                        {% set gridColumn = dayIndex + 2 %}
+                    {% endif %}
+                    <div class="print-day" style="
+                            grid-column: {{ gridColumn }};
+                        ">
+                        {# 00:00 #}
+                        <div class="
+                            print-hour-line
+                            print-hour-line--strong
+                        " style="top: 0;"></div>
+                        {# 06:00 #}
+                        <div class="
+                            print-hour-line
+                            print-hour-line--strong
+                        " style="
+                            top: calc(
+                            4 * var(--slot-h)
+                            );
+                        "></div>
+                        {# 07:00 -> 24:00 #}
+                        {% for hour in 7..24 %}
+                            {% set printIndex = (hour - 5) * 4 %}
+                            <div class="
+                                print-hour-line
+                                {{ hour == 24
+                                ? 'print-hour-line--strong'
+                                : '' }}
+                            " style="
+                                top:
+                                calc(
+                                {{ printIndex }}
+                                * var(--slot-h)
+                                );
+                            "></div>
+                        {% endfor %}
+                        {# =====================================================
+                            Créneaux réguliers
+                        ===================================================== #}
+                        {% for seg in (daySegments[dayIndex] ?? []) %}
+                            {% set slots = (seg.duration / 15)|round(0, 'ceil') %}
+                            {% set startIndex = seg.startIndex %}
+                            {% set isAssigned = seg.assigned|default(false) %}
+                            {#
+                                Conversion index réel -> index papier
+                                
+                                00:00 -> 01:00 :
+                                index inchangé
+                                
+                                06:00 -> 24:00 :
+                                suppression des 20 slots correspondant
+                                à 01:00 -> 06:00
+                            #}
+                            {% if startIndex < 4 %}
+                                {% set printIndex = startIndex %}
+                            {% elseif startIndex >= 24 %}
+                                {% set printIndex = startIndex - 20 %}
+                            {% else %}
+                                {% set printIndex = null %}
+                            {% endif %}
+                            {#
+                                Pour l'instant, un segment qui commencerait
+                                entre 01:00 et 06:00 n'est pas imprimé.
+                            #}
+                            {% if printIndex is not null %}
+                                <div class="
+                                    print-postit
+                                    {{ not isAssigned ? 'print-postit--empty' : '' }}
+                                    {{ isAssigned and slots <= 2 ? 'print-postit--compact' : '' }}
+                                " data-slots="{{ slots }}" style="
+                                        top:
+                                        calc(
+                                        {{ printIndex }}
+                                        * var(--slot-h)
+                                        );
+                                        
+                                        height:
+                                        calc(
+                                        {{ slots }}
+                                        * var(--slot-h)
+                                        );
+                                    ">
+                                    <span class="print-postit__label">
+                                        <div class="print-postit__content">
+                                            {% if isAssigned %}
+                                                {% if seg.emissionIsAutoGenerated|default(false) %}
+                                                    {% set diffusionOrder = 'Direct' %}
+                                                {% elseif seg.broadcastRank|default(1) == 1 %}
+                                                    {% set diffusionOrder = '1re diff' %}
+                                                {% elseif seg.broadcastRank == 2 %}
+                                                    {% set diffusionOrder = '1re rediff' %}
+                                                {% else %}
+                                                    {% set diffusionOrder = (seg.broadcastRank - 1) ~ 'e rediff' %}
+                                                {% endif %}
+                                                {% if slots <= 2 %}
+                                                    <span class="print-postit__compact-line">
+                                                        <span class="print-postit__category">
+                                                            {{ seg.categorySlug|default(seg.categoryTitle)|upper }}
+                                                        </span>
+                                                        <span class="print-postit__title">
+                                                            {{ seg.emissionTitle|default('Émission') }}
+                                                        </span>
+                                                        <span class="print-postit__order">
+                                                            {{ diffusionOrder }}
+                                                        </span>
+                                                    </span>
+                                                {% else %}
+                                                    <span class="print-postit__meta">
+                                                        <span class="print-postit__category">
+                                                            {{ seg.categorySlug|default(seg.categoryTitle)|upper }}
+                                                        </span>
+                                                        <span class="print-postit__order">
+                                                            {{ diffusionOrder }}
+                                                        </span>
+                                                    </span>
+                                                    <span class="print-postit__title">
+                                                        {{ seg.emissionTitle|default('Émission') }}
+                                                    </span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="print-postit__category print-postit__category--full">
+                                                    {{ seg.categoryTitle|default('Catégorie inconnue') }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </span>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                        {# =====================================================
+                            Diffusions ponctuelles / hors créneau régulier
+                        ===================================================== #}
+                        {% for diffusion in (manualDraftsByDay[dayIndex] ?? []) %}
+                            {% set slots = (diffusion.duration / 15)|round(0, 'ceil') %}
+                            {% set startIndex = diffusion.startIndex %}
+                            {# Conversion index réel -> index papier #}
+                            {% if startIndex < 4 %}
+                                {% set printIndex = startIndex %}
+                            {% elseif startIndex >= 24 %}
+                                {% set printIndex = startIndex - 20 %}
+                            {% else %}
+                                {% set printIndex = null %}
+                            {% endif %}
+                            {% if printIndex is not null %}
+                                {# Ordre de diffusion #}
+                                {% if diffusion.emissionIsAutoGenerated|default(false) %}
+                                    {% set diffusionOrder = 'Direct' %}
+                                {% elseif diffusion.broadcastRank|default(1) == 1 %}
+                                    {% set diffusionOrder = '1re diff' %}
+                                {% elseif diffusion.broadcastRank == 2 %}
+                                    {% set diffusionOrder = '1re rediff' %}
+                                {% else %}
+                                    {% set diffusionOrder = (diffusion.broadcastRank - 1) ~ 'e rediff' %}
+                                {% endif %}
+                                <div class="
+                                    print-postit
+                                    print-postit--manual
+                                    {{ slots <= 2 ? 'print-postit--compact' : '' }}
+                                " data-slots="{{ slots }}" style="
+                                        top:
+                                        calc(
+                                        {{ printIndex }}
+                                        * var(--slot-h)
+                                        );
+                                        
+                                        height:
+                                        calc(
+                                        {{ slots }}
+                                        * var(--slot-h)
+                                        );
+                                    ">
+                                    {% if slots <= 2 %}
+                                        {# 15 / 30 min : tout sur une ligne #}
+                                        <span class="print-postit__compact-line">
+                                            <span class="print-postit__category">
+                                                {{ diffusion.categorySlug|default(diffusion.categoryTitle)|upper }}
+                                            </span>
+                                            <span class="print-postit__title">
+                                                {{ diffusion.title|default('Émission') }}
+                                            </span>
+                                            <span class="print-postit__order">
+                                                {{ diffusionOrder }}
+                                            </span>
+                                        </span>
+                                    {% else %}
+                                        {# Plus de 30 min : slug centré + rang à droite,
+                                        puis titre en dessous #}
+                                        <div class="print-postit__content">
+                                            <span class="print-postit__meta">
+                                                <span class="print-postit__category">
+                                                    {{ diffusion.categorySlug|default(diffusion.categoryTitle)|upper }}
+                                                </span>
+                                                <span class="print-postit__order">
+                                                    {{ diffusionOrder }}
+                                                </span>
+                                            </span>
+                                            <span class="print-postit__title">
+                                                {{ diffusion.title|default('Émission') }}
+                                            </span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+                {% if printFormat == 'a3' %}
+                    <aside class="print-info-column" style="
+                            grid-column: 6;
+                            grid-row: 2;
+                        ">
+                        <section class="print-info-block print-info-block--regular">
+                            <h2>
+                                À annoncer régulièrement
+                            </h2>
+                            <p>
+                                Les
+                                <strong>
+                                    contacts
+                                </strong>
+                            </p>
+                            <p>
+                                Le programme du jour et du lendemain
+                                (
+                                <strong>
+                                    À PARTIR DU SITE
+                                </strong>
+                                ) et dire que le
+                                programme de la semaine est sur
+                                <strong>
+                                    radiozinzine.org
+                                </strong>
+                            </p>
+                            <p>
+                                Les
+                                <strong>
+                                    fréquences
+                                </strong>
+                                sur lesquelles RZ peut
+                                être écoutée
+                            </p>
+                            <p>
+                                Rappeler que la plupart des émissions sont
+                                <strong>
+                                    téléchargeables
+                                </strong>
+                            </p>
+                            <p>
+                                Dire qu'il est possible de poster des
+                                <strong>
+                                    annonces
+                                </strong>
+                                dans la partie « annonces »
+                                    (consulter cette rubrique pour voir s'il y a des trucs
+                                à annoncer)
+                            </p>
+                            <p>
+                                Inviter à s'abonner à
+                                <strong>
+                                    l'Ire des Chênaies
+                                </strong>
+                                <br>
+                                40 € pour un an, envoyer un chèque à
+                                <br>
+                                Radio Zinzine
+                                <br>
+                                St Hippolyte
+                                <br>
+                                04300 Limans
+                            </p>
+                        </section>
+                        <section class="print-info-block print-info-block--technicians">
+                            <h2>
+                                Message aux technicien·nes
+                            </h2>
+                            <p>
+                                Le feuillet explicatif des émissions de la semaine
+                                se trouve derrière la page de droite du programme.
+                            </p>
+                        </section>
+                        <section class="print-info-block print-info-block--weekly">
+                            <h2>
+                                Message hebdomadaire
+                            </h2>
+                            <section class="print-info-block print-info-block--studio">
+                                <h2>
+                                    Studio Limans
+                                </h2>
+                                <p>
+                                    Tél : 04 92 73 10 56
+                                    <br>
+                                    Tél : 09 74 53 46 19
+                                </p>
+                                <p>
+                                    Équipes infos et technique :
+                                    <br>
+                                    <strong>
+                                        info@radiozinzine.org
+                                    </strong>
+                                </p>
+                                <p>
+                                    Site :
+                                    <br>
+                                    <strong>
+                                        www.radiozinzine.org
+                                    </strong>
+                                </p>
+                            </section>
+                            <section class="print-info-block print-info-block--studio">
+                                <h2>
+                                    Studio Aix
+                                </h2>
+                                <p>
+                                    Tél : 04 42 65 96 40
+                                </p>
+                                <p>
+                                    Mail :
+                                    <br>
+                                    <strong>
+                                        aixensemble@gmail.com
+                                    </strong>
+                                </p>
+                                <p>
+                                    Site :
+                                    <br>
+                                    <strong>
+                                        www.radiozinzineaix.org
+                                    </strong>
+                                </p>
+                            </section>
+                            <section class="print-info-block print-info-block--frequencies">
+                                <h2>
+                                    Fréquences
+                                </h2>
+                                <p>
+                                    Forcalquier 100.7
+                                    <br>
+                                    Manosque 105 - Digne 95.6
+                                    <br>
+                                    Sisteron 103 - Briançon 101.4
+                                    <br>
+                                    Risoul 87.9
+                                    <br>
+                                    Embrun 100.9
+                                    <br>
+                                    Aix-en-Provence 88.1 - Gap 106.3
+                                    <br>
+                                    Apt 92.7
+                                    <br>
+                                    Marseille DAB + Canal 8C
+                                </p>
+                            </section>
+                        </section>
+                    </aside>
+                {% endif %}
+            </div>
+        </main>
+    </body>
+</html>

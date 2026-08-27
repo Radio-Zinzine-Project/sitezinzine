@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.103] - 2026-08-28
+### Ajout
+- Impression de la grille en A4 et A3.
+
+
 ## [1.0.102] - 2026-08-24
 ### Ajout
 - Gestion des diffusions historiques (ancienne table grille), afin qu'elle correspondent au nouveau système de groupement de programmation.
