@@ -1190,13 +1190,6 @@ class EmissionRepository extends ServiceEntityRepository
                 $nowLocal >= $item['diffusion']
                 && $nowLocal < $effectiveEnd;
 
-            dump([
-                'emission' => $item['emission']->getTitre(),
-                'debut' => $item['diffusion']->format('H:i:s P'),
-                'fin_effective' => $effectiveEnd->format('H:i:s P'),
-                'maintenant' => $nowLocal->format('H:i:s P'),
-                'isCurrent' => $item['isCurrent'],
-            ]);
         }
 
         unset($item);

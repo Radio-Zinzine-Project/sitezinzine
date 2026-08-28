@@ -1,9 +1,13 @@
 # Changelog
 
+## [1.0.105] - 2026-08-28
+### Correction
+- Retrait du dump qui fout le bordel.
+
 ## [1.0.104] - 2026-08-28
 ### Ajout
 - Ajout du bouton d'impression de la grille.
-- Ajour de la grille de la semaine (page programme) côté public.
+- Ajout de la grille de la semaine (page programme) côté public.
 ### Correction
 - Modification de la hauteur de la grille en a3 afin d'optimiser la place sur la feuille.
 - Affichage des 6 dernières diffusions de l'émission sur la fiche émission côté public.
