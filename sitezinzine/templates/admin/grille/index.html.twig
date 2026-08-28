@@ -846,6 +846,44 @@
       line-height: 1.4;
     }
 
+    .grid-print-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        min-height: 38px;
+        padding: 0 18px;
+
+        color: #1c1c1a;
+        background: #ffffff;
+
+        border: 2px solid #1c1c1a;
+        border-radius: 999px;
+
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1;
+
+        text-decoration: none;
+        white-space: nowrap;
+
+        transition:
+            background 0.2s ease,
+            color 0.2s ease;
+    }
+
+    .grid-print-btn:hover {
+        color: #ffffff;
+        background: #1c1c1a;
+    }
+
+    .grid-print-action {
+      display: flex;
+      justify-content: center;
+
+      margin: 10px 0 14px;
+    }
+
    /* =========================================================
    Validation / dévalidation de la grille
    ========================================================= */
@@ -1317,6 +1355,13 @@
             {% if gridMode == 'diffusion' %}
               <div class="grid-status grid-status--validated">
                 Cette semaine est validée. La grille est en lecture seule.
+              </div>
+              <div class="grid-print-action">
+                <a href="{{ path('admin.grille.print', {
+            startOfWeek: startOfWeek|date('Y-m-d')
+        }) }}" class="grid-print-btn" target="_blank" rel="noopener">
+                  Imprimer la grille
+                </a>
               </div>
             {% endif %}
             <h2>

@@ -1044,7 +1044,7 @@ class EmissionRepository extends ServiceEntityRepository
         $timezone = new \DateTimeZone('Europe/Paris');
 
         /*
-     * Date demandée : on la considère comme un jour local.
+     * Date demandée : jour local Europe/Paris.
      */
         $dateLocal = new \DateTimeImmutable(
             $date->format('Y-m-d 00:00:00'),
@@ -1052,10 +1052,11 @@ class EmissionRepository extends ServiceEntityRepository
         );
 
         /*
-     * Maintenant : on convertit vraiment dans le fuseau Europe/Paris.
+     * Heure actuelle réellement convertie vers Europe/Paris.
      */
         $nowLocal = \DateTimeImmutable::createFromInterface($now)
             ->setTimezone($timezone);
+
 
         $start = $dateLocal;
         $end = $start->modify('+1 day');
@@ -1077,6 +1078,11 @@ class EmissionRepository extends ServiceEntityRepository
         $seen = [];
         $activeIndex = 0;
 
+        /*
+     * Première passe :
+     * construction du programme sans décider encore
+     * quelle émission est "en direct".
+     */
         foreach ($rows as $diffusion) {
             if (!$diffusion instanceof \App\Entity\Diffusion) {
                 continue;
@@ -1095,20 +1101,50 @@ class EmissionRepository extends ServiceEntityRepository
             }
 
             /*
-         * Important :
-         * Doctrine renvoie l'horaire en UTC.
-         * Ici on convertit réellement vers Europe/Paris.
+         * Les DATETIME SQL ne contiennent pas de fuseau horaire.
+         * L'heure enregistrée correspond à l'heure de programmation
+         * Europe/Paris : on la réinterprète donc comme telle,
+         * sans effectuer de conversion UTC -> Paris.
          */
-            $startsAt = \DateTimeImmutable::createFromInterface($horaireDiffusion)
-                ->setTimezone($timezone);
+            $startsAt = new \DateTimeImmutable(
+                $horaireDiffusion->format('Y-m-d H:i:s'),
+                $timezone
+            );
 
-            $duration = (int) ($emission->getDuree() ?? 60);
+            /*
+         * On utilise en priorité la fin réellement enregistrée
+         * dans Diffusion.
+         */
+            $diffusionEndsAt = $diffusion->getEndsAt();
 
-            if ($duration <= 0) {
-                $duration = 60;
+            if ($diffusionEndsAt instanceof \DateTimeInterface) {
+                $endsAt = new \DateTimeImmutable(
+                    $diffusionEndsAt->format('Y-m-d H:i:s'),
+                    $timezone
+                );
+            } else {
+                /*
+             * Sinon, on utilise la durée enregistrée sur Diffusion.
+             */
+                $duration = $diffusion->getDurationMinutes();
+
+                /*
+             * Compatibilité avec les anciennes Diffusion :
+             * si elles n'ont pas encore durationMinutes,
+             * on retombe sur la durée de l'Emission.
+             */
+                if ($duration === null || $duration <= 0) {
+                    $duration = (int) ($emission->getDuree() ?? 60);
+                }
+
+                if ($duration <= 0) {
+                    $duration = 60;
+                }
+
+                $endsAt = $startsAt->modify(
+                    sprintf('+%d minutes', $duration)
+                );
             }
-
-            $endsAt = $startsAt->modify(sprintf('+%d minutes', $duration));
 
             $key = sprintf(
                 '%d_%s',
@@ -1122,18 +1158,54 @@ class EmissionRepository extends ServiceEntityRepository
 
             $seen[$key] = true;
 
-            $isCurrent =
-                $nowLocal >= $startsAt &&
-                $nowLocal < $endsAt;
-
             $items[] = [
                 'emission' => $emission,
                 'diffusion' => $startsAt,
                 'endDiffusion' => $endsAt,
-                'isCurrent' => $isCurrent,
+                'isCurrent' => false,
             ];
         }
 
+        /*
+     * Deuxième passe :
+     * détermination de l'émission réellement en direct.
+     *
+     * Sécurité importante pour les anciennes données :
+     * une émission ne peut pas rester "en direct"
+     * après le début de l'émission suivante.
+     */
+        foreach ($items as $index => &$item) {
+            $effectiveEnd = $item['endDiffusion'];
+
+            $nextItem = $items[$index + 1] ?? null;
+
+            if (
+                $nextItem !== null
+                && $nextItem['diffusion'] < $effectiveEnd
+            ) {
+                $effectiveEnd = $nextItem['diffusion'];
+            }
+
+            $item['isCurrent'] =
+                $nowLocal >= $item['diffusion']
+                && $nowLocal < $effectiveEnd;
+
+            dump([
+                'emission' => $item['emission']->getTitre(),
+                'debut' => $item['diffusion']->format('H:i:s P'),
+                'fin_effective' => $effectiveEnd->format('H:i:s P'),
+                'maintenant' => $nowLocal->format('H:i:s P'),
+                'isCurrent' => $item['isCurrent'],
+            ]);
+        }
+
+        unset($item);
+
+        /*
+     * Position de départ du carrousel :
+     * - l'émission en direct si elle existe ;
+     * - sinon la dernière émission déjà commencée.
+     */
         foreach ($items as $index => $item) {
             if ($item['isCurrent']) {
                 $activeIndex = $index;

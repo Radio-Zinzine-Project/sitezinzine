@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.104] - 2026-08-28
+### Ajout
+- Ajout du bouton d'impression de la grille.
+- Ajour de la grille de la semaine (page programme) côté public.
+### Correction
+- Modification de la hauteur de la grille en a3 afin d'optimiser la place sur la feuille.
+- Affichage des 6 dernières diffusions de l'émission sur la fiche émission côté public.
+- Affichage de toutes les diffusions de l'émission sur la fiche de l'émission côté admin.
+- Correction du tag en direct du carrousel qui n'indiquait pas les bons horaires.
+
+
 ## [1.0.103] - 2026-08-28
 ### Ajout
 - Impression de la grille en A4 et A3.

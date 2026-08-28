@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Diffusion;
+use App\Entity\Emission;
 use App\Entity\DiffusionDraft;
 use App\Entity\ProgrammationRuleSlot;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -161,4 +162,35 @@ class DiffusionRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * @return Diffusion[]
+     */
+    public function findLatestByEmission(
+        \App\Entity\Emission $emission,
+        int $limit = 5
+    ): array {
+        return $this->createQueryBuilder('d')
+            ->andWhere('d.emission = :emission')
+            ->andWhere('d.publicationStatus = :status')
+            ->setParameter('emission', $emission)
+            ->setParameter('status', Diffusion::STATUS_PUBLISHED)
+            ->orderBy('d.horaireDiffusion', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+ * @return Diffusion[]
+ */
+public function findAllByEmission(Emission $emission): array
+{
+    return $this->createQueryBuilder('d')
+        ->andWhere('d.emission = :emission')
+        ->setParameter('emission', $emission)
+        ->orderBy('d.horaireDiffusion', 'DESC')
+        ->getQuery()
+        ->getResult();
+}
 }

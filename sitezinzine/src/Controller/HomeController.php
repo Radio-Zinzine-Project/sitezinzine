@@ -10,7 +10,7 @@ use App\Entity\Evenement;
 use Symfony\Component\Routing\Requirement\Requirement;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
+use App\Service\PublicScheduleBuilder;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -78,11 +78,24 @@ class HomeController extends AbstractController
         ]);
     }
 
-    #[Route("/programme", name: "programme")]
-    function programme(): Response
-    {
+    #[Route('/programme', name: 'programme')]
+    public function programme(
+        PublicScheduleBuilder $publicScheduleBuilder
+    ): Response {
+        $today = new \DateTimeImmutable('today');
 
-        return $this->render('home/programme.html.twig');
+        $dayOfWeek = (int) $today->format('N');
+
+        // Notre semaine radio commence le mardi.
+        $daysSinceTuesday = ($dayOfWeek + 5) % 7;
+
+        $startOfWeek = $today->modify(sprintf('-%d days', $daysSinceTuesday));
+
+        $programme = $publicScheduleBuilder->build($startOfWeek);
+
+        return $this->render('home/programme.html.twig', [
+            'programme' => $programme,
+        ]);
     }
 
     #[Route("/infos", name: "infos")]

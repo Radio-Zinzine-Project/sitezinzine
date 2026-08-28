@@ -203,6 +203,43 @@ font-size: 1.6rem;
   border-radius: 8%;
 }
 
+/* ========== HISTORIQUE DES DIFFUSIONS ========== */
+
+.bodyemission .diffusions-history {
+    width: 100%;
+}
+
+.bodyemission .diffusions-history summary {
+    cursor: pointer;
+    color: #E40039;
+    font-weight: 800;
+    user-select: none;
+}
+
+.bodyemission .diffusions-history summary:hover {
+    color: #1C1C1A;
+}
+
+.bodyemission .diffusions-history-list {
+    max-height: 260px;
+    margin-top: 10px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.bodyemission .diffusion-history-item {
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.bodyemission .diffusion-history-item:last-child {
+    border-bottom: none;
+}
+
 /* ========== RESPONSIVE ========== */
 @media (max-width: 768px) {
   .bodyemission .fiche-emission{
@@ -368,7 +405,34 @@ font-size: 1.6rem;
                             {% endif %}
                           </td>
                           <td>
-                            {{ emission.datepub|format_datetime('long', 'none', locale='fr') }}
+                            {% if diffusions is not empty %}
+                              <details class="diffusions-history">
+                                <summary>
+                                  {{ diffusions|length }}
+                                  diffusion
+                                  {% if diffusions|length > 1 %}
+                                    s
+                                  {% endif %}
+                                  enregistrée
+                                  {% if diffusions|length > 1 %}
+                                    s
+                                  {% endif %}
+                                </summary>
+                                <div class="diffusions-history-list">
+                                  {% for diffusion in diffusions %}
+                                    <div class="diffusion-history-item">
+                                      {{ diffusion.horaireDiffusion|format_datetime(
+                            'long',
+                            'short',
+                            locale='fr'
+                        ) }}
+                                    </div>
+                                  {% endfor %}
+                                </div>
+                              </details>
+                            {% else %}
+                              Aucune diffusion enregistrée
+                            {% endif %}
                           </td>
                           <td>
                             {% if emission.url %}

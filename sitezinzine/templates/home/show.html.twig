@@ -1,10 +1,10 @@
 {% extends 'base.html.twig' %}
 {% block title %}
-    "Émission : " ~
-    {{ emission.titre }}
+  "Émission : " ~
+  {{ emission.titre }}
 {% endblock %}
 {% block body %}
-    <style>
+  <style>
 /* ========== GÉNÉRAL ========== */
 .bodyemission,
 .bodyemission *{
@@ -460,109 +460,143 @@
 }
 
     </style>
-    <div class="bodyemission">
-
+  <div class="bodyemission">
     <div class="fiche-emission">
-        <a href="{{ app.request.headers.get('referer') ?? '/' }}" class="btn-back">← Retour</a>
-
-        <div class="bloc-haut">
-            <div class="bloc-image">
-                {% if emission.thumbnail %}
-                    <img src="{{ vich_uploader_asset(emission, 'thumbnailFile') }}" alt="Photo de {{ emission.titre }}">
-                {% elseif emission.categorie.thumbnail %}
-                    <img src="{{ vich_uploader_asset(emission.categorie, 'thumbnailFile', 'App\\Entity\\Categories') }}" alt="Photo de {{ emission.titre }}">
+      <a href="{{ app.request.headers.get('referer') ?? '/' }}" class="btn-back">
+        ← Retour
+      </a>
+      <div class="bloc-haut">
+        <div class="bloc-image">
+          {% if emission.thumbnail %}
+            <img
+            src="{{ vich_uploader_asset(emission, 'thumbnailFile') }}" alt="Photo de {{ emission.titre }}">
+              {% elseif emission.categorie.thumbnail %}
+              <img
+              src="{{ vich_uploader_asset(emission.categorie, 'thumbnailFile', 'App\\Entity\\Categories') }}" alt="Photo de {{ emission.titre }}">
                 {% elseif emission.theme.thumbnail is defined %}
-                    <img src="{{ vich_uploader_asset(emission.theme, 'thumbnailFile', 'App\\Entity\\Theme') }}" alt="Photo de {{ emission.titre }}">
-                {% else %}
-                    <img src="/images/emission-zinzine.jpg" alt="Image par défaut">
-                {% endif %}
-            </div>
-
-            <div class="bloc-texte">
-                <h1>{{ emission.titre }}</h1>
-                <div class="descriptif">
-                    {{ emission.descriptif | raw }}
+                <img
+                src="{{ vich_uploader_asset(emission.theme, 'thumbnailFile', 'App\\Entity\\Theme') }}" alt="Photo de {{ emission.titre }}">
+                  {% else %}
+                  <img src="/images/emission-zinzine.jpg" alt="Image par défaut">
+                  {% endif %}
                 </div>
-            </div>
-        </div> <!-- /.bloc-haut -->
-
-        <div class="bloc-infos">
-            <table class="table-infos">
-                <thead>
+                <div class="bloc-texte">
+                  <h1>
+                    {{ emission.titre }}
+                  </h1>
+                  <div class="descriptif">
+                    {{ emission.descriptif | raw }}
+                  </div>
+                </div>
+              </div>
+              <!-- /.bloc-haut -->
+              <div class="bloc-infos">
+                <table class="table-infos">
+                  <thead>
                     <tr>
-                        <th>Infos diverses</th>
-                        <th>Horaire de passage</th>
-                        <th>Liens</th>
+                      <th>
+                        Infos diverses
+                      </th>
+                      <th>
+                        Horaire de passage
+                      </th>
+                      <th>
+                        Liens
+                      </th>
                     </tr>
-                </thead>
-                <tbody>
+                  </thead>
+                  <tbody>
                     <tr>
-                        <td>
-                            <strong>Thème :</strong> {{ emission.theme.name }}<br>
-                            <strong>
-                              Animateur·rice·s :
-                            </strong>
-                            {% set usernames = emission.users|map(u => u.username)|join(', ') %}
-                            {% set anciens = emission.inviteOldAnimateurs
+                      <td>
+                        <strong>
+                          Thème :
+                        </strong>
+                        {{ emission.theme.name }}
+                        <br>
+                          <strong>
+                            Animateur·rice·s :
+                          </strong>
+                          {% set usernames = emission.users|map(u => u.username)|join(', ') %}
+                          {% set anciens = emission.inviteOldAnimateurs
                               |filter(a => a.ancienanimateur)
                               |map(a => a ~ '')
                               |join(', ') %}
-                            {% if usernames %}
-                              {{ usernames }}
-                              {% if anciens %}
-                                ,
-                                {{ anciens }}
-                              {% endif %}
-                            {% elseif anciens %}
+                          {% if usernames %}
+                            {{ usernames }}
+                            {% if anciens %}
+                              ,
                               {{ anciens }}
-                            {% else %}
-                              Utilisateur inconnu
                             {% endif %}
+                          {% elseif anciens %}
+                            {{ anciens }}
+                          {% else %}
+                            Utilisateur inconnu
+                          {% endif %}
                         </td>
                         <td>
-                            {{ emission.datepub|format_datetime('long', 'none', locale='fr') }}
-                        </td>
-                        <td>
+                          {% if latestDiffusions is not empty %}
+                            {% for diffusion in latestDiffusions %}
+                              {{ diffusion.horaireDiffusion|format_datetime(
+                'long',
+                'short',
+                locale='fr'
+            ) }}
+                              {% if not loop.last %}
+                                <br>
+                                {% endif %}
+                              {% endfor %}
+                            {% else %}
+                              Aucune diffusion enregistrée
+                            {% endif %}
+                          </td>
+                          <td>
                             {% if emission.url %}
-                                <a href="{{ emission.url }}" target="_blank">🎧 Écouter</a><br>
-                                <a href="{{ emission.url }}" download target="_blank">⬇ Télécharger</a>
-                            {% else %}
+                              <a href="{{ emission.url }}" target="_blank">
+                                🎧 Écouter
+                              </a>
+                              <br>
+                                <a href="{{ emission.url }}" download target="_blank">
+                                  ⬇ Télécharger
+                                </a>
+                              {% else %}
                                 Aucun lien disponible
-                            {% endif %}
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div> <!-- /.bloc-infos -->
-
-        <div class="catemission">
-            <div class="titre">
-                <a href="{{ path('categorie.show', {'id': emission.categorie.id}) }}">
-                    <h1>{{ emission.categorie.titre }}</h1>
-                </a>
-            </div>
-            {% if emission.categorie.thumbnail %}
-                <img src="{{ vich_uploader_asset(emission.categorie, 'thumbnailFile') }}" alt="Photo de {{ emission.categorie.titre }}">
-            {% endif %}
-            <div class="descriptif">
-                {{ emission.categorie.descriptif | raw }}
-            </div>
-        </div> <!-- /.catemission -->
-    </div> <!-- /.fiche-emission -->
-
-    <img class="bottom" src="/images/top-content-dechire-D.gif">
-<div class="theme">
-    {# On passe au composant la liste des IDs de thèmes du groupe #}
-{{ component('related_emissions', {
+                              {% endif %}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <!-- /.bloc-infos -->
+                    <div class="catemission">
+                      <div class="titre">
+                        <a href="{{ path('categorie.show', {'id': emission.categorie.id}) }}">
+                          <h1>
+                            {{ emission.categorie.titre }}
+                          </h1>
+                        </a>
+                      </div>
+                      {% if emission.categorie.thumbnail %}
+                        <img src="{{ vich_uploader_asset(emission.categorie, 'thumbnailFile') }}" alt="Photo de {{ emission.categorie.titre }}">
+                        {% endif %}
+                        <div class="descriptif">
+                          {{ emission.categorie.descriptif | raw }}
+                        </div>
+                      </div>
+                    <!-- /.catemission -->
+                    </div>
+                    <!-- /.fiche-emission -->
+                    <img class="bottom" src="/images/top-content-dechire-D.gif">
+                      <div class="theme">
+                        {# On passe au composant la liste des IDs de thèmes du groupe #}
+                        {{ component('related_emissions', {
   groupIds: themesInGroup|map(t => t.id),
   selected: [],
   page: 1
 }) }}
+                      </div>
+                    <!-- /.theme -->
+                    </div>
+                  <!-- /.bodyemission -->
+                  {% endblock %}
 
-       
-    </div> <!-- /.theme -->
-</div> <!-- /.bodyemission -->
-
-{% endblock %}
-
-                                        
+                

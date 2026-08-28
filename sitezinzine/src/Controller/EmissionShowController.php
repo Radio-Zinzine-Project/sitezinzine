@@ -7,6 +7,7 @@ use App\Form\EmissionSearchType;
 use Symfony\Bundle\SecurityBundle\Security;
 use App\Repository\EmissionRepository;
 use App\Repository\ThemeRepository;
+use App\Repository\DiffusionRepository;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -35,78 +36,85 @@ class EmissionShowController extends AbstractController
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => Requirement::DIGITS])]
-public function show(
-    Emission $emission,
-    EmissionRepository $emissionRepository,
-    ThemeRepository $themeRepository,
-    PaginatorInterface $paginator,
-    Request $request
-): Response {
-    $theme = $emission->getTheme();
-    $themeGroups = $emissionRepository->getThemeGroups();
+    public function show(
+        Emission $emission,
+        EmissionRepository $emissionRepository,
+        ThemeRepository $themeRepository,
+        DiffusionRepository $diffusionRepository,
+        PaginatorInterface $paginator,
+        Request $request
+    ): Response {
+        $theme = $emission->getTheme();
+        $themeGroups = $emissionRepository->getThemeGroups();
 
-    if (!$theme) {
-        throw $this->createNotFoundException('Le thème de cette émission n\'existe pas.');
-    }
-
-    $currentThemeId = $theme->getId();
-
-    $groupKey = null;
-    foreach ($themeGroups as $key => $ids) {
-        if (in_array($currentThemeId, $ids)) {
-            $groupKey = $key;
-            break;
+        if (!$theme) {
+            throw $this->createNotFoundException('Le thème de cette émission n\'existe pas.');
         }
-    }
 
-    $relatedThemeIds = $themeGroups[$groupKey] ?? [];
+        $currentThemeId = $theme->getId();
 
-    // Pour les boutons
-    $themesInGroup = $themeRepository->findBy(['id' => $relatedThemeIds]);
-
-    // Liste des émissions liées avec pagination
-    $relatedEmissions = $emissionRepository->paginateEmissionsByThemeGroup(
-        $relatedThemeIds,
-        $request->query->getInt('page', 1)
-    );
-
-    return $this->render('/home/show.html.twig', [
-        'emission' => $emission,
-        'theme' => $theme,
-        'themesInGroup' => $themesInGroup,
-        'relatedEmissions' => $relatedEmissions,
-    ]);
-}
-
-
-
-   #[Route('/recherche', name: 'recherche')]
-public function search(Request $request, EmissionRepository $emissionRepository): Response
-{
-    $form = $this->createForm(EmissionSearchType::class);
-    $form->handleRequest($request);
-
-    if ($form->isSubmitted() && $form->isValid()) {
-        $criteria = $form->getData();
-        $page = $request->query->getInt('page', 1);
-    } else {
-        $criteria = [];
-        $page = $request->query->getInt('page', 1);
-    }
-
-    $emissions = $emissionRepository->findBySearch($criteria, $page);
-
-    foreach ($emissions as $emission) {
-        $lastDate = $emissionRepository->findLastDiffusionDate($emission->getId());
-        if ($lastDate) {
-            $emission->setLastDiffusion($lastDate);
+        $groupKey = null;
+        foreach ($themeGroups as $key => $ids) {
+            if (in_array($currentThemeId, $ids)) {
+                $groupKey = $key;
+                break;
+            }
         }
+
+        $relatedThemeIds = $themeGroups[$groupKey] ?? [];
+
+        // Pour les boutons
+        $themesInGroup = $themeRepository->findBy(['id' => $relatedThemeIds]);
+
+        // Liste des émissions liées avec pagination
+        $relatedEmissions = $emissionRepository->paginateEmissionsByThemeGroup(
+            $relatedThemeIds,
+            $request->query->getInt('page', 1)
+        );
+
+        // Dernières diffusions publiées de l'émission
+        $latestDiffusions = $diffusionRepository->findLatestByEmission(
+            $emission,
+            6
+        );
+
+        return $this->render('/home/show.html.twig', [
+            'emission' => $emission,
+            'theme' => $theme,
+            'themesInGroup' => $themesInGroup,
+            'relatedEmissions' => $relatedEmissions,
+            'latestDiffusions' => $latestDiffusions,
+        ]);
     }
 
-    return $this->render('home/recherche.html.twig', [
-        'form' => $form->createView(),
-        'emissions' => $emissions,
-        'searchTerm' => $form->get('titre')->getData(),
-    ]);
-}
+
+    #[Route('/recherche', name: 'recherche')]
+    public function search(Request $request, EmissionRepository $emissionRepository): Response
+    {
+        $form = $this->createForm(EmissionSearchType::class);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $criteria = $form->getData();
+            $page = $request->query->getInt('page', 1);
+        } else {
+            $criteria = [];
+            $page = $request->query->getInt('page', 1);
+        }
+
+        $emissions = $emissionRepository->findBySearch($criteria, $page);
+
+        foreach ($emissions as $emission) {
+            $lastDate = $emissionRepository->findLastDiffusionDate($emission->getId());
+            if ($lastDate) {
+                $emission->setLastDiffusion($lastDate);
+            }
+        }
+
+        return $this->render('home/recherche.html.twig', [
+            'form' => $form->createView(),
+            'emissions' => $emissions,
+            'searchTerm' => $form->get('titre')->getData(),
+        ]);
+    }
 }

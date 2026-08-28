@@ -452,13 +452,13 @@
                           {% endif %}
                           {% if isCurrent %}
                             <div class="live-badge">
-                              ● EN DIRECT
+                              ● EN CE MOMENT
                             </div>
                           {% endif %}
                         </div>
                         <div class="date_carousel">
                           <p>
-                            {{ diffusion | format_datetime('none', 'short', locale='fr') }}
+                            {{ diffusion|date('H:i', 'Europe/Paris') }}
                           </p>
                           </div>
                           <div class="titre_carousel">

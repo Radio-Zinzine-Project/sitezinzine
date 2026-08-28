@@ -6,6 +6,7 @@ use App\Entity\Emission;
 
 use App\Form\EmissionType;
 use App\Repository\EmissionRepository;
+use App\Repository\DiffusionRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -58,36 +59,40 @@ class EmissionController extends AbstractController
 
 
     #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => Requirement::DIGITS])]
-    public function show(
-        Emission $emission,
-        EmissionRepository $emissionRepository,
-        PaginatorInterface $paginator,
-        Request $request
-    ): Response {
+public function show(
+    Emission $emission,
+    EmissionRepository $emissionRepository,
+    DiffusionRepository $diffusionRepository,
+    PaginatorInterface $paginator,
+    Request $request
+): Response {
 
-        $emissions = null;
+    $emissions = null;
 
-        if ($emission->getCategorie() !== null) {
-            $query = $emissionRepository->createQueryBuilder('e')
-                ->where('e.categorie = :categorie')
-                ->andWhere('e != :current')
-                ->setParameter('categorie', $emission->getCategorie())
-                ->setParameter('current', $emission)
-                ->orderBy('e.datepub', 'DESC')
-                ->getQuery();
+    if ($emission->getCategorie() !== null) {
+        $query = $emissionRepository->createQueryBuilder('e')
+            ->where('e.categorie = :categorie')
+            ->andWhere('e != :current')
+            ->setParameter('categorie', $emission->getCategorie())
+            ->setParameter('current', $emission)
+            ->orderBy('e.datepub', 'DESC')
+            ->getQuery();
 
-            $emissions = $paginator->paginate(
-                $query,
-                $request->query->getInt('page', 1),
-                10
-            );
-        }
-
-        return $this->render('admin/emission/show.html.twig', [
-            'emission'  => $emission,
-            'emissions' => $emissions,
-        ]);
+        $emissions = $paginator->paginate(
+            $query,
+            $request->query->getInt('page', 1),
+            10
+        );
     }
+
+    $diffusions = $diffusionRepository->findAllByEmission($emission);
+
+    return $this->render('admin/emission/show.html.twig', [
+        'emission' => $emission,
+        'emissions' => $emissions,
+        'diffusions' => $diffusions,
+    ]);
+}
 
 
     #[Route('/create', name: 'create')]

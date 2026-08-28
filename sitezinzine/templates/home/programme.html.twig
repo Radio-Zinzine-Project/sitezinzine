@@ -4,63 +4,449 @@
 {% endblock %}
 {% block body %}
     <style>
+.bodyprogramme,
+.bodyprogramme * {
+    box-sizing: border-box;
+}
+
 .bodyprogramme {
-    background: linear-gradient(#E4013A, #B81C61);
-    background-size: 100%;
     width: 100%;
+    min-height: 100vh;
     margin: 0;
-    padding: 0;
+    padding: 2rem 1rem 4rem;
+    background: linear-gradient(#E4013A, #B81C61);
+    font-family: "Montserrat Alternates", sans-serif;
+    color: #1C1C1A;
+}
+
+.programme-container {
+    width: min(1000px, 100%);
+    margin: 0 auto;
+    padding: 2rem;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+
+/* =========================
+   EN-TÊTE
+   ========================= */
+
+.programme-header {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.programme-header h1 {
+    margin: 0;
+    color: #E40039;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.programme-period {
+    margin: 0.5rem 0 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+
+/* =========================
+   NAVIGATION JOURS
+   ========================= */
+
+.programme-days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 3rem;
+}
+
+.programme-day-link {
     display: flex;
     flex-direction: column;
-    font-family: "Montserrat Alternates", sans-serif;
-    font-weight: 500;
-    font-style: normal;
-    font-size: 24px;
-    position: relative;
-    min-height: 100vh;
-    color: white;
+    align-items: center;
+    justify-content: center;
+    min-height: 68px;
+    padding: 0.6rem 0.4rem;
+
+    border: 2px solid #E40039;
+    border-radius: 8px;
+
+    color: #1C1C1A;
+    background: #fff;
+
+    text-decoration: none;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
 }
 
-.top img {
+.programme-day-link:hover {
+    background: #E40039;
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+.programme-day-name {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.programme-day-number {
+    margin-top: 0.2rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+
+/* =========================
+   JOURNÉES
+   ========================= */
+
+.programme-day {
+    margin-bottom: 3rem;
+    scroll-margin-top: 1rem;
+}
+
+.programme-day:last-child {
+    margin-bottom: 0;
+}
+
+.programme-day-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+
+    border-bottom: 3px solid #E40039;
+}
+
+.programme-day-header h2 {
+    margin: 0;
+    color: #E40039;
+    font-size: 1.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.programme-day-header span {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+
+/* =========================
+   ÉMISSIONS
+   ========================= */
+
+.programme-list {
     width: 100%;
 }
 
-/* Conteneur de l'iframe */
-.iframe-container {
-    position: relative;
-    width: 80%; /* 80% de la largeur de la page */
-    max-width: 900px;
-    margin: 20px auto; /* Centrer */
-    padding-top: 45%; /* Pour le ratio 16:9 (hauteur/largeur = 9/16) */
-    background-color: #000; /* Fond noir pour l'iframe */
+.programme-emission {
+    display: grid;
+    grid-template-columns: 130px minmax(0, 1fr);
+    gap: 1.5rem;
+
+    padding: 1rem 0;
+
+    border-bottom: 1px solid #e5e5e5;
 }
 
-/* L'iframe proprement dite */
-iframe {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;  /* L'iframe occupe toute la largeur du conteneur */
-    height: 100%; /* Hauteur proportionnelle */
-    border: none;
+.programme-emission:last-child {
+    border-bottom: none;
 }
 
-/* Responsive pour petits écrans */
+.programme-time {
+    padding-top: 0.1rem;
+
+    color: #E40039;
+    font-size: 1rem;
+    font-weight: 800;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.programme-emission-content {
+    min-width: 0;
+}
+
+.programme-emission-content h3 {
+    margin: 0;
+
+    color: #1C1C1A;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.programme-category {
+    margin-top: 0.25rem;
+
+    color: #666;
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.programme-empty {
+    margin: 1rem 0;
+    color: #666;
+    font-size: 0.95rem;
+    font-style: italic;
+}
+
+.programme-emission-content h3 a {
+    color: #1C1C1A;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.programme-emission-content h3 a:hover {
+    color: #E40039;
+}
+
+.programme-description {
+    display: -webkit-box;
+    margin-top: 0.45rem;
+
+    color: #444;
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.45;
+
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+.programme-back-top {
+    position: fixed;
+    right: calc((100vw - 1000px) / 4);
+    top: 55%;
+    z-index: 100;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 48px;
+    height: 48px;
+
+    background: #E40039;
+    color: #fff;
+
+    border: 2px solid #fff;
+    border-radius: 50%;
+
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1;
+    text-decoration: none;
+
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.programme-back-top:hover {
+    background: #fff;
+    color: #E40039;
+    border-color: #E40039;
+    transform: translateY(-3px);
+}
+
+.programme-back-top:focus-visible {
+    outline: 3px solid #1C1C1A;
+    outline-offset: 3px;
+}
+
+
+
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 768px) {
+
+    .bodyprogramme {
+        padding: 1rem 0.75rem 3rem;
+    }
+
+    .programme-container {
+        padding: 1.25rem;
+    }
+
+    .programme-header h1 {
+        font-size: 1.6rem;
+    }
+
+    .programme-days {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+
+        scrollbar-width: thin;
+    }
+
+    .programme-day-link {
+        flex: 0 0 82px;
+    }
+
+    .programme-day-header {
+        gap: 0.6rem;
+    }
+
+    .programme-day-header h2 {
+        font-size: 1.35rem;
+    }
+
+    .programme-emission {
+        grid-template-columns: 90px minmax(0, 1fr);
+        gap: 1rem;
+    }
+
+    .programme-time {
+        font-size: 0.9rem;
+    }
+
+    .programme-emission-content h3 {
+        font-size: 1rem;
+    }
+}
+
 @media (max-width: 600px) {
-    .iframe-container {
-        width: 90%; /* Sur petits écrans, on passe à 90% de la largeur */
-        padding-top: 56.25%; /* Ratio ajusté pour petits écrans */
+    .programme-back-top {
+        top: auto;
+        right: 14px;
+        bottom: 14px;
+
+        width: 42px;
+        height: 42px;
+
+        font-size: 1.25rem;
     }
 }
 
 
-    
-    </style>
+@media (max-width: 480px) {
 
-    <div class="iframe-container">
-        <iframe scrolling="no" frameborder="0" src="https://schedule.radiozinzine.org/embed/weekly-program"></iframe>
+    .programme-container {
+        padding: 1rem;
+    }
+
+    .programme-day-header {
+        align-items: flex-end;
+        justify-content: space-between;
+    }
+
+    .programme-day-header h2 {
+        font-size: 1.2rem;
+    }
+
+    .programme-day-header span {
+        font-size: 0.85rem;
+    }
+
+    .programme-emission {
+        grid-template-columns: 72px minmax(0, 1fr);
+        gap: 0.75rem;
+        padding: 0.9rem 0;
+    }
+
+    .programme-time {
+        font-size: 0.82rem;
+    }
+
+    .programme-category {
+        font-size: 0.82rem;
+    }
+}
+</style>
+    <div class="bodyprogramme" id="programme-top">
+        <main class="programme-container">
+            <header class="programme-header">
+                <h1>
+                    Programme de la semaine
+                </h1>
+                <p class="programme-period">
+                    Du
+                    {{ programme.startOfWeek|format_datetime('long', 'none', locale='fr') }}
+                    au
+                    {{ programme.endOfWeek|format_datetime('long', 'none', locale='fr') }}
+                </p>
+            </header>
+            <nav class="programme-days" aria-label="Accès rapide aux jours">
+                {% for day in programme.days %}
+                    <a href="#jour-{{ day.key }}" class="programme-day-link">
+                        <span class="programme-day-name">
+                            {{ day.date|format_datetime(pattern='EEEE', locale='fr') }}
+                        </span>
+                        <span class="programme-day-number">
+                            {{ day.date|date('d') }}
+                        </span>
+                    </a>
+                {% endfor %}
+            </nav>
+            <div class="programme-week">
+                {% for day in programme.days %}
+                    <section class="programme-day" id="jour-{{ day.key }}">
+                        <header class="programme-day-header">
+                            <h2>
+                                {{ day.date|format_datetime(pattern='EEEE', locale='fr') }}
+                            </h2>
+                            <span>
+                                {{ day.date|format_datetime(pattern='d MMMM', locale='fr') }}
+                            </span>
+                        </header>
+                        <div class="programme-list">
+                            {% for diffusion in day.diffusions %}
+                                <article class="programme-emission">
+                                    <div class="programme-time">
+                                        {{ diffusion.horaireDiffusion|date('H\\hi') }}
+                                    </div>
+                                    <div class="programme-emission-content">
+                                        <h3>
+                                            <a href="{{ path('emission.show', {'id': diffusion.emission.id}) }}">
+                                                {{ diffusion.emission.titre }}
+                                            </a>
+                                        </h3>
+                                        <div class="programme-category">
+                                            {{ diffusion.emission.categorie.titre }}
+                                        </div>
+                                        <div class="programme-description">
+                                            <div class="programme-description">
+                                                {{ diffusion.emission.descriptif|striptags|raw }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            {% else %}
+                                <p class="programme-empty">
+                                    Aucun programme pour cette journée.
+                                </p>
+                            {% endfor %}
+                        </div>
+                    </section>
+                {% endfor %}
+            </div>
+        </main>
+        <a href="#programme-top" class="programme-back-top" aria-label="Remonter en haut de la page" title="Haut de page">
+            ↑
+        </a>
     </div>
-
-
-    {% endblock %}
-    
+{% endblock %}
