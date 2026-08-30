@@ -18,14 +18,27 @@ class CategoriesRepository extends ServiceEntityRepository
         parent::__construct($registry, Categories::class);
     }
 
-    public function paginateCategoriesWithCount(int $page, int $limit, ?UserInterface $user = null): PaginationInterface
-    {
+    public function paginateCategoriesWithCount(
+        int $page,
+        int $limit,
+        ?UserInterface $user = null,
+        ?string $initiale = null
+    ): PaginationInterface {
         $qb = $this->createQueryBuilder('c')
             ->select('c', 'COUNT(DISTINCT r.id) AS total')
             ->leftJoin('c.emissions', 'r')
             ->andWhere('c.softDelete = false')
             ->groupBy('c.id')
             ->orderBy('c.titre', 'ASC');
+
+        if ($initiale !== null && $initiale !== '') {
+            if ($initiale === '0-9') {
+                $qb->andWhere("REGEXP(c.titre, '^[0-9]') = 1");
+            } elseif (preg_match('/^[A-Z]$/', $initiale)) {
+                $qb->andWhere('UPPER(c.titre) LIKE :initiale')
+                    ->setParameter('initiale', $initiale . '%');
+            }
+        }
 
         if (
             $user

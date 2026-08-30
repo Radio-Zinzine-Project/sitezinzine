@@ -163,8 +163,7 @@
     </h1>
     <div class="form" data-controller="reset-form" data-reset-form-url-value="{{ path('emission.recherche') }}">
       {{ form_start(form, {
-  action: path('emission.recherche') ~ '#resultats',
-  attr: { 'data-reset-form-target': 'form' }
+    action: path('emission.recherche')
 }) }}
       <div class="search-row">
         <div>
@@ -200,7 +199,7 @@
     </div>
     <img class="imgbottom" src="/images/top-content-dechire-D.gif" alt=""></div>
     {# ✅ Tout ce qui concerne l'affichage des émissions est externalisé #}
-    <div id="resultats"></div>
+    <div id="resultats" tabindex="-1"></div>
     {% include 'partials/_emission_results.html.twig' with {
   emissions: emissions,
   searchTerm: searchTerm,
@@ -210,8 +209,43 @@
   resultsAnchor: 'resultats',
   showRoute: 'emission.show',
   isAdmin: false,
-  showAdminActions: false
+  showAdminActions: false,
+  useKnpPagination: true,
+  useAlphabetPagination: true,
+  initiale: initiale,
+  alphabet: alphabet,
+  alphabetRoute: 'emission.recherche'
 } %}
+    {% if form.vars.submitted %}
+      <script>
+        setTimeout(() => {
+            const results = document.getElementById('resultats');
 
+            if (!results) {
+                return;
+            }
+
+            const url =
+                window.location.pathname +
+                window.location.search +
+                '#resultats';
+
+            window.history.replaceState(
+                null,
+                '',
+                url
+            );
+
+            results.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+
+            results.focus({
+                preventScroll: true
+            });
+        }, 100);
+    </script>
+    {% endif %}
   {% endblock %}
   

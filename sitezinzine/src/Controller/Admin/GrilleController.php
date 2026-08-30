@@ -13,6 +13,7 @@ use App\Repository\EmissionRepository;
 use App\Repository\GridSlotArbitrationRepository;
 use App\Repository\ProgrammationRuleRepository;
 use App\Repository\ProgrammationRuleSlotRepository;
+use App\Service\WeeklyAnnouncementPrintBuilder;
 use App\Service\GridRebroadcastCoverageService;
 use App\Service\GridAssignmentService;
 use App\Service\GridViewBuilder;
@@ -125,6 +126,76 @@ class GrilleController extends AbstractController
                 'startOfWeek' => $startOfWeekDate,
                 'jours' => $jours,
                 ...$gridView,
+            ]
+        );
+    }
+
+    #[Route(
+        '/{startOfWeek}/annonces/print',
+        name: 'print_announcements',
+        methods: ['GET'],
+        requirements: ['startOfWeek' => '\d{4}-\d{2}-\d{2}']
+    )]
+    public function printAnnouncements(
+        string $startOfWeek,
+        GridViewBuilder $gridViewBuilder,
+        WeeklyAnnouncementPrintBuilder $weeklyAnnouncementPrintBuilder,
+    ): Response {
+        $startDate = \DateTime::createFromFormat('Y-m-d', $startOfWeek);
+
+        if (!$startDate) {
+            throw $this->createNotFoundException(
+                'Date de semaine invalide.'
+            );
+        }
+
+        $startOfWeekDate = (clone $startDate)
+            ->modify('this week')
+            ->modify('+1 day')
+            ->setTime(0, 0, 0);
+
+        $endOfWeekDate = (clone $startOfWeekDate)
+            ->modify('+7 days');
+
+        $startImmutable = \DateTimeImmutable::createFromMutable(
+            $startOfWeekDate
+        );
+
+        $endImmutable = \DateTimeImmutable::createFromMutable(
+            $endOfWeekDate
+        );
+
+        /*
+     * On garde la même règle que pour l'impression
+     * de la grille : seule une semaine validée peut
+     * être imprimée.
+     */
+        $gridView = $gridViewBuilder->build(
+            $startImmutable,
+            $endImmutable
+        );
+
+        if (($gridView['gridMode'] ?? null) !== 'diffusion') {
+            $this->addFlash(
+                'warning',
+                'La grille doit être validée avant de pouvoir imprimer les émissions à annoncer.'
+            );
+
+            return $this->redirectToRoute('admin.grille.index', [
+                'startOfWeek' => $startOfWeekDate->format('Y-m-d'),
+            ]);
+        }
+
+        $items = $weeklyAnnouncementPrintBuilder->build(
+            $startImmutable,
+            $endImmutable
+        );
+
+        return $this->render(
+            'admin/grille/print_announcements.html.twig',
+            [
+                'startOfWeek' => $startOfWeekDate,
+                'items' => $items,
             ]
         );
     }

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <title>
+            Émissions à annoncer -
+            semaine du
+            {{ startOfWeek|date('d/m/Y') }}
+        </title>
+        <style>
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    html,
+    body {
+        margin: 0;
+        padding: 0;
+        color: #000;
+        background: #fff;
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .print-toolbar {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+
+        margin: 16px auto;
+        padding: 12px;
+    }
+
+    .print-toolbar a,
+    .print-toolbar button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        min-height: 38px;
+        padding: 0 14px;
+
+        color: #000;
+        background: #fff;
+
+        border: 1px solid #888;
+        border-radius: 5px;
+
+        font-size: 14px;
+        font-weight: 700;
+
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .print-toolbar button {
+        color: #fff;
+        background: #333;
+        border-color: #333;
+    }
+
+    .print-document {
+        width: 100%;
+        max-width: 190mm;
+        margin: 0 auto;
+    }
+
+    .print-title {
+        margin: 0;
+        text-align: center;
+        font-size: 16pt;
+        line-height: 1.1;
+    }
+
+    .print-subtitle {
+        margin: 1mm 0 5mm;
+        text-align: center;
+        font-size: 9pt;
+        font-weight: 600;
+        line-height: 1.2;
+    }
+
+    .announcement {
+        margin: 0 0 3.5mm;
+        padding: 0 0 3mm;
+
+        border-bottom: 1px solid #aaa;
+    }
+
+    .announcement:last-child {
+        border-bottom: 0;
+    }
+
+    .announcement__title {
+        margin: 0 0 1mm;
+
+        font-size: 11.5pt;
+        line-height: 1.15;
+        font-weight: 700;
+
+        orphans: 2;
+        widows: 2;
+    }
+
+    .announcement__meta,
+    .announcement__meta-line {
+        margin: 0 0 1mm;
+
+        font-size: 8pt;
+        line-height: 1.25;
+    }
+
+    .announcement__meta-line span:not(:last-child)::after {
+        content: " • ";
+        font-weight: 400;
+    }
+
+    .announcement__label {
+        font-weight: 700;
+    }
+
+    .announcement__description {
+        margin: 1.5mm 0 0;
+
+        font-size: 8.5pt;
+        line-height: 1.25;
+    }
+
+    .announcement__description p {
+        margin: 0 0 1mm;
+    }
+
+    .announcement__description p:last-child {
+        margin-bottom: 0;
+    }
+
+    .announcement__description ul,
+    .announcement__description ol {
+        margin: 1mm 0;
+        padding-left: 5mm;
+    }
+
+    .announcement__description li {
+        margin: 0;
+    }
+
+    .announcement__diffusions {
+        margin: 1.5mm 0 0;
+        padding: 0;
+
+        font-size: 8pt;
+        line-height: 1.25;
+    }
+
+    .announcement__diffusion {
+        white-space: nowrap;
+    }
+
+    .empty-state {
+        margin-top: 15mm;
+
+        text-align: center;
+        font-size: 11pt;
+        font-weight: 700;
+    }
+
+@media print {
+    .print-toolbar {
+        display: none !important;
+    }
+
+    .announcement__title {
+        break-after: avoid-page;
+        page-break-after: avoid;
+    }
+
+    .announcement__meta,
+    .announcement__meta-line {
+        break-before: avoid-page;
+        page-break-before: avoid;
+        break-after: avoid-page;
+        page-break-after: avoid;
+    }
+
+    .announcement__header {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .announcement__content {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}
+</style>
+    </head>
+    <body>
+        <div class="print-toolbar">
+            <a href="{{ path('admin.grille.index', {
+                startOfWeek: startOfWeek|date('Y-m-d')
+            }) }}">
+                Retour à la grille
+            </a>
+            <button type="button" onclick="window.print()">
+                Imprimer
+            </button>
+        </div>
+        <main class="print-document">
+            <h1 class="print-title">
+                Émissions à annoncer
+            </h1>
+            <p class="print-subtitle">
+                Semaine du
+                {{ startOfWeek|date('d/m/Y') }}
+                au
+                {{ startOfWeek|date_modify('+6 days')|date('d/m/Y') }}
+            </p>
+            {% if items is empty %}
+                <div class="empty-state">
+                    Aucune émission avec descriptif à annoncer cette semaine.
+                </div>
+            {% else %}
+                {% for item in items %}
+                    {% set emission = item.emission %}
+                    <article class="announcement">
+                        <div class="announcement__header">
+                            <h2 class="announcement__title">
+                                {{ emission.titre }}
+                            </h2>
+                            <div class="announcement__meta-line">
+                                {% if emission.categorie %}
+                                    <span>
+                                        <strong>
+                                            Catégorie :
+                                        </strong>
+                                        {{ emission.categorie.titre }}
+                                    </span>
+                                {% endif %}
+                                {% if item.users is not empty %}
+                                    <span>
+                                        <strong>
+                                            Animateur
+                                            {% if item.users|length > 1 %}
+                                                s
+                                            {% endif %}
+                                            ·ice
+                                            {% if item.users|length > 1 %}
+                                                s
+                                            {% endif %}
+                                            :
+                                        </strong>
+                                        {% for user in item.users %}
+                                            {% if user.pseudo is not empty %}
+                                                {{ user.pseudo }}
+                                            {% else %}
+                                                {{ user.username }}
+                                            {% endif %}
+                                            {% if not loop.last %}
+                                                ,
+                                            {% endif %}
+                                        {% endfor %}
+                                    </span>
+                                {% endif %}
+                                {% if item.anciensAnimateurs is not empty %}
+                                    <span>
+                                        <strong>
+                                            Ancien·ne
+                                            {% if item.anciensAnimateurs|length > 1 %}
+                                                s
+                                            {% endif %}
+                                            animateur·ice
+                                            {% if item.anciensAnimateurs|length > 1 %}
+                                                s
+                                            {% endif %}
+                                            {% if item.anciensAnimateurs|length > 1 %}
+                                                s
+                                            {% endif %}
+                                            ·ice
+                                            {% if item.anciensAnimateurs|length > 1 %}
+                                                s
+                                            {% endif %}
+                                            :
+                                        </strong>
+                                        {% for animateur in item.anciensAnimateurs %}
+                                            {{ animateur }}
+                                            {% if not loop.last %}
+                                                ,
+                                            {% endif %}
+                                        {% endfor %}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="announcement__content">
+                            <div class="announcement__description">
+                                {{ emission.descriptif|raw }}
+                            </div>
+                            <div class="announcement__diffusions">
+                                <strong>
+                                    Diffusion
+                                    {% if item.diffusions|length > 1 %}
+                                        s
+                                    {% endif %}
+                                    :
+                                </strong>
+                                {% for diffusion in item.diffusions %}
+                                    <span class="announcement__diffusion">
+                                        {{ diffusion.horaireDiffusion|format_datetime(
+                    pattern="EEEE d MMMM 'à' HH'h'mm",
+                    locale='fr',
+                    timezone='Europe/Paris'
+                ) }}
+                                    </span>
+                                    {% if not loop.last %}
+                                        —
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            {% endif %}
+        </main>
+    </body>
+</html>

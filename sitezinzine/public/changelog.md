@@ -1,8 +1,20 @@
 # Changelog
 
+## [1.0.106] - 2026-08-30
+### Ajout
+- Impression du document Émissions à annoncer.
+- Ajout d'une ancre sur les résultats de recherche côté public et admin.
+- Ajout d'un filtre alpha-numérique sur la recherche publique et admin.
+### Correction
+- Dispatch des "Un livre, un jour" dans leurs catégories dédiées(samedi, dimanche, lundi).
+- Correction du bouton réinitialiser du formulaire recherche côté public et admin.
+- Refonte du style de la page admin catégories + pagination alpha-numérique.
+
+
 ## [1.0.105] - 2026-08-28
 ### Correction
 - Retrait du dump qui fout le bordel.
+
 
 ## [1.0.104] - 2026-08-28
 ### Ajout

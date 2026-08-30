@@ -250,26 +250,62 @@ button[type=reset]:hover {
                 <button type="submit">
                     Rechercher
                 </button>
-                <button type="reset" data-action="search-reset#reset">
+                <button type="reset" data-action="reset-form#reset">
                     Réinitialiser
                 </button>
             </div>
             {{ form_end (form) }}
         </div>
         <img class="imgbottom" src="/images/top-content-dechire-D.gif"></div>
-        <div id="resultats"></div>
+        <div id="resultats" tabindex="-1"></div>
         {% include 'partials/_emission_results.html.twig' with {
-  emissions: emissions,
-  searchTerm: searchTerm,
-  showNoResults: form.vars.submitted,
-  resultsTitle: 'Résultats de la recherche :',
-  noResultsText: 'Aucune émission trouvée pour les critères de recherche.',
-  resultsAnchor: 'resultats',
-  showRoute: 'admin.emission.show',
-  isAdmin: true,
-  showAdminActions: true,
-  editRoute: 'admin.emission.edit',
-  deleteRoute: 'admin.emission.delete'
+    emissions: emissions,
+    searchTerm: searchTerm,
+    showNoResults: form.vars.submitted,
+    resultsTitle: 'Résultats de la recherche :',
+    noResultsText: 'Aucune émission trouvée pour les critères de recherche.',
+    resultsAnchor: 'resultats',
+    showRoute: 'admin.emission.show',
+    isAdmin: true,
+    showAdminActions: true,
+    editRoute: 'admin.emission.edit',
+    deleteRoute: 'admin.emission.delete',
+    useKnpPagination: true,
+    useAlphabetPagination: true,
+    initiale: initiale,
+    alphabet: alphabet,
+    alphabetRoute: 'admin.emission.rechercheadmin'
 } %}
+        {% if form.vars.submitted %}
+            <script>
+        setTimeout(() => {
+            const results = document.getElementById('resultats');
+
+            if (!results) {
+                return;
+            }
+
+            const url =
+                window.location.pathname +
+                window.location.search +
+                '#resultats';
+
+            window.history.replaceState(
+                null,
+                '',
+                url
+            );
+
+            results.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+
+            results.focus({
+                preventScroll: true
+            });
+        }, 100);
+    </script>
+        {% endif %}
     {% endblock %}
     

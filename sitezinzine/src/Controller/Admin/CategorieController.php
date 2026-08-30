@@ -27,185 +27,201 @@ use Knp\Component\Pager\PaginatorInterface;
 class CategorieController extends AbstractController
 {
     #[Route(name: 'index')]
-    public function index(Request $request, CategoriesRepository $categoriesRepository, SessionInterface $session, Security $security): Response
-    {
+    public function index(
+        Request $request,
+        CategoriesRepository $categoriesRepository,
+        SessionInterface $session,
+        Security $security
+    ): Response {
         $page = $request->query->getInt('page', 1);
         $limit = 10;
+
+        $initiale = strtoupper(
+            trim((string) $request->query->get('initiale', ''))
+        );
 
         $session->set('previous_page', $page);
 
         $user = $security->getUser();
-        $categorie = $categoriesRepository->paginateCategoriesWithCount($page, $limit, $user);
+
+        $categorie = $categoriesRepository->paginateCategoriesWithCount(
+            $page,
+            $limit,
+            $user,
+            $initiale
+        );
 
         return $this->render('admin/categorie/index.html.twig', [
-            'categories' => $categorie
+            'categories' => $categorie,
+            'initiale' => $initiale,
+            'alphabet' => range('A', 'Z'),
         ]);
     }
 
-#[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => Requirement::DIGITS])]
-public function show(
-    Categories $categorie,
-    Request $request,
-    EmissionRepository $emissionRepository,
-    PaginatorInterface $paginator
-): Response {
-    if ($categorie->isSoftDelete()) {
-        $this->addFlash('warning', 'Cette catégorie a été supprimée.');
-        return $this->redirectToRoute('admin.categorie.index');
-    }
-
-    $page  = $request->query->getInt('page', 1);
-    $limit = 12;
-
-    $qb = $emissionRepository->createQueryBuilder('e')
-        ->andWhere('e.categorie = :categorie')
-        ->setParameter('categorie', $categorie)
-        ->orderBy('e.datepub', 'DESC');
-
-    $emissions = $paginator->paginate($qb, $page, $limit);
-
-    return $this->render('admin/categorie/show.html.twig', [
-        'categorie' => $categorie,
-        'emissions' => $emissions, // ✅ KNP PaginationInterface
-    ]);
-}
-
-
-
-
-#[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'], requirements: ['id' => Requirement::DIGITS])]
-public function edit(
-    Categories $categorie,
-    Request $request,
-    EntityManagerInterface $em,
-    SessionInterface $session,
-    StorageInterface $storage,
-    PropertyMappingFactory $mappingFactory
-): Response {
-    // 1) Catégorie supprimée => pas modifiable
-    if ($categorie->isSoftDelete()) {
-        $this->addFlash('warning', 'Impossible de modifier une catégorie supprimée.');
-        return $this->redirectToRoute('admin.categorie.index');
-    }
-
-    // 2) Droits : admin/super_admin OK, sinon il faut appartenir à categorie.users
-    $user = $this->getUser();
-    $isAdmin = $this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_SUPER_ADMIN');
-
-    if (!$isAdmin && (!$user || !$categorie->getUsers()->contains($user))) {
-        throw $this->createAccessDeniedException('Vous ne pouvez pas modifier cette catégorie.');
-    }
-
-    // 3) Gestion du returnTo
-    $returnTo = $request->query->get('returnTo');
-    if (is_string($returnTo) && $returnTo !== '') {
-        $session->set('return_to_url', $returnTo);
-    }
-
-    // 4) Verrou serveur du slug : seuls les super-admin peuvent le modifier
-    $originalSlug = $categorie->getSlug();
-
-    // 5) Form
-    $form = $this->createForm(CategorieType::class, $categorie);
-    $form->handleRequest($request);
-
-    if ($form->isSubmitted() && $form->isValid()) {
-
-        // 🔒 Empêche toute modification du slug si pas super-admin
-        if (!$this->isGranted('ROLE_SUPER_ADMIN')) {
-            $categorie->setSlug($originalSlug);
+    #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => Requirement::DIGITS])]
+    public function show(
+        Categories $categorie,
+        Request $request,
+        EmissionRepository $emissionRepository,
+        PaginatorInterface $paginator
+    ): Response {
+        if ($categorie->isSoftDelete()) {
+            $this->addFlash('warning', 'Cette catégorie a été supprimée.');
+            return $this->redirectToRoute('admin.categorie.index');
         }
 
-        // ✅ suppression image si demandée (Vich)
-        if ($request->request->getBoolean('delete_thumbnail')) {
-            $mappings = $mappingFactory->fromObject($categorie);
+        $page  = $request->query->getInt('page', 1);
+        $limit = 12;
 
-            foreach ($mappings as $m) {
-                if (method_exists($m, 'getPropertyName') && $m->getPropertyName() === 'thumbnailFile') {
-                    $storage->remove($categorie, $m);
-                    break;
-                }
+        $qb = $emissionRepository->createQueryBuilder('e')
+            ->andWhere('e.categorie = :categorie')
+            ->setParameter('categorie', $categorie)
+            ->orderBy('e.datepub', 'DESC');
+
+        $emissions = $paginator->paginate($qb, $page, $limit);
+
+        return $this->render('admin/categorie/show.html.twig', [
+            'categorie' => $categorie,
+            'emissions' => $emissions, // ✅ KNP PaginationInterface
+        ]);
+    }
+
+
+
+
+    #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'], requirements: ['id' => Requirement::DIGITS])]
+    public function edit(
+        Categories $categorie,
+        Request $request,
+        EntityManagerInterface $em,
+        SessionInterface $session,
+        StorageInterface $storage,
+        PropertyMappingFactory $mappingFactory
+    ): Response {
+        // 1) Catégorie supprimée => pas modifiable
+        if ($categorie->isSoftDelete()) {
+            $this->addFlash('warning', 'Impossible de modifier une catégorie supprimée.');
+            return $this->redirectToRoute('admin.categorie.index');
+        }
+
+        // 2) Droits : admin/super_admin OK, sinon il faut appartenir à categorie.users
+        $user = $this->getUser();
+        $isAdmin = $this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_SUPER_ADMIN');
+
+        if (!$isAdmin && (!$user || !$categorie->getUsers()->contains($user))) {
+            throw $this->createAccessDeniedException('Vous ne pouvez pas modifier cette catégorie.');
+        }
+
+        // 3) Gestion du returnTo
+        $returnTo = $request->query->get('returnTo');
+        if (is_string($returnTo) && $returnTo !== '') {
+            $session->set('return_to_url', $returnTo);
+        }
+
+        // 4) Verrou serveur du slug : seuls les super-admin peuvent le modifier
+        $originalSlug = $categorie->getSlug();
+
+        // 5) Form
+        $form = $this->createForm(CategorieType::class, $categorie);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+
+            // 🔒 Empêche toute modification du slug si pas super-admin
+            if (!$this->isGranted('ROLE_SUPER_ADMIN')) {
+                $categorie->setSlug($originalSlug);
             }
 
-            // Nettoyage du nom de fichier en BDD
-            $categorie->setThumbnail(null);
+            // ✅ suppression image si demandée (Vich)
+            if ($request->request->getBoolean('delete_thumbnail')) {
+                $mappings = $mappingFactory->fromObject($categorie);
+
+                foreach ($mappings as $m) {
+                    if (method_exists($m, 'getPropertyName') && $m->getPropertyName() === 'thumbnailFile') {
+                        $storage->remove($categorie, $m);
+                        break;
+                    }
+                }
+
+                // Nettoyage du nom de fichier en BDD
+                $categorie->setThumbnail(null);
+            }
+
+            $categorie->setUpdatedAt(new \DateTime());
+            $em->flush();
+
+            $this->addFlash('success', 'La catégorie a bien été modifiée.');
+
+            // Redirection prioritaire : returnTo
+            if ($session->has('return_to_url')) {
+                $url = $session->get('return_to_url');
+                $session->remove('return_to_url');
+                return $this->redirect($url);
+            }
+
+            // Sinon retour à l’index + page précédente
+            $previousPage = $session->get('previous_page', 1);
+            return $this->redirectToRoute('admin.categorie.index', ['page' => $previousPage]);
         }
 
-        $categorie->setUpdatedAt(new \DateTime());
-        $em->flush();
-
-        $this->addFlash('success', 'La catégorie a bien été modifiée.');
-
-        // Redirection prioritaire : returnTo
-        if ($session->has('return_to_url')) {
-            $url = $session->get('return_to_url');
-            $session->remove('return_to_url');
-            return $this->redirect($url);
-        }
-
-        // Sinon retour à l’index + page précédente
-        $previousPage = $session->get('previous_page', 1);
-        return $this->redirectToRoute('admin.categorie.index', ['page' => $previousPage]);
+        return $this->render('admin/categorie/edit.html.twig', [
+            'categorie' => $categorie,
+            'form' => $form->createView(),
+        ]);
     }
 
-    return $this->render('admin/categorie/edit.html.twig', [
-        'categorie' => $categorie,
-        'form' => $form->createView(),
-    ]);
-}
 
 
+    #[Route('/create', name: 'create', methods: ['GET', 'POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function create(
+        Request $request,
+        EntityManagerInterface $em,
+        Security $security,
+        SessionInterface $session
+    ): Response {
+        $categorie = new Categories();
 
-#[Route('/create', name: 'create', methods: ['GET', 'POST'])]
-#[IsGranted('ROLE_ADMIN')]
-public function create(
-    Request $request,
-    EntityManagerInterface $em,
-    Security $security,
-    SessionInterface $session
-): Response {
-    $categorie = new Categories();
-
-    // Gestion "returnTo" comme dans edit
-    $returnTo = $request->query->get('returnTo');
-    if ($returnTo) {
-        $session->set('return_to_url', $returnTo);
-    }
-
-    $form = $this->createForm(CategorieType::class, $categorie);
-    $form->handleRequest($request);
-
-    if ($form->isSubmitted() && $form->isValid()) {
-        $categorie->setSoftDelete(false);
-        $categorie->setUpdatedAt(new \DateTime());
-
-        // ✅ si aucun user sélectionné dans le form, on met l'utilisateur courant par défaut
-        $user = $security->getUser();
-        if ($categorie->getUsers()->isEmpty() && $user) {
-            $categorie->addUser($user);
+        // Gestion "returnTo" comme dans edit
+        $returnTo = $request->query->get('returnTo');
+        if ($returnTo) {
+            $session->set('return_to_url', $returnTo);
         }
 
-        $em->persist($categorie);
-        $em->flush();
+        $form = $this->createForm(CategorieType::class, $categorie);
+        $form->handleRequest($request);
 
-        $this->addFlash('success', 'La catégorie a été créée !');
+        if ($form->isSubmitted() && $form->isValid()) {
+            $categorie->setSoftDelete(false);
+            $categorie->setUpdatedAt(new \DateTime());
 
-        // Retour prioritaire : returnTo (comme edit)
-        if ($session->has('return_to_url')) {
-            $url = $session->get('return_to_url');
-            $session->remove('return_to_url');
-            return $this->redirect($url);
+            // ✅ si aucun user sélectionné dans le form, on met l'utilisateur courant par défaut
+            $user = $security->getUser();
+            if ($categorie->getUsers()->isEmpty() && $user) {
+                $categorie->addUser($user);
+            }
+
+            $em->persist($categorie);
+            $em->flush();
+
+            $this->addFlash('success', 'La catégorie a été créée !');
+
+            // Retour prioritaire : returnTo (comme edit)
+            if ($session->has('return_to_url')) {
+                $url = $session->get('return_to_url');
+                $session->remove('return_to_url');
+                return $this->redirect($url);
+            }
+
+            // Sinon retour index + page précédente si connue
+            $previousPage = $session->get('previous_page', 1);
+            return $this->redirectToRoute('admin.categorie.index', ['page' => $previousPage]);
         }
 
-        // Sinon retour index + page précédente si connue
-        $previousPage = $session->get('previous_page', 1);
-        return $this->redirectToRoute('admin.categorie.index', ['page' => $previousPage]);
+        return $this->render('admin/categorie/create.html.twig', [
+            'form' => $form->createView(),
+        ]);
     }
-
-    return $this->render('admin/categorie/create.html.twig', [
-        'form' => $form->createView(),
-    ]);
-}
 
     #[Route('/{id}', name: 'softDelete', methods: ['DELETE'], requirements: ['id' => Requirement::DIGITS])]
     public function remove(Request $request, Categories $categorie, EntityManagerInterface $em): Response

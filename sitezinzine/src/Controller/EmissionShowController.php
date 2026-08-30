@@ -89,23 +89,36 @@ class EmissionShowController extends AbstractController
 
 
     #[Route('/recherche', name: 'recherche')]
-    public function search(Request $request, EmissionRepository $emissionRepository): Response
-    {
+    public function search(
+        Request $request,
+        EmissionRepository $emissionRepository
+    ): Response {
         $form = $this->createForm(EmissionSearchType::class);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $criteria = $form->getData();
-            $page = $request->query->getInt('page', 1);
         } else {
             $criteria = [];
-            $page = $request->query->getInt('page', 1);
         }
 
-        $emissions = $emissionRepository->findBySearch($criteria, $page);
+        $page = $request->query->getInt('page', 1);
+
+        $initiale = strtoupper(
+            trim((string) $request->query->get('initiale', ''))
+        );
+
+        $emissions = $emissionRepository->findBySearch(
+            $criteria,
+            $page,
+            $initiale
+        );
 
         foreach ($emissions as $emission) {
-            $lastDate = $emissionRepository->findLastDiffusionDate($emission->getId());
+            $lastDate = $emissionRepository->findLastDiffusionDate(
+                $emission->getId()
+            );
+
             if ($lastDate) {
                 $emission->setLastDiffusion($lastDate);
             }
@@ -115,6 +128,8 @@ class EmissionShowController extends AbstractController
             'form' => $form->createView(),
             'emissions' => $emissions,
             'searchTerm' => $form->get('titre')->getData(),
+            'initiale' => $initiale,
+            'alphabet' => range('A', 'Z'),
         ]);
     }
 }

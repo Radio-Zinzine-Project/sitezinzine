@@ -56,43 +56,41 @@ class EmissionController extends AbstractController
     }
 
 
-
-
     #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => Requirement::DIGITS])]
-public function show(
-    Emission $emission,
-    EmissionRepository $emissionRepository,
-    DiffusionRepository $diffusionRepository,
-    PaginatorInterface $paginator,
-    Request $request
-): Response {
+    public function show(
+        Emission $emission,
+        EmissionRepository $emissionRepository,
+        DiffusionRepository $diffusionRepository,
+        PaginatorInterface $paginator,
+        Request $request
+    ): Response {
 
-    $emissions = null;
+        $emissions = null;
 
-    if ($emission->getCategorie() !== null) {
-        $query = $emissionRepository->createQueryBuilder('e')
-            ->where('e.categorie = :categorie')
-            ->andWhere('e != :current')
-            ->setParameter('categorie', $emission->getCategorie())
-            ->setParameter('current', $emission)
-            ->orderBy('e.datepub', 'DESC')
-            ->getQuery();
+        if ($emission->getCategorie() !== null) {
+            $query = $emissionRepository->createQueryBuilder('e')
+                ->where('e.categorie = :categorie')
+                ->andWhere('e != :current')
+                ->setParameter('categorie', $emission->getCategorie())
+                ->setParameter('current', $emission)
+                ->orderBy('e.datepub', 'DESC')
+                ->getQuery();
 
-        $emissions = $paginator->paginate(
-            $query,
-            $request->query->getInt('page', 1),
-            10
-        );
+            $emissions = $paginator->paginate(
+                $query,
+                $request->query->getInt('page', 1),
+                10
+            );
+        }
+
+        $diffusions = $diffusionRepository->findAllByEmission($emission);
+
+        return $this->render('admin/emission/show.html.twig', [
+            'emission' => $emission,
+            'emissions' => $emissions,
+            'diffusions' => $diffusions,
+        ]);
     }
-
-    $diffusions = $diffusionRepository->findAllByEmission($emission);
-
-    return $this->render('admin/emission/show.html.twig', [
-        'emission' => $emission,
-        'emissions' => $emissions,
-        'diffusions' => $diffusions,
-    ]);
-}
 
 
     #[Route('/create', name: 'create')]
@@ -236,9 +234,6 @@ public function show(
     }
 
 
-
-
-
     #[Route('/{id}', name: 'delete', methods: ['DELETE'], requirements: ['id' => Requirement::DIGITS])]
     public function delete(Request $request, Emission $emission, EntityManagerInterface $em): Response
     {
@@ -263,23 +258,36 @@ public function show(
     }
 
     #[Route('/rechercheadmin', name: 'rechercheadmin')]
-    public function search(Request $request, EmissionRepository $emissionRepository): Response
-    {
+    public function search(
+        Request $request,
+        EmissionRepository $emissionRepository
+    ): Response {
         $form = $this->createForm(EmissionSearchType::class);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $criteria = $form->getData();
-            $page = $request->query->getInt('page', 1);
         } else {
             $criteria = [];
-            $page = $request->query->getInt('page', 1);
         }
 
-        $emissions = $emissionRepository->findBySearchAdmin($criteria, $page);
+        $page = $request->query->getInt('page', 1);
+
+        $initiale = strtoupper(
+            trim((string) $request->query->get('initiale', ''))
+        );
+
+        $emissions = $emissionRepository->findBySearchAdmin(
+            $criteria,
+            $page,
+            $initiale
+        );
 
         foreach ($emissions as $emission) {
-            $lastDate = $emissionRepository->findLastDiffusionDate($emission->getId());
+            $lastDate = $emissionRepository->findLastDiffusionDate(
+                $emission->getId()
+            );
+
             if ($lastDate) {
                 $emission->setLastDiffusion($lastDate);
             }
@@ -289,6 +297,8 @@ public function show(
             'form' => $form->createView(),
             'emissions' => $emissions,
             'searchTerm' => $form->get('titre')->getData(),
+            'initiale' => $initiale,
+            'alphabet' => range('A', 'Z'),
         ]);
     }
 

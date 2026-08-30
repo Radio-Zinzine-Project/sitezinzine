@@ -120,8 +120,54 @@
   box-shadow: none;
 }
 
+.alphabet-pagination{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  width: 100%;
+  padding: 12px 0 18px;
+}
+
+.alphabet-pagination a{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border: 2px solid #E4013A;
+  border-radius: 7px;
+  background: #fff;
+  color: #E4013A;
+  font-family: "Montserrat Alternates", sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: all .2s ease;
+}
+
+.alphabet-pagination a:hover,
+.alphabet-pagination a.active{
+  background: #E4013A;
+  color: #fff;
+}
+
+
 
   @media (max-width: 480px){
+
+      .alphabet-pagination{
+    gap: 4px;
+  }
+
+  .alphabet-pagination a{
+    min-width: 30px;
+    height: 30px;
+    padding: 0 6px;
+    font-size: 12px;
+  }
     .pagination{
       gap: 4px;
       padding-left: 8px;
@@ -145,14 +191,42 @@
 {% set useKnpPagination = useKnpPagination ?? true %}
 {% set useLivePagination = useLivePagination ?? false %}
 {% set liveCurrentPage = liveCurrentPage ?? 1 %}
+{% set useAlphabetPagination = useAlphabetPagination ?? false %}
+{% set alphabetRoute = alphabetRoute ?? 'emission.recherche' %}
+{% set initiale = initiale ?? '' %}
+{% set alphabet = alphabet ?? [] %}
 <div class="results">
   <div class="results-inner">
     {% if emissions is not empty %}
       <h2>
         {{ resultsTitle }}
       </h2>
+      {% if useAlphabetPagination %}
+        <nav class="alphabet-pagination" aria-label="Navigation alphabétique">
+          <a href="{{ path(alphabetRoute, app.request.query.all|merge({
+                initiale: '0-9',
+                page: 1
+            })) }}#resultats" class="{{ initiale == '0-9' ? 'active' : '' }}">
+            0-9
+          </a>
+          {% for lettre in alphabet %}
+            <a href="{{ path(alphabetRoute, app.request.query.all|merge({
+                    initiale: lettre,
+                    page: 1
+                })) }}#resultats" class="{{ initiale == lettre ? 'active' : '' }}">
+              {{ lettre }}
+            </a>
+          {% endfor %}
+          <a href="{{ path(alphabetRoute, app.request.query.all|merge({
+                initiale: null,
+                page: 1
+            })) }}#resultats" class="{{ initiale is empty ? 'active' : '' }}">
+            Toutes
+          </a>
+        </nav>
+      {% endif %}
       {# Pagination KNP “classique” (recherche) #}
-      {% if useKnpPagination %}
+      {% if useKnpPagination and emissions.pageCount > 1 %}
         <div class="pagination">
           {{ knp_pagination_render(emissions) }}
         </div>
@@ -169,7 +243,7 @@
   } %}
         {% endfor %}
       </div>
-      {% if useKnpPagination %}
+      {% if useKnpPagination and emissions.pageCount > 1 %}
         <div class="pagination">
           {{ knp_pagination_render(emissions) }}
         </div>

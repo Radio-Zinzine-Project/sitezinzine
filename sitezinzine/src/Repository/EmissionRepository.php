@@ -305,12 +305,24 @@ class EmissionRepository extends ServiceEntityRepository
         return $stmt->executeQuery()->fetchAllAssociative();
     }
 
-    public function findBySearchAdmin(array $criteria, int $page = 1): PaginationInterface
-    {
+    public function findBySearchAdmin(
+        array $criteria,
+        int $page = 1,
+        ?string $initiale = null
+    ): PaginationInterface {
         $qb = $this->createQueryBuilder('e')
             ->leftJoin('e.categorie', 'c')
             ->leftJoin('e.theme', 't')
             ->andWhere('c.id IS NOT NULL');
+
+        if ($initiale !== null && $initiale !== '') {
+            if ($initiale === '0-9') {
+                $qb->andWhere("REGEXP(e.titre, '^[0-9]') = 1");
+            } elseif (preg_match('/^[A-Z]$/', $initiale)) {
+                $qb->andWhere('UPPER(e.titre) LIKE :initiale')
+                    ->setParameter('initiale', $initiale . '%');
+            }
+        }
 
         if (!empty($criteria['dateDebut']) || !empty($criteria['dateFin'])) {
             $subQb = $this->getEntityManager()->createQueryBuilder()
@@ -408,9 +420,14 @@ class EmissionRepository extends ServiceEntityRepository
             ->where('d3.emission = e')
             ->getDQL();
 
-        $qb->addSelect('(' . $lastDiffSubQuery . ') AS HIDDEN lastDiff')
-            ->orderBy('lastDiff', 'DESC')
-            ->addOrderBy('e.id', 'DESC');
+        $qb->addSelect('(' . $lastDiffSubQuery . ') AS HIDDEN lastDiff');
+
+        if ($initiale !== null && $initiale !== '') {
+            $qb->orderBy('e.titre', 'ASC');
+        } else {
+            $qb->orderBy('lastDiff', 'DESC')
+                ->addOrderBy('e.id', 'DESC');
+        }
 
         $pagination = $this->paginator->paginate(
             $qb,
@@ -460,8 +477,11 @@ class EmissionRepository extends ServiceEntityRepository
         return $pagination;
     }
 
-    public function findBySearch(array $criteria, int $page = 1): PaginationInterface
-    {
+    public function findBySearch(
+        array $criteria,
+        int $page = 1,
+        ?string $initiale = null
+    ): PaginationInterface {
         $qb = $this->createQueryBuilder('e')
             ->leftJoin('e.categorie', 'c')
             ->leftJoin('e.theme', 't')
@@ -469,6 +489,15 @@ class EmissionRepository extends ServiceEntityRepository
             ->andWhere('e.url != :emptyUrl')
             ->andWhere('c.id IS NOT NULL')
             ->setParameter('emptyUrl', '');
+
+        if ($initiale !== null && $initiale !== '') {
+            if ($initiale === '0-9') {
+                $qb->andWhere("REGEXP(e.titre, '^[0-9]') = 1");
+            } elseif (preg_match('/^[A-Z]$/', $initiale)) {
+                $qb->andWhere('UPPER(e.titre) LIKE :initiale')
+                    ->setParameter('initiale', $initiale . '%');
+            }
+        }
 
         if (!empty($criteria['dateDebut']) || !empty($criteria['dateFin'])) {
             $subQb = $this->getEntityManager()->createQueryBuilder()
@@ -567,9 +596,14 @@ class EmissionRepository extends ServiceEntityRepository
             ->where('d3.emission = e')
             ->getDQL();
 
-        $qb->addSelect('(' . $lastDiffSubQuery . ') AS HIDDEN lastDiff')
-            ->orderBy('lastDiff', 'DESC')
-            ->addOrderBy('e.id', 'DESC');
+        $qb->addSelect('(' . $lastDiffSubQuery . ') AS HIDDEN lastDiff');
+
+        if ($initiale !== null && $initiale !== '') {
+            $qb->orderBy('e.titre', 'ASC');
+        } else {
+            $qb->orderBy('lastDiff', 'DESC')
+                ->addOrderBy('e.id', 'DESC');
+        }
 
         $pagination = $this->paginator->paginate(
             $qb,
@@ -1189,7 +1223,6 @@ class EmissionRepository extends ServiceEntityRepository
             $item['isCurrent'] =
                 $nowLocal >= $item['diffusion']
                 && $nowLocal < $effectiveEnd;
-
         }
 
         unset($item);
