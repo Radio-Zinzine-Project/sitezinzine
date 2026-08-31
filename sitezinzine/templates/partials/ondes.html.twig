@@ -436,6 +436,7 @@
               {% set emission = row.emission %}
               {% set diffusion = row.diffusion %}
               {% set isCurrent = row.isCurrent %}
+              {% set endDiffusion = row.endDiffusion %}
               <li class="glide__slide {{ isCurrent ? 'glide__slide--live' : '' }}">
                 <div class="carousel">
                   <div class="image_carousel">
@@ -459,34 +460,36 @@
                         <div class="date_carousel">
                           <p>
                             {{ diffusion|date('H:i', 'Europe/Paris') }}
+                            -
+                            {{ endDiffusion|date('H:i', 'Europe/Paris') }}
                           </p>
-                          </div>
-                          <div class="titre_carousel">
-                            <p>
-                              <a href="{{ path('emission.show', { id: emission.id }) }}">
-                                {{ emission.titre | upper }}
-                              </a>
-                            </p>
-                          </div>
-                          <div class="categorie_carousel">
-                            <p>
-                              {{ emission.categorie.titre | upper }}
-                            </p>
-                          </div>
                         </div>
-                      </li>
-                    {% endfor %}
-                  </ul>
-                </div>
-                <div class="glide__arrows" data-glide-el="controls">
-                  <button class="glide__arrow glide__arrow--left" data-glide-dir="<">
-                  <img src=" /images/previous.png" alt=" Précédent"></button>
-                  <button class="glide__arrow glide__arrow--right" data-glide-dir=">
-                    ">
-                    <img src="/images/next.png" alt="Suivant"></button>
-                  </div>
+                        <div class="titre_carousel">
+                          <p>
+                            <a href="{{ path('emission.show', { id: emission.id }) }}">
+                              {{ emission.titre | upper }}
+                            </a>
+                          </p>
+                        </div>
+                        <div class="categorie_carousel">
+                          <p>
+                            {{ emission.categorie.titre | upper }}
+                          </p>
+                        </div>
+                      </div>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <div class="glide__arrows" data-glide-el="controls">
+                <button class="glide__arrow glide__arrow--left" data-glide-dir="<">
+                <img src=" /images/previous.png" alt=" Précédent"></button>
+                <button class="glide__arrow glide__arrow--right" data-glide-dir=">
+                  ">
+                  <img src="/images/next.png" alt="Suivant"></button>
                 </div>
               </div>
             </div>
-          </li>
-          
+          </div>
+        </li>
+        

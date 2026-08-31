@@ -1,88 +1,191 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <link rel="icon" type="image/x-icon" href="{{ asset('favicon.jpg') }}">
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+      {% block title %}
+        Welcome!
+      {% endblock %}
+    </title>
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.jpg') }}">
+    {% block stylesheets %}
+      {{ encore_entry_link_tags('app') }}
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@glidejs/glide/dist/css/glide.core.min.css">
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@glidejs/glide/dist/css/glide.theme.min.css">
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    {% endblock %}
+    {% block javascripts %}
+      {{ encore_entry_script_tags('app') }}
+    {% endblock %}
+    <style>
             @import url('https://fonts.googleapis.com/css2?family=Karla:ital,wght@0,200..800;1,200..800&family=Montserrat+Alternates:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
             @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
-            
-            .body {
-                background: linear-gradient(#E4013A, #B81C61);
-                background-size: 100%;
+
+
+            /* =====================================================
+               BASE
+               ===================================================== */
+
+            html,
+            body {
                 width: 100%;
+                max-width: 100%;
                 margin: 0;
                 padding: 0;
-                display: flex;
-                flex-direction: column;
-                font-family: "Montserrat Alternates", sans-serif;
-                font-weight: 500;
-                font-style: normal;
-                line-height: 1.5em;
-                position: relative;
-                color: white;
+
+                overflow-x: clip;
             }
 
-           .top{
-  line-height: 0;
-  vertical-align: top;    /* supprime tout résidu de baseline */
+            body {
+                min-height: 100vh;
+            }
+
+
+            /* =====================================================
+               CONTENU PRINCIPAL
+               ===================================================== */
+
+            .body {
+                position: relative;
+
+                display: flex;
+                flex-direction: column;
+
+                width: 100%;
+                min-width: 0;
+
+                margin: 0;
+                padding: 0;
+
+                box-sizing: border-box;
+
+                background: linear-gradient(
+                    #E4013A,
+                    #B81C61
+                );
+
+                background-size: 100%;
+
+                color: white;
+
+                font-family:
+                    "Montserrat Alternates",
+                    sans-serif;
+
+                font-weight: 500;
+                font-style: normal;
+
+                line-height: 1.5em;
+            }
+
+
+/* =====================================================
+   DÉCHIRURE SOUS LE HEADER
+   ===================================================== */
+
+.site-layout header {
+    position: relative;
+    z-index: 2;
 }
 
-.top img{
-  display: block;    /* supprime le gap inline */
-  width: 100%;
-  height: auto;
-  margin: 0;
-  padding: 0;
+.body {
+    margin-top: -1px;
 }
 
-            /* Layout global vertical */
-.site-layout {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+.top {
+    position: relative;
+
+    width: 100%;
+
+    margin: 0;
+    padding: 0;
+
+    line-height: 0;
+
+    overflow: hidden;
 }
 
-/* Le main prend tout l’espace disponible */
-.site-layout main {
-  flex: 1 0 auto;
+.top img {
+    display: block;
+
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+
+    margin: 0;
+    padding: 0;
+
+    vertical-align: top;
 }
 
-/* Footer reste en bas naturellement */
-.site-layout footer {
-  flex-shrink: 0;
-}
+
+            /* =====================================================
+               LAYOUT GLOBAL VERTICAL
+               ===================================================== */
+
+            .site-layout {
+                min-height: 100vh;
+
+                display: flex;
+                flex-direction: column;
+            }
+
+            .site-layout header {
+                flex-shrink: 0;
+
+                width: 100%;
+                min-width: 0;
+            }
+
+            .site-layout main {
+                flex: 1 0 auto;
+
+                width: 100%;
+                min-width: 0;
+            }
+
+            .site-layout footer {
+                flex-shrink: 0;
+
+                width: 100%;
+                min-width: 0;
+            }
 
 
-@media (max-width: 768px){
-  .top img{ margin-top: -1px; }
-}
 
-</style> 
-    </head>
-<title>
-{% block title %}
-    Welcome!
-{% endblock %}
-</title>
-{% block stylesheets %}
-{{ encore_entry_link_tags('app') }}
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@glidejs/glide/dist/css/glide.core.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@glidejs/glide/dist/css/glide.theme.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>{% endblock %}{% block javascripts %}
-{{ encore_entry_script_tags('app') }}{% endblock %}</head><body class="site-layout">{# Lecteur en dehors de turbo-frame #}<turbo-frame id="player" data-turbo-permanent>
-{% include 'partials/lecteur.html.twig' %}</turbo-frame>{# Contenu principal dans turbo-frame #}<header>
-{% include 'navbar.html.twig' %}</header>
-<main class="body">
- <div class="top">
-    <img src="/images/bottom-header.gif" alt="">
-  </div>
-{% block body %}
-
-{% endblock %}</main>
-<footer>
-{% include 'footer.html.twig' %}</footer>
-<script src="https://cdn.jsdelivr.net/npm/@glidejs/glide"></script></body></html>
+        </style>
+  </head>
+  <body class="site-layout">
+    {# =========================================================
+      LECTEUR PERSISTANT
+    ========================================================= #}
+    <turbo-frame id="player" data-turbo-permanent>
+      {% include 'partials/lecteur.html.twig' %}
+    </turbo-frame>
+    {# =========================================================
+      NAVIGATION
+    ========================================================= #}
+    <header>
+      {% include 'navbar.html.twig' %}
+    </header>
+    {# =========================================================
+      CONTENU PRINCIPAL
+    ========================================================= #}
+    <main class="body">
+      <div class="top">
+        <img src="/images/bottom-header.gif" alt="">
+      </div>
+      {% block body %}{% endblock %}
+    </main>
+    {# =========================================================
+      FOOTER
+    ========================================================= #}
+    <footer>
+      {% include 'footer.html.twig' %}
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@glidejs/glide"></script>
+  </body>
+</html>

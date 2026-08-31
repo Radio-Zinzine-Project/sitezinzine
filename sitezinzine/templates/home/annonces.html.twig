@@ -1,216 +1,441 @@
 {% extends 'base.html.twig' %}
 {% block title %}
-    Annonces des auditeurices !
+  Annonces des auditeurices !
 {% endblock %}
 {% block body %}
+  <style>
+  .body > .annonces-page {
+    flex: 1 0 auto;
+  }
 
-<style>
-  /* =========================
-     Annonces – sécurité
-     ========================= */
-  .annonces-grid,
-  .annonces-grid *{
+  .annonces-page,
+  .annonces-page * {
     box-sizing: border-box;
   }
 
-  /* =========================
-     Titre + CTA
-     ========================= */
-  .annonces-title{
+  .annonces-page {
+      width: 100%;
+      min-width: 0;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      font-family: "Montserrat Alternates", sans-serif;
+  }
+
+/* =========================
+   DÉCHIRURE ROUGE -> BLANC
+   ========================= */
+
+.annonces-hero {
+    width: 100%;
+    margin: 0;
+    padding: 28px 20px 0;
     text-align: center;
     color: #fff;
-    font-family: "Montserrat Alternates", sans-serif;
+    overflow: hidden;
+}
+
+.annonces-hero .imgbottom {
+    display: block;
+    width: calc(100% + 40px);
+    max-width: none;
+    height: auto;
+
+    margin: 40px -20px -1px;
+    padding: 0;
+}
+
+  .annonces-page-title {
+    margin: 0 0 16px;
+    font-size: clamp(28px, 4vw, 44px);
+    line-height: 1.05;
     font-weight: 900;
-    font-size: clamp(24px, 4vw, 36px);
-    margin: 24px 0 12px;
   }
 
-  .annonces-create{
-    text-align: center;
-    margin-bottom: 32px;
+  .annonces-create {
+    margin: 0;
   }
 
-  .btn-create-annonce{
-    display: inline-block;
-    padding: 10px 20px;
-    font-size: 1rem;
-    font-weight: 700;
-    color: #000;
+  .btn-create-annonce {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: 10px 22px;
+
     background: #fff;
+    color: #1c1c1a;
+
+    border: 3px solid #1c1c1a;
     border-radius: 999px;
-    border: 3px solid #000;
+
     text-decoration: none;
-    box-shadow: 3px 6px 12px rgba(0,0,0,0.4);
+    font-size: 15px;
+    font-weight: 800;
+
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .22);
+
+    transition:
+      transform .2s ease,
+      box-shadow .2s ease,
+      background .2s ease,
+      color .2s ease;
   }
 
-  .btn-create-annonce:hover{
-    background: #E40039;
-    color: #000;
+  .btn-create-annonce:hover {
+    transform: translateY(-2px);
+    background: #f8f1fa;
+    color: #E40039;
+    box-shadow: 0 12px 26px rgba(0, 0, 0, .28);
+  }
+
+  .annonces-tear {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      background: #fff;
+
+      flex: 1 0 auto;
+      display: flex;
+      flex-direction: column;
   }
 
   /* =========================
-     Grille principale
+     TRANSITION VERS LE BLANC
      ========================= */
-  .annonces-grid{
-    display: grid;
 
-    /* Desktop : 2 colonnes stables */
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .annonces-white-zone {
+      width: 100%;
+      min-width: 0;
+      margin: 0;
+      padding: 36px 20px 64px;
 
-    gap: 24px;
-    padding: 0 24px 48px;
-    max-width: 1400px;
+      background: #fff;
+      color: #1c1c1a;
+
+      flex: 1 0 auto;
+  }
+
+  .annonces-container {
+    width: min(100%, 1400px);
     margin: 0 auto;
   }
 
   /* =========================
-     Carte annonce
+     GRILLE
      ========================= */
-  .annonce-card{
+
+  .annonces-grid {
     display: grid;
-    grid-template-columns: 120px minmax(0, 1fr);
-    gap: 16px;
-
-    background: #000;
-    border-radius: 12px;
-    padding: 16px;
-    color: #fff;
-    border: 1px solid #444;
-    transition: transform 0.2s ease, background 0.2s ease;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    margin: 0;
+    padding: 0;
   }
 
-  .annonce-card:hover{
-    transform: translateY(-3px);
-    background: #222;
+  /* =========================
+     CARTE
+     ========================= */
+
+  .annonce-card {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    min-width: 0;
+    overflow: hidden;
+
+    background: #fff;
+    color: #1c1c1a;
+
+    border: 1px solid #eadff0;
+    border-radius: 20px;
+
+    box-shadow: 0 10px 26px rgba(28, 28, 26, .08);
+
+    transition:
+      transform .22s ease,
+      box-shadow .22s ease,
+      border-color .22s ease;
   }
 
-  .annonce-image img{
-    width: 100%;
-    height: auto;
+  .annonce-card:hover {
+    transform: translateY(-4px);
+    border-color: #d8c4e1;
+    box-shadow: 0 18px 38px rgba(28, 28, 26, .13);
+  }
+
+  /* =========================
+     IMAGE
+     ========================= */
+
+  .annonce-image {
+    width: 150px;
+    min-height: 100%;
+    background: #f2eef5;
+    overflow: hidden;
+  }
+
+  .annonce-image img {
     display: block;
-    border-radius: 8px;
+    width: 100%;
+    height: 100%;
+    min-height: 190px;
     object-fit: cover;
   }
 
-  .annonce-content{
+  /* =========================
+     CONTENU
+     ========================= */
+
+  .annonce-content {
     min-width: 0;
+    padding: 20px 22px;
   }
 
-  .annonce-title{
-    font-size: 1.1rem;
+  .annonce-type {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+
+    margin-bottom: 8px;
+    padding: 5px 10px;
+
+    border-radius: 999px;
+    background: #f5edf8;
+    color: #7E4093;
+
+    font-size: 12px;
+    line-height: 1;
     font-weight: 800;
-    margin: 0 0 6px;
   }
 
-  .annonce-title a{
-    color: #fff;
+  .annonce-title {
+    margin: 0 0 10px;
+    font-size: 20px;
+    line-height: 1.2;
+    font-weight: 900;
+  }
+
+  .annonce-title a {
+    color: #1c1c1a;
     text-decoration: none;
+
     overflow-wrap: anywhere;
     word-break: break-word;
   }
 
-  .annonce-title a:hover{
+  .annonce-title a:hover {
     color: #E40039;
+    text-decoration: underline;
   }
 
-  .annonce-meta,
-  .annonce-dates{
-    font-size: 0.85rem;
-    color: #ccc;
-    margin-bottom: 6px;
-  }
-
-  .annonce-presentation{
-    font-size: 0.9rem;
-    color: #ddd;
+  .annonce-meta {
+    margin-bottom: 7px;
+    color: #5c5660;
+    font-size: 14px;
     line-height: 1.4;
+  }
+
+  .annonce-dates {
+    margin-bottom: 12px;
+    color: #7E4093;
+    font-size: 14px;
+    line-height: 1.35;
+    font-weight: 800;
+  }
+
+  .annonce-presentation {
+    color: #4a454d;
+    font-size: 14px;
+    line-height: 1.5;
 
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .annonce-presentation p {
+    margin-top: 0;
+    margin-bottom: 0;
   }
 
   /* =========================
-     Responsive (robuste)
+     RESPONSIVE
      ========================= */
 
-  /* <= 900px : 1 colonne (inclut beaucoup de mobiles landscape) */
-  @media (max-width: 900px){
-    .annonces-grid{
+  @media (max-width: 1100px) {
+    .annonces-grid {
       grid-template-columns: 1fr;
-      padding: 0 16px 32px;
-      gap: 18px;
+    }
+
+    .annonce-card {
+      grid-template-columns: 170px minmax(0, 1fr);
+    }
+
+    .annonce-image {
+      width: 170px;
     }
   }
 
-  /* <= 600px : la card passe en colonne (image au-dessus) */
-  @media (max-width: 600px){
-    .annonce-card{
+  @media (max-width: 768px) {
+    .annonces-hero {
+      padding: 22px 16px 0;
+    }
+
+    .annonces-hero .imgbottom {
+    width: calc(100% + 32px);
+    margin: 34px -16px -1px;
+    }
+
+    .annonces-white-zone {
+        padding: 30px 16px 48px;
+    }
+
+    .annonce-card {
+      grid-template-columns: 130px minmax(0, 1fr);
+      border-radius: 16px;
+    }
+
+    .annonce-image {
+      width: 130px;
+    }
+
+    .annonce-image img {
+      min-height: 170px;
+    }
+
+    .annonce-content {
+      padding: 16px 17px;
+    }
+
+    .annonce-title {
+      font-size: 18px;
+    }
+
+    .annonce-meta,
+    .annonce-dates,
+    .annonce-presentation {
+      font-size: 13px;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .annonces-hero {
+        padding: 20px 12px 0;
+    }
+
+    .annonces-hero .imgbottom {
+    width: calc(100% + 24px);
+    margin: 28px -12px -1px;
+    }
+
+    .annonces-white-zone {
+        padding: 26px 12px 40px;
+    }
+
+    .annonce-card {
       grid-template-columns: 1fr;
     }
 
-    .annonce-image{
-      max-width: 320px;
+    .annonce-image {
       width: 100%;
-      margin: 0 auto;
+      height: 180px;
+    }
+
+    .annonce-image img {
+      width: 100%;
+      height: 180px;
+      min-height: 0;
+    }
+
+    .annonce-content {
+      padding: 16px;
+    }
+
+    .btn-create-annonce {
+      width: min(100%, 290px);
+      padding-left: 14px;
+      padding-right: 14px;
+      font-size: 14px;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .annonces-page-title {
+      font-size: 25px;
+    }
+
+    .annonce-title {
+      font-size: 17px;
+    }
+
+    .annonce-content {
+      padding: 14px;
     }
   }
 </style>
-
-  
-
-  <h1 class="annonces-title">Les annonces des auditeurices</h1>
-
-  <p class="annonces-create">
-    <a class="btn-create-annonce" href="{{ path('annonce.create') }}">
-      Créer une nouvelle annonce
-    </a>
-  </p>
-
-  <article class="annonces-grid">
-    {% for annonce in annonces %}
-      <section class="annonce-card">
-        <div class="annonce-image">
-          {% if annonce.thumbnail %}
-            <img
-              src="{{ vich_uploader_asset(annonce, 'thumbnailFile') }}"
-              alt="Photo de {{ annonce.titre }}"
-            >
-          {% endif %}
+  <div class="annonces-page">
+    <div class="annonces-hero">
+      <h1 class="annonces-page-title">
+        Les annonces des auditeurices
+      </h1>
+      <p class="annonces-create">
+        <a class="btn-create-annonce" href="{{ path('annonce.create') }}">
+          Créer une nouvelle annonce
+        </a>
+      </p>
+      <img class="imgbottom" src="/images/top-content-dechire-D.gif" alt="">
+    </div>
+    <div class="annonces-tear">
+      <div class="annonces-white-zone">
+        <div class="annonces-container">
+          <article class="annonces-grid">
+            {% for annonce in annonces %}
+              <section class="annonce-card">
+                {% if annonce.thumbnail %}
+                  <div class="annonce-image">
+                    <img src="{{ vich_uploader_asset(annonce, 'thumbnailFile') }}" alt="Photo de {{ annonce.titre }}"></div>
+                  {% endif %}
+                  <div class="annonce-content">
+                    <div class="annonce-type">
+                      {{ annonce.type }}
+                    </div>
+                    <h2 class="annonce-title">
+                      <a href="{{ path('annonce.show', { id: annonce.id }) }}">
+                        {{ annonce.titre }}
+                      </a>
+                    </h2>
+                    <div class="annonce-meta">
+                      <span>
+                        {{ annonce.organisateur }}
+                      </span>
+                      ·
+                      <span>
+                        {{ annonce.ville }}
+                        (
+                        {{ annonce.departement }}
+                        )
+                      </span>
+                    </div>
+                    <div class="annonce-dates">
+                      {{ annonce.dateDebut|date('d/m/Y') }}
+                      –
+                      {{ annonce.dateFin|date('d/m/Y') }}
+                      ·
+                      {{ annonce.horaire }}
+                    </div>
+                    <div class="annonce-presentation">
+                      {{ annonce.presentation|raw }}
+                    </div>
+                  </div>
+                </section>
+              {% endfor %}
+            </article>
+          </div>
         </div>
-
-        <div class="annonce-content">
-          <div class="annonce-type">{{ annonce.type }}</div>
-
-          <h2 class="annonce-title">
-            <a href="{{ path('annonce.show', { id: annonce.id }) }}">
-              {{ annonce.titre }}
-            </a>
-          </h2>
-
-          <div class="annonce-meta">
-            <span>{{ annonce.organisateur }}</span> ·
-            <span>{{ annonce.ville }} ({{ annonce.departement }})</span>
-          </div>
-
-          <div class="annonce-dates">
-            {{ annonce.dateDebut|date('d/m/Y') }}
-            –
-            {{ annonce.dateFin|date('d/m/Y') }}
-            · {{ annonce.horaire }}
-          </div>
-
-          <div class="annonce-presentation">
-            {{ annonce.presentation|raw }}
-          </div>
-        </div>
-    </section>
-    {% endfor %}
-  </article>
-
-{% endblock %}
-
-            
+      </div>
+    {% endblock %}
     

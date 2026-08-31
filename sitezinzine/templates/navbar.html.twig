@@ -1,321 +1,601 @@
 <style>
-  nav.site-nav{
-    width:100%;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    flex-wrap:nowrap;
-    gap:12px;
-    font-family:"Montserrat Alternates",sans-serif;
-    background:#fff;
-    padding:10px 20px;
-    box-sizing:border-box;
-    margin:0;
-  }
-
-  nav.site-nav img{ display:block; }
-
-  .site-nav .brand{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    flex:0 0 auto;
-  }
-  .site-nav .brand img.logo{ height:60px; width:auto; }
-  .site-nav .brand img.aix{ width:110px; height:auto; }
-
-  .site-nav .nav-actions{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    margin-left:auto;
-    flex:0 0 auto;
-  }
-
-  .site-nav .don-btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    font-family:"Montserrat",sans-serif;
-    font-size:13px;
-    font-weight:700;
-    color:#fff;
-    background:#E4013A;
-    border-radius:8px;
-    padding:10px 12px;
-    min-height:36px;
-    box-shadow:0 3px 5px #000;
-    text-decoration:none;
-    white-space:nowrap;
-  }
-  .site-nav .don-btn:hover{ background:#B81C61; }
-
-  .site-nav .burger{
-    display:none;
-    flex-direction:column;
-    cursor:pointer;
-    padding:10px;
-    border:0;
-    background:transparent;
-  }
-  .site-nav .burger span{
-    height:3px;
-    width:26px;
-    background:#E40039;
-    margin:4px 0;
-    border-radius:2px;
-  }
-
-  .site-nav ul.nav-menu{
-    list-style:none !important;
-    margin:0 !important;
-    padding:0 !important;
-    padding-left:0 !important;
-    flex-wrap: nowrap;              /* ✅ pas de retour ligne dans le menu */
-    white-space: nowrap;            /* ✅ pas de retour ligne */
-    min-width: 0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:14px;
-    flex:1 1 auto;
-    font-size:21pt;     
-  }
-  .site-nav ul.nav-menu li{
-    list-style:none !important;
-  }
-
-  .site-nav ul.nav-menu li{
-    display:flex;
-    align-items:center;
-  }
-  .site-nav ul.nav-menu a{
-    padding:10px 12px;
-    color:#1C1C1A;
-    text-decoration:none;
-    font-weight:800;
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    white-space: nowrap; 
-  }
-  .site-nav ul.nav-menu a:hover{ color:#E40039; }
-  .site-nav ul.nav-menu a.active{ color:#E40039 !important; }
-
-  .site-nav .nav-link-icon img{ height:24px; width:auto; }
-
-  .site-nav li.sep{
-    display:flex;
-    align-items:center;
-  }
-  .site-nav li.sep img{
-    width:5px;
-    height:5px;
-  }
-
-  /* ===== mobile ===== */
-  /* ===== petit desktop (ex: 14") ===== */
-@media (max-width: 1200px){
-  nav.site-nav{
-    padding: 8px 10px;
-    gap: 8px;
-  }
-
-  .site-nav .brand{
-    gap: 8px;
-    flex: 0 0 auto;
-  }
-
-  .site-nav .brand img.logo{
-    height: 50px;
-  }
-
-  .site-nav .don-btn{
-    padding: 7px 9px;
-    font-size: 11px;
-    min-height: 32px;
-    border-radius: 7px;
-  }
-
-  .site-nav ul.nav-menu{
-    gap: 8px;
-    font-size: 16pt;          /* ✅ baisse plus */
-  }
-
-  .site-nav ul.nav-menu a{
-    padding: 7px 8px;         /* ✅ liens plus compacts */
-  }
-
-  .site-nav .nav-link-icon img{
-    height: 20px;
-  }
-
-  .site-nav li.sep img{
-    width: 4px;
-    height: 4px;
-  }
-}
-
-
-  @media (max-width:900px){
-    nav.site-nav{
-      padding:10px 12px;
+    nav.site-nav,
+    nav.site-nav * {
+        box-sizing: border-box;
     }
 
-    .site-nav .brand{
-      flex:1 1 auto;
-      min-width:0;
-      gap:8px;
+    nav.site-nav {
+        position: relative;
+        z-index: 100;
+
+        display: flex;
+        align-items: center;
+
+        width: 100%;
+        max-width: 100%;
+
+        margin: 0;
+        padding: 0 20px;
+
+        gap: 20px;
+
+        background: #fff;
+
+        font-family: "Montserrat Alternates", sans-serif;
     }
 
-    .site-nav .brand img.logo{ height:44px; }
-    .site-nav .brand img.aix{ width:78px; }
-
-    .site-nav .burger{ display:flex; }
-
-    .site-nav .don-btn{
-      padding:8px 10px;
-      font-size:12px;
-      border-radius:6px;
-      min-height:34px;
+    nav.site-nav img {
+        display: block;
+        max-width: 100%;
     }
 
-    /* menu dropdown sous la barre (fermé) */
-    .site-nav ul.nav-menu{
-      display:none;
-      width:100%;
-      font-size:16pt;
-      padding:10px 12px;
-      border-top:1px solid #eee;
-      order: 99;
-      flex: 0 0 100%;
+
+    /* ============================================================
+       LIGNE DU HAUT
+       ============================================================ */
+
+    .site-nav .nav-top {
+        display: flex;
+        align-items: center;
+
+        flex: 0 0 auto;
+
+        width: auto;
+
+        padding: 10px 0;
+
+        gap: 12px;
     }
 
-    /* ✅ ouvert : 2 liens par ligne */
-    .site-nav ul.nav-menu.active{
-      display:grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap:10px 12px;
-      align-items:stretch;
+
+    /* ============================================================
+       LOGO + DON
+       ============================================================ */
+
+    .site-nav .brand {
+        display: flex;
+        align-items: center;
+
+        min-width: 0;
+
+        gap: 12px;
+
+        flex: 0 0 auto;
     }
 
-    .site-nav ul.nav-menu li{
-      padding:0;
-      margin:0;
-      display:flex;
+    .site-nav .brand img.logo {
+        width: auto;
+        height: 60px;
+
+        flex: 0 0 auto;
     }
 
-    .site-nav ul.nav-menu a{
-      width:100%;
-      padding:10px 8px;
-      justify-content:center;
-      text-align:center;
-      border-radius:6px;
+    .site-nav .don-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        min-height: 36px;
+
+        padding: 10px 12px;
+
+        border-radius: 8px;
+
+        background: #E4013A;
+        color: #fff;
+
+        box-shadow: 0 3px 5px rgba(0, 0, 0, .45);
+
+        font-family: "Montserrat", sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+
+        line-height: 1;
+        text-decoration: none;
+        white-space: nowrap;
     }
 
-    .site-nav li.sep{ display:none !important; }
-  }
-
-  /* très petit : 1 colonne */
-  @media (max-width:420px){
-    .site-nav ul.nav-menu.active{
-      grid-template-columns: 1fr;
-    }
-  }
-
-  @media (max-width: 900px) and (orientation: landscape) {
-    nav.site-nav{
-      padding: 6px 10px;
-      gap: 8px;
+    .site-nav .don-btn:hover,
+    .site-nav .don-btn.active {
+        background: #B81C61;
     }
 
-    .site-nav .brand img.logo{ height: 42px; }
-    .site-nav .brand img.aix{ width: 74px; }
 
-    .site-nav .don-btn{
-      padding: 7px 10px;
-      font-size: 12px;
-      min-height: 32px;
+    /* ============================================================
+       BURGER
+       ============================================================ */
+
+    .site-nav .burger {
+        display: none;
+
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+
+        flex: 0 0 44px;
+
+        width: 44px;
+        height: 44px;
+
+        margin-left: auto;
+        padding: 7px;
+
+        border: 0;
+
+        background: transparent;
+
+        cursor: pointer;
     }
 
-    .site-nav .burger{
-      padding: 8px;
+    .site-nav .burger span {
+        display: block;
+
+        width: 26px;
+        height: 3px;
+
+        margin: 3px 0;
+
+        border-radius: 2px;
+
+        background: #E40039;
+
+        transition:
+            transform .2s ease,
+            opacity .2s ease;
     }
 
-    .site-nav ul.nav-menu.active{
-      max-height: 60vh;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
+    .site-nav .burger[aria-expanded="true"] span:nth-child(1) {
+        transform: translateY(9px) rotate(45deg);
     }
-  }
+
+    .site-nav .burger[aria-expanded="true"] span:nth-child(2) {
+        opacity: 0;
+    }
+
+    .site-nav .burger[aria-expanded="true"] span:nth-child(3) {
+        transform: translateY(-9px) rotate(-45deg);
+    }
+
+
+    /* ============================================================
+       MENU DESKTOP
+       ============================================================ */
+
+    .site-nav ul.nav-menu {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        flex: 1 1 auto;
+
+        width: auto;
+        min-width: 0;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        gap: 14px;
+
+        list-style: none !important;
+
+        font-size: 21pt;
+
+        white-space: nowrap;
+    }
+
+    .site-nav ul.nav-menu li {
+        display: flex;
+        align-items: center;
+
+        min-width: 0;
+
+        margin: 0;
+        padding: 0;
+
+        list-style: none !important;
+    }
+
+    .site-nav ul.nav-menu a {
+        display: inline-flex;
+        align-items: center;
+
+        gap: 8px;
+
+        padding: 10px 12px;
+
+        color: #1C1C1A;
+
+        font-weight: 800;
+
+        text-decoration: none;
+
+        white-space: nowrap;
+    }
+
+    .site-nav ul.nav-menu a:hover,
+    .site-nav ul.nav-menu a.active {
+        color: #E40039;
+    }
+
+    .site-nav .nav-link-icon img {
+        width: auto;
+        height: 24px;
+    }
+
+    .site-nav li.sep {
+        display: flex;
+        align-items: center;
+    }
+
+    .site-nav li.sep img {
+        width: 5px;
+        height: 5px;
+    }
+
+
+    /* ============================================================
+       PETIT DESKTOP
+       ============================================================ */
+
+    @media (max-width: 1200px) {
+
+        .site-nav .nav-top {
+            padding: 8px 10px;
+        }
+
+        .site-nav .brand {
+            gap: 8px;
+        }
+
+        .site-nav .brand img.logo {
+            height: 50px;
+        }
+
+        .site-nav .don-btn {
+            min-height: 32px;
+
+            padding: 7px 9px;
+
+            font-size: 11px;
+        }
+
+        .site-nav ul.nav-menu {
+            padding: 0 10px 8px !important;
+
+            gap: 8px;
+
+            font-size: 16pt;
+        }
+
+        .site-nav ul.nav-menu a {
+            padding: 7px 8px;
+        }
+
+        .site-nav .nav-link-icon img {
+            height: 20px;
+        }
+
+        .site-nav li.sep img {
+            width: 4px;
+            height: 4px;
+        }
+    }
+
+
+    /* ============================================================
+       BURGER À PARTIR DE 900 PX
+       ============================================================ */
+
+    @media (max-width: 900px) {
+
+        nav.site-nav {
+        display: block;
+
+        padding: 0;
+    }
+
+        .site-nav .nav-top {
+            padding: 8px 12px;
+        }
+
+        .site-nav .brand {
+            flex: 1 1 auto;
+
+            min-width: 0;
+
+            gap: 8px;
+        }
+
+        .site-nav .brand img.logo {
+            height: 44px;
+        }
+
+        .site-nav .don-btn {
+            min-height: 34px;
+
+            padding: 8px 10px;
+
+            font-size: 12px;
+        }
+
+        .site-nav .burger {
+            display: flex;
+        }
+
+
+        /* MENU FERMÉ */
+
+        .site-nav ul.nav-menu {
+            display: none;
+
+            width: 100%;
+
+            margin: 0 !important;
+            padding: 12px !important;
+
+            border-top: 1px solid #eee;
+
+            font-size: 16pt;
+
+            white-space: normal;
+        }
+
+
+        /* MENU OUVERT */
+
+        .site-nav ul.nav-menu.active {
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+
+            gap: 8px 12px;
+        }
+
+        .site-nav ul.nav-menu li {
+            display: flex;
+
+            width: 100%;
+            min-width: 0;
+        }
+
+        .site-nav ul.nav-menu a {
+            display: flex;
+
+            width: 100%;
+            min-width: 0;
+
+            padding: 10px 8px;
+
+            justify-content: center;
+
+            text-align: center;
+
+            white-space: normal;
+
+            overflow-wrap: anywhere;
+        }
+
+        .site-nav li.sep {
+            display: none !important;
+        }
+    }
+
+
+    /* ============================================================
+       MOBILE
+       ============================================================ */
+
+    @media (max-width: 600px) {
+
+        .site-nav .nav-top {
+            padding: 7px 9px;
+        }
+
+        .site-nav .brand {
+            gap: 6px;
+        }
+
+        .site-nav .brand img.logo {
+            height: 40px;
+        }
+
+        .site-nav .don-btn {
+            min-height: 30px;
+
+            padding: 6px 8px;
+
+            font-size: 10px;
+        }
+
+        .site-nav .burger {
+            flex-basis: 38px;
+
+            width: 38px;
+            height: 38px;
+
+            padding: 5px;
+        }
+
+        .site-nav .burger span {
+            width: 23px;
+        }
+
+        /*
+         * À 522 px comme sur ton test :
+         * une seule colonne.
+         *
+         * Plus aucun risque que "Radio Zinzine" ou
+         * "Infos du soir" débordent vers la droite.
+         */
+        .site-nav ul.nav-menu.active {
+            grid-template-columns: 1fr;
+        }
+
+        .site-nav ul.nav-menu {
+            padding: 8px 12px 12px !important;
+
+            font-size: 15pt;
+        }
+
+        .site-nav ul.nav-menu a {
+            padding: 8px;
+        }
+    }
+
+
+    /* ============================================================
+       TRÈS PETIT MOBILE
+       ============================================================ */
+
+    @media (max-width: 380px) {
+
+        .site-nav .brand img.logo {
+            height: 35px;
+        }
+
+        .site-nav .don-btn {
+            padding: 5px 6px;
+
+            font-size: 9px;
+        }
+
+        .site-nav .burger {
+            flex-basis: 34px;
+
+            width: 34px;
+            height: 34px;
+        }
+
+        .site-nav .burger span {
+            width: 21px;
+        }
+    }
+
+
+    /* ============================================================
+       PAYSAGE
+       ============================================================ */
+
+    @media (max-width: 900px) and (orientation: landscape) {
+
+        .site-nav .nav-top {
+            padding: 6px 10px;
+        }
+
+        .site-nav .brand img.logo {
+            height: 40px;
+        }
+
+        .site-nav ul.nav-menu.active {
+            max-height: 60vh;
+
+            overflow-y: auto;
+
+            -webkit-overflow-scrolling: touch;
+        }
+    }
 </style>
-
-
 <nav class="site-nav">
-  <div class="brand">
-    <img class="logo" src="/images/logo.gif" alt="Logo de Radio Zinzine">
-
-    {#  <a href="https://www.radiozinzineaix.org/" target="_blank" rel="noopener">
-      <img class="aix" src="/images/zinzine-aix.png" alt="Logo de Radio Zinzine Aix">
-    </a> #}
-
-    <a class="don-btn {{ app.request.attributes.get('_route') == 'don' ? 'active' : '' }}"
-       href="{{ path('don') }}">
-      FAIRE UN DON
-    </a>
-  </div>
-
-  <button class="burger" type="button"
-    aria-label="Ouvrir/fermer le menu"
-    aria-expanded="false"
-    aria-controls="mainMenu"
-    onclick="
-      const nav = this.closest('nav');
-      const menu = nav.querySelector('#mainMenu');
-      const isOpen = menu.classList.toggle('active');
-      this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    ">
-    <span></span><span></span><span></span>
-  </button>
-
-  <ul class="nav-menu" id="mainMenu">
-    <li>
-      <a class="{{ app.request.attributes.get('_route') == 'home' ? 'active' : '' }}"
-         href="{{ path('home') }}">Accueil</a>
-    </li>
-    <li class="sep" aria-hidden="true"><img src="/images/puce-rond-rouge.gif" alt=""></li>
-
-    <li>
-      <a class="{{ app.request.attributes.get('_route') == 'radio' ? 'active' : '' }}"
-         href="{{ path('radio') }}">Radio Zinzine</a>
-    </li>
-    <li class="sep" aria-hidden="true"><img src="/images/puce-rond-rouge.gif" alt=""></li>
-
-    <li>
-      <a class="nav-link-icon {{ app.request.attributes.get('_route') == 'recherche' ? 'active' : '' }}"
-         href="{{ path('emission.recherche') }}">
-        <span>Émissions</span>
-        <img src="/images/ico-recherche.gif" alt="">
-      </a>
-    </li>
-    <li class="sep" aria-hidden="true"><img src="/images/puce-rond-rouge.gif" alt=""></li>
-
-    <li>
-      <a class="{{ app.request.attributes.get('_route') == 'infos' ? 'active' : '' }}"
-         href="{{ path('infos') }}">Infos du soir</a>
-    </li>
-    <li class="sep" aria-hidden="true"><img src="/images/puce-rond-rouge.gif" alt=""></li>
-
-    <li>
-      <a class="{{ app.request.attributes.get('_route') == 'programme' ? 'active' : '' }}"
-         href="{{ path('programme') }}">Programme</a>
-    </li>
-    <li class="sep" aria-hidden="true"><img src="/images/puce-rond-rouge.gif" alt=""></li>
-
-    <li>
-      <a class="{{ app.request.attributes.get('_route') starts with 'annonce.' ? 'active' : '' }}"
-         href="{{ path('annonce.index') }}">Annonces</a>
-    </li>
-  </ul>
-</nav>
-
+  {# ============================================================
+    LIGNE SUPÉRIEURE : LOGO + DON + BURGER
+  ============================================================ #}
+  <div class="nav-top">
+    <div class="brand">
+      <img class="logo" src="/images/logo.gif" alt="Logo de Radio Zinzine">
+        <a class="
+          don-btn
+          {{ app.request.attributes.get('_route') == 'don'
+          ? 'active'
+          : '' }}
+        " href="{{ path('don') }}">
+          FAIRE UN DON
+        </a>
+      </div>
+      <button class="burger" type="button" aria-label="Ouvrir ou fermer le menu" aria-expanded="false" aria-controls="mainMenu" onclick="
+          const nav = this.closest('nav');
+          const menu = nav.querySelector('#mainMenu');
+          
+          const isOpen =
+          menu.classList.toggle('active');
+          
+          this.setAttribute(
+          'aria-expanded',
+          isOpen ? 'true' : 'false'
+          );
+        ">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    {# ============================================================
+      MENU
+    ============================================================ #}
+    <ul class="nav-menu" id="mainMenu">
+      <li>
+        <a class="{{ app.request.attributes.get('_route') == 'home'
+                        ? 'active'
+                        : '' }}" href="{{ path('home') }}">
+          Accueil
+        </a>
+      </li>
+      <li class="sep" aria-hidden="true">
+        <img src="/images/puce-rond-rouge.gif" alt=""></li>
+        <li>
+          <a class="{{ app.request.attributes.get('_route') == 'radio'
+                        ? 'active'
+                        : '' }}" href="{{ path('radio') }}">
+            Radio Zinzine
+          </a>
+        </li>
+        <li class="sep" aria-hidden="true">
+          <img src="/images/puce-rond-rouge.gif" alt=""></li>
+          <li>
+            <a class="
+              nav-link-icon
+              {{ app.request.attributes.get('_route')
+              == 'emission.recherche'
+              ? 'active'
+              : '' }}
+            " href="{{ path('emission.recherche') }}">
+              <span>
+                Émissions
+              </span>
+              <img src="/images/ico-recherche.gif" alt=""></a>
+            </li>
+            <li class="sep" aria-hidden="true">
+              <img src="/images/puce-rond-rouge.gif" alt=""></li>
+              <li>
+                <a class="{{ app.request.attributes.get('_route') == 'infos'
+                        ? 'active'
+                        : '' }}" href="{{ path('infos') }}">
+                  Infos du soir
+                </a>
+              </li>
+              <li class="sep" aria-hidden="true">
+                <img src="/images/puce-rond-rouge.gif" alt=""></li>
+                <li>
+                  <a class="{{ app.request.attributes.get('_route') == 'programme'
+                        ? 'active'
+                        : '' }}" href="{{ path('programme') }}">
+                    Programme
+                  </a>
+                </li>
+                <li class="sep" aria-hidden="true">
+                  <img src="/images/puce-rond-rouge.gif" alt=""></li>
+                  <li>
+                    <a class="{{ app.request.attributes.get('_route')
+                        starts with 'annonce.'
+                            ? 'active'
+                            : '' }}" href="{{ path('annonce.index') }}">
+                      Annonces
+                    </a>
+                  </li>
+                </ul>
+              </nav>
+            </li>
+          </li>
+        </li>
+      </li>
+      

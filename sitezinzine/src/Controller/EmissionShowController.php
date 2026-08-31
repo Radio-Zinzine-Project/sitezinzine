@@ -87,7 +87,6 @@ class EmissionShowController extends AbstractController
         ]);
     }
 
-
     #[Route('/recherche', name: 'recherche')]
     public function search(
         Request $request,

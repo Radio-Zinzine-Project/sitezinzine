@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.107] - 2026-08-31
+### Ajout
+- Ajout de l'heure de fin d'émission sur les cartes du carrousel.
+### Correction
+- refonte du lecteur radio en direct.
+- refonte de la navbar et de son responsive.
+- refonte de la page annonces et son responsive.
+
+
 ## [1.0.106] - 2026-08-30
 ### Ajout
 - Impression du document Émissions à annoncer.

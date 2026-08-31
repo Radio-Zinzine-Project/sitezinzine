@@ -3,278 +3,671 @@
     font-family: "Montserrat", sans-serif;
     background-color: black;
     color: white;
+
     height: 60px;
+
     display: flex;
     justify-content: space-between;
     align-items: center;
+
     padding: 0 20px;
+
     box-sizing: border-box;
     overflow: hidden;
   }
 
-  .lecteur .gauche { padding: 10px; }
-  .lecteur .direct, .lecteur .sousdirect { margin: 0; padding: 0; }
-
-  .lecteur .milieu{
-    flex: 1;
-    text-align: center;
-    min-width: 0; /* ✅ important */
-  }
-
-  .lecteur .droite{
-    font-size: 16px;
+  .lecteur .gauche {
     padding: 10px;
+  }
+
+  .lecteur .direct,
+  .lecteur .sousdirect {
+    margin: 0;
+    padding: 0;
+  }
+
+  .lecteur .milieu {
+      flex: 1 1 auto;
+      min-width: 0;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+  }
+
+  .lecteur .droite {
+    padding: 10px;
+
+    font-size: 16px;
     font-weight: bold;
+
+    white-space: nowrap;
   }
 
-  .lecteur .custom-audio-player{
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: black;
-    border-radius: 10px;
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
+
+  /* ============================================================
+     LECTEUR AUDIO
+     ============================================================ */
+
+
+  .lecteur .custom-audio-player {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      gap: 12px;
+
+      width: auto;
+      max-width: 420px;
+
+      background: black;
   }
 
-  .lecteur #play-pause{
+  .lecteur #play-pause {
     width: 40px;
     height: 40px;
-    background-size: contain;
+
+    flex-shrink: 0;
+
+    border: none;
+
     background-color: transparent;
     background-repeat: no-repeat;
     background-position: center;
-    border: none;
+    background-size: contain;
+
     cursor: pointer;
-    flex-shrink: 0;
   }
 
-  .lecteur #progress-bar,
-  .lecteur #volume-control{
-    flex: 1;
+
+  /* ============================================================
+     VOLUME
+     ============================================================ */
+
+  .lecteur .volume-zone {
+      display: flex;
+      align-items: center;
+
+      flex: 0 0 auto;
+
+      gap: 8px;
+  }
+
+  .lecteur .volume-label {
+    flex: 0 0 auto;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    white-space: nowrap;
+
+    opacity: 0.8;
+  }
+
+  .lecteur #volume-control {
+    flex: 0 0 180px;
+
+    width: 180px;
+    min-width: 0;
+
+    height: 5px;
+
+    margin: 0;
+
     -webkit-appearance: none;
     appearance: none;
+
     background: gray;
-    height: 5px;
+
     border-radius: 5px;
 
-    /* ✅ empêche le dépassement en flex */
-    min-width: 0;
-    width: 0;
-    flex-basis: 0;
-  }
-
-  .lecteur #progress-bar::-webkit-slider-thumb,
-  .lecteur #volume-control::-webkit-slider-thumb{
-    -webkit-appearance: none;
-    width: 12px;
-    height: 12px;
-    background: white;
-    border-radius: 50%;
     cursor: pointer;
   }
 
+  .lecteur #volume-control::-webkit-slider-thumb {
+    width: 12px;
+    height: 12px;
+
+    -webkit-appearance: none;
+
+    background: white;
+
+    border-radius: 50%;
+
+    cursor: pointer;
+  }
+
+  .lecteur #volume-control::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+
+    border: none;
+
+    background: white;
+
+    border-radius: 50%;
+
+    cursor: pointer;
+  }
+
+
+  /* ============================================================
+     PETIT DESKTOP / TABLETTE
+     ============================================================ */
+
+  @media (max-width: 1024px) {
+
+    .lecteur {
+      padding: 0 12px;
+    }
+
+    .lecteur .droite {
+      font-size: 14px;
+    }
+
+    .lecteur .custom-audio-player {
+      gap: 8px;
+    }
+  }
+
+
+  /* ============================================================
+     TABLETTE
+     ============================================================ */
+
+@media (max-width: 768px) {
+
+  .lecteur {
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "gauche droite"
+      "milieu milieu";
+
+    align-items: center;
+
+    height: auto;
+
+    padding: 6px 10px;
+
+    column-gap: 10px;
+    row-gap: 5px;
+
+    overflow: visible;
+  }
+
+
   /* =========================
-     Responsive lecteur
+     TEXTE GAUCHE
      ========================= */
 
-  @media (max-width: 1024px){
-    .lecteur{ padding: 0 12px; }
-    .lecteur .droite{ font-size: 14px; white-space: nowrap; }
-    .lecteur .custom-audio-player{ gap: 8px; }
+  .lecteur .gauche {
+    grid-area: gauche;
+
+    width: auto;
+
+    padding: 0;
+
+    text-align: left;
   }
 
-  @media (max-width: 768px){
-    .lecteur{
-      height: auto;
-      padding: 10px;
-      gap: 8px;
-      flex-wrap: wrap;
-      overflow: visible;
-    }
+  .lecteur .direct {
+    margin: 0;
 
-    .lecteur .gauche{
-      padding: 0;
-      flex: 0 0 auto;
-    }
+    font-size: 12px;
+    line-height: 1.05;
 
-    .lecteur .direct{ font-size: 14px; line-height: 1.1; }
-    .lecteur .sousdirect{ font-size: 12px; line-height: 1.1; opacity: .85; }
+    white-space: nowrap;
+  }
 
-    .lecteur .milieu{
-      flex: 1 1 auto;
-      min-width: 0;
-      width: auto;
-      text-align: left;
-    }
+  .lecteur .sousdirect {
+    margin: 0;
 
-    .lecteur .custom-audio-player{
-      width: 100%;
-      gap: 8px;
-    }
+    font-size: 10px;
+    line-height: 1.05;
 
-    .lecteur #play-pause{
-      width: 36px;
-      height: 36px;
-    }
+    white-space: nowrap;
 
-    .lecteur #progress-bar{
-      flex: 2 1 140px;
-      min-width: 0;
-    }
+    opacity: .85;
+  }
 
-    /* ✅ volume visible + ne force pas l’overflow */
-    .lecteur #volume-control{
-      flex: 0 1 88px;
-      max-width: 96px;
-      min-width: 0;
-    }
 
-    .lecteur .droite{
-      display: block;
-      width: 100%;
-      padding: 0;
-      text-align: center;
+  /* =========================
+     SLOGAN DROITE
+     ========================= */
+
+  .lecteur .droite {
+    grid-area: droite;
+
+    width: auto;
+
+    padding: 0;
+
+    text-align: right;
+
+    font-size: 10px;
+    line-height: 1.1;
+    font-weight: 700;
+
+    white-space: nowrap;
+
+    opacity: .9;
+  }
+
+
+  /* =========================
+     LECTEUR CENTRÉ EN DESSOUS
+     ========================= */
+
+  .lecteur .milieu {
+    grid-area: milieu;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    min-width: 0;
+
+    text-align: center;
+  }
+
+  .lecteur .custom-audio-player {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: min(100%, 320px);
+
+    gap: 8px;
+  }
+
+  .lecteur #play-pause {
+    flex: 0 0 auto;
+
+    width: 32px;
+    height: 32px;
+  }
+
+  .lecteur .volume-zone {
+    display: flex;
+    align-items: center;
+
+    flex: 1 1 auto;
+
+    min-width: 0;
+
+    gap: 7px;
+  }
+
+  .lecteur .volume-label {
+    flex: 0 0 auto;
+
+    font-size: 9px;
+
+    white-space: nowrap;
+  }
+
+  .lecteur #volume-control {
+    flex: 1 1 auto;
+
+    width: auto;
+    min-width: 0;
+    max-width: 180px;
+  }
+}
+
+
+  /* ============================================================
+     PETIT MOBILE
+     ============================================================ */
+
+@media (max-width: 420px) {
+
+  .lecteur {
+    padding: 5px 7px;
+
+    column-gap: 6px;
+    row-gap: 4px;
+  }
+
+  .lecteur .direct {
+    font-size: 11px;
+  }
+
+  .lecteur .sousdirect {
+    font-size: 9px;
+  }
+
+  .lecteur .droite {
+    font-size: 8px;
+  }
+
+  .lecteur .custom-audio-player {
+    width: min(100%, 280px);
+
+    gap: 7px;
+  }
+
+  .lecteur #play-pause {
+    width: 30px;
+    height: 30px;
+  }
+
+  .lecteur .volume-label {
+    font-size: 8px;
+  }
+
+  .lecteur #volume-control {
+    max-width: 150px;
+  }
+}
+
+
+  /* ============================================================
+     TRÈS PETIT MOBILE
+     ============================================================ */
+
+  @media (max-width: 340px) {
+
+  .lecteur {
+    padding: 5px 6px;
+  }
+
+  .lecteur .direct {
+    font-size: 10px;
+  }
+
+  .lecteur .sousdirect {
+    font-size: 8px;
+  }
+
+  .lecteur .droite {
+    font-size: 7px;
+
+    white-space: normal;
+  }
+
+  .lecteur .custom-audio-player {
+    width: min(100%, 240px);
+  }
+
+  .lecteur #play-pause {
+    width: 28px;
+    height: 28px;
+  }
+
+  .lecteur #volume-control {
+    max-width: 125px;
+  }
+}
+
+
+  /* ============================================================
+     MOBILE PAYSAGE
+     ============================================================ */
+
+  @media (max-width: 900px) and (orientation: landscape) {
+
+    .lecteur .direct {
       font-size: 12px;
-      font-weight: 700;
-      opacity: .9;
-    }
-  }
-
-  @media (max-width: 420px){
-    .lecteur{
-      height: auto;
-      padding: 8px 10px;
-      flex-wrap: wrap;
     }
 
-    .lecteur .gauche{ width: 100%; }
-    .lecteur .milieu{ width: 100%; }
-  }
-
-  /* ✅ Ultra petit : on passe le volume sur une 2e ligne (au lieu de le cacher) */
-  @media (max-width: 380px){
-    .lecteur .custom-audio-player{
-      flex-wrap: wrap;
-      row-gap: 10px;
+    .lecteur .sousdirect {
+      font-size: 11px;
     }
 
-    .lecteur #progress-bar{
-      order: 2;
-      flex: 1 1 100%;
-      width: 100%;
+    .lecteur #play-pause {
+      width: 34px;
+      height: 34px;
     }
-
-    .lecteur #volume-control{
-      order: 3;
-      flex: 1 1 100%;
-      width: 100%;
-      max-width: none;
-    }
-  }
-
-  @media (max-width: 900px) and (orientation: landscape){
-    .lecteur .direct{ font-size: 12px; }
-    .lecteur .sousdirect{ font-size: 11px; }
-    .lecteur #play-pause{ width: 34px; height: 34px; }
   }
 </style>
 
+
 <div class="lecteur">
+
   <div class="gauche">
-    <p class="direct">LE DIRECT</p>
-    <p class="sousdirect">Le programme du moment</p>
+    <p class="direct">
+      LE DIRECT
+    </p>
+
+    <p class="sousdirect">
+      Le programme du moment
+    </p>
   </div>
 
+
   <div class="milieu">
+
     <div class="custom-audio-player">
-      <audio id="audio-player" src="https://stream.radiozinzine.org:8443/3" preload="metadata"></audio>
+
+      <audio
+        id="audio-player"
+        src="https://stream.radiozinzine.org:8443/3"
+        preload="metadata"
+      ></audio>
+
 
       <button
         id="play-pause"
         type="button"
+        aria-label="Lire ou mettre en pause le direct"
         data-play-icon="/images/lecteur.png"
         data-pause-icon="/images/bouton-pause.png"
       ></button>
 
-      <input type="range" id="progress-bar" value="0">
-      <input type="range" id="volume-control" min="0" max="1" step="0.01" value="1">
+
+      <div class="volume-zone">
+
+        <span class="volume-label">
+          Volume
+        </span>
+
+        <input
+          type="range"
+          id="volume-control"
+          min="0"
+          max="1"
+          step="0.01"
+          value="1"
+          aria-label="Volume du direct"
+        >
+
+      </div>
+
     </div>
+
   </div>
+
 
   <div class="droite">
     RADIO ZINZINE, UNE RADIO LIBRE !
   </div>
+
 </div>
+
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+
     const audio = document.getElementById("audio-player");
     const playPauseButton = document.getElementById("play-pause");
-    const progressBar = document.getElementById("progress-bar");
     const volumeControl = document.getElementById("volume-control");
 
-    const playIcon = playPauseButton.dataset.playIcon;
-    const pauseIcon = playPauseButton.dataset.pauseIcon;
+    if (!audio || !playPauseButton || !volumeControl) {
+      return;
+    }
+
+
+    const playIcon =
+      playPauseButton.dataset.playIcon;
+
+    const pauseIcon =
+      playPauseButton.dataset.pauseIcon;
+
 
     function setIcon(isPlaying) {
-      playPauseButton.style.backgroundImage = `url("${isPlaying ? pauseIcon : playIcon}")`;
+
+      playPauseButton.style.backgroundImage =
+        `url("${isPlaying ? pauseIcon : playIcon}")`;
+
     }
+
 
     function togglePlayPause() {
+
       if (audio.paused) {
-        audio.play();
-        setIcon(true);
+
+        audio
+          .play()
+          .then(() => {
+            setIcon(true);
+          })
+          .catch(() => {
+            setIcon(false);
+          });
+
       } else {
+
         audio.pause();
+
         setIcon(false);
+
       }
+
     }
+
+
+    /* ============================================================
+       ÉTAT INITIAL
+       ============================================================ */
 
     setIcon(false);
-    playPauseButton.addEventListener("click", togglePlayPause);
 
-    audio.addEventListener("timeupdate", function () {
-      if (!isNaN(audio.duration) && audio.duration > 0) {
-        progressBar.value = (audio.currentTime / audio.duration) * 100;
+
+    /* ============================================================
+       PLAY / PAUSE
+       ============================================================ */
+
+    playPauseButton.addEventListener(
+      "click",
+      togglePlayPause
+    );
+
+
+    /* ============================================================
+       VOLUME
+       ============================================================ */
+
+    const savedVolume = parseFloat(
+      localStorage.getItem("audioVolume") || "1"
+    );
+
+    const safeVolume =
+      Number.isNaN(savedVolume)
+        ? 1
+        : Math.min(
+            1,
+            Math.max(0, savedVolume)
+          );
+
+
+    audio.volume = safeVolume;
+
+    volumeControl.value = safeVolume;
+
+
+    volumeControl.addEventListener(
+      "input",
+      function () {
+
+        const volume =
+          parseFloat(volumeControl.value);
+
+        audio.volume = volume;
+
+        localStorage.setItem(
+          "audioVolume",
+          String(volume)
+        );
+
       }
-    });
+    );
 
-    progressBar.addEventListener("input", function () {
-      if (!isNaN(audio.duration) && audio.duration > 0) {
-        audio.currentTime = (progressBar.value / 100) * audio.duration;
+
+    /* ============================================================
+       MÉMORISER L'ÉTAT DE LECTURE
+       ============================================================ */
+
+    audio.addEventListener(
+      "play",
+      function () {
+
+        localStorage.setItem(
+          "audioWasPlaying",
+          "true"
+        );
+
+        setIcon(true);
+
       }
-    });
+    );
 
-    const savedVolume = parseFloat(localStorage.getItem("audioVolume") || "1");
-    audio.volume = savedVolume;
-    volumeControl.value = savedVolume;
 
-    volumeControl.addEventListener("input", function () {
-      audio.volume = volumeControl.value;
-      localStorage.setItem("audioVolume", String(volumeControl.value));
-    });
+    audio.addEventListener(
+      "pause",
+      function () {
 
-    audio.addEventListener("play", function () {
-      localStorage.setItem("audioWasPlaying", "true");
-      setIcon(true);
-    });
+        localStorage.setItem(
+          "audioWasPlaying",
+          "false"
+        );
 
-    audio.addEventListener("pause", function () {
-      localStorage.setItem("audioWasPlaying", "false");
-      setIcon(false);
-    });
+        setIcon(false);
 
-    audio.addEventListener("ended", function () {
-      progressBar.value = 0;
-      setIcon(false);
-    });
+      }
+    );
 
-    if (localStorage.getItem("audioWasPlaying") === "true") {
-      audio.play().catch(() => setIcon(false));
+
+    audio.addEventListener(
+      "ended",
+      function () {
+
+        localStorage.setItem(
+          "audioWasPlaying",
+          "false"
+        );
+
+        setIcon(false);
+
+      }
+    );
+
+
+    /* ============================================================
+       REPRISE AUTOMATIQUE SI LE DIRECT ÉTAIT EN LECTURE
+       ============================================================ */
+
+    if (
+      localStorage.getItem("audioWasPlaying")
+      === "true"
+    ) {
+
+      audio
+        .play()
+        .catch(() => {
+
+          /*
+           * Certains navigateurs mobiles interdisent
+           * l'autoplay sans interaction utilisateur.
+           */
+          setIcon(false);
+
+        });
+
     }
+
   });
 </script>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

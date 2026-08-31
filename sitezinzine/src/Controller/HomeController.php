@@ -8,7 +8,6 @@ use App\Repository\EvenementRepository;
 use App\Repository\PageRepository;
 use App\Entity\Evenement;
 use Symfony\Component\Routing\Requirement\Requirement;
-
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use App\Service\PublicScheduleBuilder;
 use Symfony\Component\HttpFoundation\Response;
