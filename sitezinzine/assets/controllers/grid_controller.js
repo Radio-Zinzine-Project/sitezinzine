@@ -277,7 +277,7 @@ export default class extends Controller {
   }
 
   getWeekStart() {
-    return this.element.dataset.gridWeekStart || ''
+    return this.element.dataset.gridWeekStartValue || ''
   }
 
   getCurrentEmissionsListTarget() {

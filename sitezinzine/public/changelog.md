@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.108] - 2026-09-01
+### Ajout
+- Ajout des liens de partage sur les réseaux sociaux sur les fiches émissions.
+### Correction
+- Correction du bug qui empêchait le drop d'émissions non régulières sur la grille.
+- Correction d'affichage des rang de diffusion pour les très petits créneaux.
+
+
 ## [1.0.107] - 2026-08-31
 ### Ajout
 - Ajout de l'heure de fin d'émission sur les cartes du carrousel.

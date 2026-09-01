@@ -75,29 +75,16 @@
                     height:calc({{ slots }} * var(--slot-h) - 2px);
                 " data-segment-key="{{ seg.segmentKey|default('') }}" data-slot-id="{{ seg.slotId|default('') }}" data-draft-id="{{ seg.draftId|default('') }}" data-rule-id="{{ seg.ruleId|default('') }}" data-slots="{{ slots }}" data-duration="{{ seg.duration }}" data-broadcast-rank="{{ broadcastRank }}" data-starts-at="{{ seg.startsAt|default('') }}" data-ends-at="{{ seg.endsAt|default('') }}" data-category-title="{{ categoryTitle }}" data-category-slug="{{ categorySlug }}" data-assigned-emission-id="{{ seg.emissionId|default('') }}" data-assigned-emission-title="{{ assignedEmissionTitle }}" data-emission-is-auto-generated="{{ isLive ? 'true' : 'false' }}" data-slot-locked="{{ isRebroadcast or isGhost ? 'true' : 'false' }}" data-has-conflict="{{ hasConflict ? 'true' : 'false' }}" data-conflict-type="{{ seg.conflictType|default('') }}" data-conflict-severity="{{ seg.conflictSeverity|default('') }}" data-conflict-count="{{ seg.conflictCount|default(0) }}" data-conflict-with="{{ seg.conflictWith|default([])|json_encode|e('html_attr') }}" data-can-reschedule="{{ seg.canBeRescheduled|default(false) ? 'true' : 'false' }}" data-is-projected-override="{{ isProjectedOverride ? 'true' : 'false' }}" data-original-starts-at="{{ seg.originalStartsAt|default('') }}" data-projection-type="{{ seg.projectionType|default('') }}" data-is-cancelled="{{ isCancelled ? 'true' : 'false' }}" data-can-restore="{{ canRestore ? 'true' : 'false' }}" data-is-blocking="{{ isBlocking ? 'true' : 'false' }}" data-is-rescheduled-origin="{{ isRescheduledOrigin ? 'true' : 'false' }}" data-action="click->grid#selectSlot" draggable="{{ isRebroadcast or isGhost ? 'false' : 'true' }}" {% if isRebroadcast or isGhost %} aria-disabled="true" {% endif %}>
                     <div class="postit__content">
-                        <span class="postit__label">
-                            {% if isCancelled %}
-                                Créneau annulé
-                            {% elseif isRescheduledOrigin %}
-                                Créneau déplacé
-                            {% elseif assignedEmissionTitle and slots < 4 %}
-                                {{ displayCategory|upper }}
-                                —
-                                {{ assignedEmissionTitle }}
-                            {% else %}
-                                {{ displayCategory|upper }}
-                            {% endif %}
-                        </span>
-                        {% if isGhost %}
-                            <span class="postit__subline">
-                                Restaurable
+                        <div class="postit__topline">
+                            <span class="postit__label">
+                                {% if isCancelled %}
+                                    Créneau annulé
+                                {% elseif isRescheduledOrigin %}
+                                    Créneau déplacé
+                                {% else %}
+                                    {{ displayCategory|upper }}
+                                {% endif %}
                             </span>
-                        {% elseif assignedEmissionTitle and slots >= 4 %}
-                            <span class="postit__subline">
-                                {{ assignedEmissionTitle }}
-                            </span>
-                        {% endif %}
-                        {% if slots > 2 %}
                             <span class="postit__badge">
                                 {% if isCancelled %}
                                     ↩ Restaurer
@@ -111,8 +98,17 @@
                                 {% elseif isLive %}
                                     ● Direct
                                 {% else %}
-                                    ■ 1re diff
+                                    1re diff
                                 {% endif %}
+                            </span>
+                        </div>
+                        {% if isGhost %}
+                            <span class="postit__subline">
+                                Restaurable
+                            </span>
+                        {% elseif assignedEmissionTitle %}
+                            <span class="postit__subline">
+                                {{ assignedEmissionTitle }}
                             </span>
                         {% endif %}
                     </div>
@@ -136,24 +132,24 @@
                     height:calc({{ slots }} * var(--slot-h) - 2px);
                 " data-is-manual-draft="true" data-draft-id="{{ draft.id }}" data-slots="{{ slots }}" data-duration="{{ draft.duration }}" data-starts-at="{{ draft.startsAt }}" data-ends-at="{{ draft.endsAt|default('') }}" data-category-title="{{ draft.categoryTitle }}" data-category-slug="{{ draftCategorySlug }}" data-assigned-emission-id="{{ draft.emissionId|default('') }}" data-assigned-emission-title="{{ draft.title }}" data-emission-is-auto-generated="{{ isManualLive ? 'true' : 'false' }}" data-draft-type="{{ draftType }}" data-nombre-diffusion="{{ nombreDiffusion }}" data-broadcast-rank="{{ nombreDiffusion }}" data-assignment-group-key="{{ draft.assignmentGroupKey|default('') }}" data-slot-locked="false" data-has-conflict="false" data-is-blocking="true" data-action="click->grid#selectSlot">
                     <div class="postit__content">
-                        <span class="postit__label">
-                            {{ displayDraftCategory|upper }}
-                        </span>
-                        {% if slots > 1 %}
-                            <span class="postit__subline">
-                                {{ draft.title }}
+                        <div class="postit__topline">
+                            <span class="postit__label">
+                                {{ displayDraftCategory|upper }}
                             </span>
-                        {% endif %}
-                        {% if slots > 2 %}
                             <span class="postit__badge">
                                 {% if isManualRebroadcast %}
-                                    ↺ Rediff ponctuelle
+                                    ↺ Rediff
                                     {{ nombreDiffusion - 1 }}
                                 {% elseif isManualLive %}
                                     ● Direct
                                 {% else %}
-                                    ■ 1re diff ponctuelle
+                                    1re diff
                                 {% endif %}
+                            </span>
+                        </div>
+                        {% if slots > 1 %}
+                            <span class="postit__subline">
+                                {{ draft.title }}
                             </span>
                         {% endif %}
                     </div>

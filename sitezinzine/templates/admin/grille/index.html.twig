@@ -493,9 +493,9 @@
         0 2px 6px rgba(0, 0, 0, 0.14);
     }
 
-    /* =========================================================
-       Post-its : adaptation aux petits créneaux
-       ========================================================= */
+/* =========================================================
+   Post-its : adaptation aux petits créneaux
+   ========================================================= */
 
     .postit[data-slots="1"] {
       padding: 1px 4px;
@@ -505,8 +505,12 @@
       gap: 0;
     }
 
+    .postit[data-slots="1"] .postit__topline {
+      gap: 3px;
+    }
+
     .postit[data-slots="1"] .postit__label {
-      width: 100%;
+      min-width: 0;
       overflow: hidden;
       font-size: 9px;
       font-weight: 800;
@@ -515,34 +519,51 @@
       white-space: nowrap;
     }
 
+    .postit[data-slots="1"] .postit__badge {
+      display: inline-flex;
+      flex: 0 0 auto;
+      padding: 1px 4px;
+      font-size: 8px;
+    }
+
     .postit[data-slots="1"] .postit__subline,
-    .postit[data-slots="1"] .postit__badge,
     .postit[data-slots="1"] .postit__alert {
       display: none;
     }
+
 
     .postit[data-slots="2"] {
       padding: 2px 5px;
     }
 
-    .postit[data-slots="2"] .postit__label,
-    .postit[data-slots="2"] .postit__subline {
-      width: 100%;
+    .postit[data-slots="2"] .postit__topline {
+      gap: 4px;
+    }
+
+    .postit[data-slots="2"] .postit__label {
+      min-width: 0;
       overflow: hidden;
+      font-size: 10px;
+      font-weight: 800;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .postit[data-slots="2"] .postit__label {
-      font-size: 10px;
-      font-weight: 800;
+    .postit[data-slots="2"] .postit__subline {
+      width: 100%;
+      overflow: hidden;
+      font-size: 8px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .postit[data-slots="2"] .postit__subline {
+    .postit[data-slots="2"] .postit__badge {
+      display: inline-flex;
+      flex: 0 0 auto;
+      padding: 1px 5px;
       font-size: 8px;
     }
 
-    .postit[data-slots="2"] .postit__badge,
     .postit[data-slots="2"] .postit__alert {
       display: none;
     }
@@ -552,6 +573,34 @@
       word-break: break-word;
       white-space: normal;
     }
+
+    .postit__topline {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: nowrap;
+      gap: 4px;
+      width: 100%;
+      min-width: 0;
+  }
+
+  .postit__topline .postit__label {
+      flex: 1 1 auto;
+      width: auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+  }
+
+  .postit__topline .postit__badge {
+      display: inline-flex;
+      flex: 0 0 auto;
+      width: auto;
+      margin: 0;
+      white-space: nowrap;
+  }
 
     /* =========================================================
        Sidebar : structure

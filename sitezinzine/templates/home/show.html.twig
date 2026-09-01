@@ -330,6 +330,72 @@
   transform: scale(1.02);
 }
 
+/* ========== PARTAGE ========== */
+
+.bodyemission .emission-share {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 1.5rem;
+  padding: 16px 18px;
+  background: #f9f9f9;
+  border: 1px solid #eeeeee;
+  border-radius: 10px;
+}
+
+.bodyemission .emission-share__title {
+  flex: 0 0 auto;
+  color: #1C1C1A;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.bodyemission .emission-share__buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bodyemission .emission-share__button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  margin: 0;
+  padding: 7px 13px;
+  border: 2px solid #E40039;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #E40039 !important;
+  font-family: "Montserrat Alternates", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none !important;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.bodyemission .emission-share__button:hover {
+  background: #E40039;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+}
+
+.bodyemission .emission-share__button:focus-visible {
+  outline: 3px solid rgba(228, 0, 57, 0.25);
+  outline-offset: 2px;
+}
+
 
 /* ========== RESPONSIVE ========== */
 @media (max-width: 768px) {
@@ -446,6 +512,21 @@
 .bodyemission #theme-filter-buttons{
     margin-top: 12px;
   }
+
+.bodyemission .emission-share {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 14px;
+}
+
+.bodyemission .emission-share__title {
+  text-align: center;
+}
+
+.bodyemission .emission-share__buttons {
+  justify-content: center;
+}
 
 }
 
@@ -567,6 +648,33 @@
                       </table>
                     </div>
                     <!-- /.bloc-infos -->
+                    {% set shareUrl = url('emission.show', {'id': emission.id}) %}
+                    {% set shareText = 'Émission : ' ~ emission.titre ~ ' – Radio Zinzine' %}
+                    <div class="emission-share">
+                      <span class="emission-share__title">
+                        Partager cette émission
+                      </span>
+                      <div class="emission-share__buttons">
+                        <a class="emission-share__button emission-share__button--facebook" href="https://www.facebook.com/sharer/sharer.php?u={{ shareUrl|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="Partager {{ emission.titre }} sur Facebook">
+                          Facebook
+                        </a>
+                        <a class="emission-share__button emission-share__button--bluesky" href="https://bsky.app/intent/compose?text={{ (shareText ~ ' ' ~ shareUrl)|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="Partager {{ emission.titre }} sur Bluesky">
+                          Bluesky
+                        </a>
+                        <button type="button" class="emission-share__button emission-share__button--copy" data-share-url="{{ shareUrl }}" onclick="
+                            navigator.clipboard.writeText(this.dataset.shareUrl).then(() => {
+                            const originalText = this.textContent;
+                            this.textContent = 'Lien copié !';
+                            
+                            window.setTimeout(() => {
+                            this.textContent = originalText;
+                            }, 1800);
+                            });
+                          ">
+                          Copier le lien
+                        </button>
+                      </div>
+                    </div>
                     <div class="catemission">
                       <div class="titre">
                         <a href="{{ path('categorie.show', {'id': emission.categorie.id}) }}">
