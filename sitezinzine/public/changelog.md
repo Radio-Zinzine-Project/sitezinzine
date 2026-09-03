@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.109] - 2026-09-03
+### Ajout
+- Soft Delete des émissions, une émission supprimée reste dans la bdd (elle peut avoir eut des diffusions).
+- Affichage du titre de l'émission sur les petits créneaux (comme sur la grille imprimée).
+- Ajout du format d'impression dans le nom du fichier à imprimer.
+- Ajout de la section remarque sur la grille A3 qui permet la personnalisation du message lors de l'impression.
+### Correction
+- Style page annonces public et admin revu et corrigé suite à l'import des annonces de l'ancien site.
+- Correction du double affichage créneau annulé/nouvelle émission posée sur la grille.
+- Correction des rangs de diffusion lorsque la grille est validée.
+- Même si une semaine est dévalidée sur la grille, le programme public s'affiche.
+- Refonte de la page admin évènements, correction du responsive.
+
+
 ## [1.0.108] - 2026-09-01
 ### Ajout
 - Ajout des liens de partage sur les réseaux sociaux sur les fiches émissions.

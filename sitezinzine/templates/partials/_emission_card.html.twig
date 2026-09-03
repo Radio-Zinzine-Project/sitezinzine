@@ -1,6 +1,6 @@
 {# =========================================================
-   1. CSS DE LA CARD ÉMISSION
-   ========================================================= #}
+  1. CSS DE LA CARD ÉMISSION
+========================================================= #}
 <style>
   /* =========================================================
      1. CONTENEUR GÉNÉRAL DE LA LISTE
@@ -324,20 +324,18 @@
     }
   }
 </style>
-
 {# =========================================================
-   2. VARIABLES DE CONTEXTE
-   ========================================================= #}
+  2. VARIABLES DE CONTEXTE
+========================================================= #}
 {% set showRoute = showRoute|default('emission.show') %}
 {% set isAdmin = isAdmin|default(false) %}
 {% set showAdminActions = showAdminActions|default(false) %}
 {% set editRoute = editRoute|default(null) %}
 {% set deleteRoute = deleteRoute|default(null) %}
 {% set lastDiffusion = emission.lastDiffusion ?? null %}
-
 {# =========================================================
-   3. DÉTERMINER SI L’UTILISATEUR CONNECTÉ EST PROPRIÉTAIRE
-   ========================================================= #}
+  3. DÉTERMINER SI L’UTILISATEUR CONNECTÉ EST PROPRIÉTAIRE
+========================================================= #}
 {% set isOwner = false %}
 {% if app.user and emission.users is defined and emission.users|length > 0 %}
   {% for linkedUser in emission.users %}
@@ -346,126 +344,109 @@
     {% endif %}
   {% endfor %}
 {% endif %}
-
 {# =========================================================
-   4. CARTE ÉMISSION
-   ========================================================= #}
+  4. CARTE ÉMISSION
+========================================================= #}
 <section>
-
   {# ---------------------------------------------------------
-     4.1 IMAGE
-     --------------------------------------------------------- #}
+    4.1 IMAGE
+  --------------------------------------------------------- #}
   <div class="col1">
     {% if emission.thumbnail %}
-      <img src="{{ vich_uploader_asset(emission, 'thumbnailFile') }}" alt="Photo de {{ emission.titre }}">
-    {% elseif emission.categorie.thumbnail %}
-      <img src="{{ vich_uploader_asset(emission.categorie, 'thumbnailFile') }}" alt="Photo de {{ emission.titre }}">
-    {% elseif emission.theme is defined and emission.theme and emission.theme.thumbnail is defined and emission.theme.thumbnail %}
-      <img src="{{ vich_uploader_asset(emission.theme, 'thumbnailFile') }}" alt="Photo de {{ emission.titre }}">
-    {% else %}
-      <img src="/images/emission-zinzine.jpg" alt="Image par défaut pour {{ emission.titre }}">
-    {% endif %}
-  </div>
-
-  {# ---------------------------------------------------------
-     4.2 CONTENU TEXTE
-     --------------------------------------------------------- #}
-  <div class="col2">
-    <div class="titre">
-      <a href="{{ path(showRoute, { id: emission.id }) }}">
-        {{ emission.titre }}
-        {% if emission.users|length > 0 %}
-          -
-          {% for user in emission.users %}
-            {{ user.displayName }}{% if not loop.last %}, {% endif %}
-          {% endfor %}
-        {% endif %}
-      </a>
-    </div>
-
-    <div class="cat">
-      <p>
-        {{ emission.categorie.titre }}
-        {% if emission.theme is defined and emission.theme and emission.theme.name is defined and emission.theme.name %}
-          - {{ emission.theme.name }}
-        {% endif %}
-      </p>
-    </div>
-
-    <div data-controller="descriptif">
-      <div data-descriptif-target="content" class="descriptif-content">
-        <p>{{ emission.descriptif|raw }}</p>
-      </div>
-
-      <button
-        data-action="click->descriptif#toggle"
-        data-descriptif-target="button"
-        class="descriptif-toggle-btn"
-        hidden
-      >
-        Lire la suite
-      </button>
-    </div>
-
-    <p class="horaire">
-      {% if lastDiffusion %}
-        Dernière diffusion le : {{ lastDiffusion|format_datetime('medium', 'short', locale='fr') }}
-      {% else %}
-        Aucune diffusion
-      {% endif %}
-    </p>
-  </div>
-
-  {# ---------------------------------------------------------
-     4.3 ACTIONS
-     --------------------------------------------------------- #}
-  <div class="col3">
-
-    {# -------- Boutons audio -------- #}
-    {% if emission.url %}
-      <a href="{{ emission.url }}" target="_blank" class="action-link">
-        <img src="/images/lecteur.png" alt="Écouter {{ emission.titre }}">
-        Écouter
-      </a>
-
-      <a href="{{ emission.url }}" download target="_blank" class="action-link">
-        <img src="/images/telecharger.png" alt="Télécharger {{ emission.titre }}">
-        Télécharger
-      </a>
-    {% endif %}
-
-    {# -------- Boutons admin -------- #}
-    {% if isAdmin and showAdminActions %}
-      <div class="actions-buttons">
-
-        {% if editRoute and (is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN') or isOwner) %}
-          <a
-            href="{{ path(editRoute, { id: emission.id }) }}"
-            class="btn-action btn-edit"
-            data-controller="return"
-            data-return-url-value="{{ path(editRoute, { id: emission.id }) }}"
-            data-action="click->return#redirectWithReturnTo"
-          >
-            Modifier
-          </a>
-        {% endif %}
-
-        {% if deleteRoute and is_granted('ROLE_SUPER_ADMIN') %}
-          <form
-            action="{{ path(deleteRoute, { id: emission.id }) }}"
-            method="post"
-            data-controller="return"
-            data-action="submit->return#confirmBeforeSubmit submit->return#redirectWithReturnTo"
-          >
-            <input type="hidden" name="_method" value="DELETE">
-            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ emission.id) }}">
-            <button type="submit" class="btn-action btn-delete">
-              Supprimer
-            </button>
-          </form>
-        {% endif %}
-
-      </div>
-    {% endif %}
-  </div>
-</section>
+      <img
+      src="{{ vich_uploader_asset(emission, 'thumbnailFile') }}" alt="Photo de {{ emission.titre }}">
+        {% elseif emission.categorie.thumbnail %}
+        <img
+        src="{{ vich_uploader_asset(emission.categorie, 'thumbnailFile') }}" alt="Photo de {{ emission.titre }}">
+          {% elseif emission.theme is defined and emission.theme and emission.theme.thumbnail is defined and emission.theme.thumbnail %}
+          <img
+          src="{{ vich_uploader_asset(emission.theme, 'thumbnailFile') }}" alt="Photo de {{ emission.titre }}">
+            {% else %}
+            <img src="/images/emission-zinzine.jpg" alt="Image par défaut pour {{ emission.titre }}">
+            {% endif %}
+          </div>
+          {# ---------------------------------------------------------
+            4.2 CONTENU TEXTE
+          --------------------------------------------------------- #}
+          <div class="col2">
+            <div class="titre">
+              <a href="{{ path(showRoute, { id: emission.id }) }}">
+                {{ emission.titre }}
+                {% if emission.users|length > 0 %}
+                  -
+                  {% for user in emission.users %}
+                    {{ user.displayName }}
+                    {% if not loop.last %}
+                      ,
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+              </a>
+            </div>
+            <div class="cat">
+              <p>
+                {{ emission.categorie.titre }}
+                {% if emission.theme is defined and emission.theme and emission.theme.name is defined and emission.theme.name %}
+                  -
+                  {{ emission.theme.name }}
+                {% endif %}
+              </p>
+            </div>
+            <div data-controller="descriptif">
+              <div data-descriptif-target="content" class="descriptif-content">
+                <p>
+                  {{ emission.descriptif|raw }}
+                </p>
+              </div>
+              <button data-action="click->descriptif#toggle" data-descriptif-target="button" class="descriptif-toggle-btn" hidden>
+                Lire la suite
+              </button>
+            </div>
+            <p class="horaire">
+              {% if lastDiffusion %}
+                Dernière diffusion le :
+                {{ lastDiffusion|format_datetime('medium', 'short', locale='fr') }}
+              {% else %}
+                Aucune diffusion
+              {% endif %}
+            </p>
+          </div>
+          {# ---------------------------------------------------------
+            4.3 ACTIONS
+          --------------------------------------------------------- #}
+          <div class="col3">
+            {# -------- Boutons audio -------- #}
+            {% if emission.url %}
+              <a href="{{ emission.url }}" target="_blank" class="action-link">
+                <img src="/images/lecteur.png" alt="Écouter {{ emission.titre }}">
+                  Écouter
+                </a>
+                <a href="{{ emission.url }}" download target="_blank" class="action-link">
+                  <img src="/images/telecharger.png" alt="Télécharger {{ emission.titre }}">
+                    Télécharger
+                  </a>
+                {% endif %}
+                {# -------- Boutons admin -------- #}
+                {% if isAdmin and showAdminActions %}
+                  <div class="actions-buttons">
+                    {% if editRoute and (is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN') or isOwner) %}
+                      <a href="{{ path(editRoute, { id: emission.id }) }}" class="btn-action btn-edit" data-controller="return" data-return-url-value="{{ path(editRoute, { id: emission.id }) }}" data-action="click->return#redirectWithReturnTo">
+                        Modifier
+                      </a>
+                    {% endif %}
+                    {% if deleteRoute and is_granted('ROLE_SUPER_ADMIN') %}
+                      {% if deleteRoute and is_granted('ROLE_SUPER_ADMIN') %}
+                        <form action="{{ path(deleteRoute, { id: emission.id }) }}" method="post" onsubmit="return confirm('Voulez-vous vraiment supprimer cette émission ?');">
+                          <input type="hidden" name="_method" value="DELETE">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ emission.id) }}">
+                              <button type="submit" class="btn-action btn-delete">
+                                Supprimer
+                              </button>
+                            </form>
+                          {% endif %}
+                        {% endif %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </section>
+                

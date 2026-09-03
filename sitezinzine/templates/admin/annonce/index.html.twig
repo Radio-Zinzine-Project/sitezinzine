@@ -1,327 +1,1171 @@
 {% extends 'admin/admin.html.twig' %}
 {% block title %}
-    Validation des annonces auditeur
+    Validation des annonces auditeurices
 {% endblock %}
 {% block body %}
     <style>
+/* =========================================================
+   PAGE
+   ========================================================= */
 
-
-
-
-ul, li {
-   background-color: transparent; 
+.annonce-page,
+.annonce-page * {
+    box-sizing: border-box;
 }
 
-    .annonce {
-        background-color: transparent;
-        color: white;
-        display: grid;
-        margin:  20px 40px;
-        align-items: center;
-        width: calc(100% - 80px); /* Largeur calculée en tenant compte des marges */
-    }
+.annonce-page {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
 
-    section {
-        border: solid 1px #ccc;
-        border-radius: 8px;
-        display: grid;
-        
-        grid-template-columns: 150px auto 150px; /* Colonnes fixes pour le contenu */
-        background-color: black;
-        padding: 15px;
-        transition: background-color 0.3s ease;
-        min-width: 0; /* Empêche le dépassement */
-        overflow: hidden; /* Cache le contenu qui dépasse */
-    }
+    font-family: "Montserrat Alternates", sans-serif;
 
-    section:hover {
-        background-color: #333;
-    }
+    overflow-x: clip;
+}
 
-    a {
-        padding: 14px 16px;
-        color: white;
-        text-decoration: none;
-        font-weight: 800;
-    }
 
-    a:hover {
-        color: #E40039;
-    }
+/* =========================================================
+   BANDEAU ROUGE
+   ========================================================= */
 
-    .col1 {
-        width: 150px;
-        margin: auto;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 5px;
-    }
+.annonce-hero {
+    width: 100%;
 
-    .col1 img {
-        width: 150px;
-        margin: 10px;
-        padding: 10px;
-        border-radius: 8px;
-    }
+    background: linear-gradient(
+        #E4013A,
+        #B81C61
+    );
 
-    .col2 {
-        padding: 10px;
-    overflow: hidden; /* Cache le contenu qui dépasse */
-    word-wrap: break-word; /* Permet la césure des mots longs */
-    }
+    color: white;
+}
 
-    .col2 p {
-        margin: 5px 0;
-        padding-left: 15px;
-    }
-
-    .col3 {
-        width: 150px;
+.annonce-hero__content {
     display: flex;
     flex-direction: column;
-    gap: 5px;
     align-items: center;
-    }
+    justify-content: center;
 
-    .col3 .btn {
-        margin: 5px;
-        font-family: "Montserrat Alternates", sans-serif;
-        font-weight: 400;
-        font-style: normal;
-        
-    }
-
-    .col3 form {
-        display: inline;
-    }
-
-    .btn-primary {
-        
-        background-color: #007bff;
-        border: none;
-        color: white;
-        padding: 10px 20px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 14px;
-        margin: 4px 2px;
-        cursor: pointer;
-        border-radius: 4px;
-    }
-
-    .btn-danger {
-        background-color: #dc3545;
-        border: none;
-        color: white;
-        padding: 10px 20px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 14px;
-        margin: 4px 2px;
-        cursor: pointer;
-        border-radius: 4px;
-    }
-
-    .btn-danger:hover {
-        background-color: #c82333;
-    }
-
-    .btn-primary:hover {
-        background-color: #0056b3;
-    }
-
-    .annonces-row {
-    display: grid;
     width: 100%;
-    grid-template-columns: repeat(2, 1fr); /* Deux colonnes égales */
-    gap: 20px; /* ✅ Espacement entre les annonces */
-    margin-bottom: 20px;
-    justify-content: center; /* ✅ Centre bien les annonces */
+    max-width: 1200px;
+
+    margin: 0 auto;
+    padding: 55px 20px 70px;
+
+    text-align: center;
 }
 
-/* ✅ Annonces non validées en gris */
-.grise {
-    background-color: gray !important;
+.annonce-hero h1 {
+    margin: 0;
+
+    color: white;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 36pt;
+    font-weight: 900;
+    line-height: 1.1;
 }
 
-.presentation {
-    display: -webkit-box;
-    -webkit-line-clamp: 10;
-    -webkit-box-orient: vertical;
+
+/* IMPORTANT :
+   sélecteur volontairement précis pour ne pas être écrasé
+   par la règle globale .annonce-hero img
+*/
+
+.annonce-hero img.annonce-hero__bottom {
+    display: block;
+
+    width: 100%;
+    height: auto;
+
+    margin: 0;
+}
+
+
+/* =========================================================
+   CONTENU BLANC
+   ========================================================= */
+
+.annonce-content-wrapper {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
+    padding: 25px 20px 50px;
+
+    background: white;
+}
+
+
+/* =========================================================
+   LISTE
+   ========================================================= */
+
+.annonce-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 24px;
+
+    width: 100%;
+    max-width: 1400px;
+    min-width: 0;
+
+    margin: 0 auto;
+    padding: 0;
+}
+
+
+/* =========================================================
+   CARTE
+   ========================================================= */
+
+.annonce-card {
+    display: grid;
+
+    grid-template-columns:
+        150px
+        minmax(0, 1fr);
+
+    grid-template-rows:
+        1fr
+        auto;
+
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
+    margin: 0;
+
+    background: white;
+    color: #1C1C1A;
+
+    border: 1px solid #eeeeee;
+    border-radius: 15px;
+
     overflow: hidden;
-    text-overflow: ellipsis;
-    max-height: calc(1.2em * 10); /* hauteur de ligne × nombre de lignes */
-    line-height: 1.2em;
+
+    box-shadow:
+        0 4px 15px
+        rgba(0, 0, 0, 0.10);
+
+    transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease,
+        border-color 0.3s ease;
+}
+
+.annonce-card:hover {
+    transform: translateY(-4px);
+
+    border-color: #f3c2ce;
+
+    box-shadow:
+        0 10px 24px
+        rgba(0, 0, 0, 0.15);
 }
 
 
-/* Pour les navigateurs qui ne supportent pas -webkit-line-clamp */
-@supports not (-webkit-line-clamp: 10) {
-    .presentation {
-        position: relative;
-        max-height: calc(1.2em * 10);
-        overflow: hidden;
-        padding-right: 1rem;
+/* =========================================================
+   CARTE SANS IMAGE
+   ========================================================= */
+
+.annonce-card.annonce-card--no-image {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+
+/* =========================================================
+   ANNONCE NON VALIDÉE
+   ========================================================= */
+
+.annonce-card--pending {
+    background: #f3f3f3;
+
+    border: 2px dashed #999;
+}
+
+.annonce-card--pending:hover {
+    border-color: #777;
+}
+
+
+/* =========================================================
+   IMAGE
+   ========================================================= */
+
+.annonce-image {
+    grid-column: 1;
+    grid-row: 1;
+
+    width: 150px;
+    min-width: 0;
+    min-height: 100%;
+
+    background: #f2eef5;
+
+    overflow: hidden;
+}
+
+.annonce-image img {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+    min-height: 220px;
+
+    object-fit: cover;
+}
+
+
+/* =========================================================
+   CONTENU
+   ========================================================= */
+
+.annonce-main {
+    grid-row: 1;
+
+    width: 100%;
+    min-width: 0;
+
+    padding: 20px 22px;
+}
+
+.annonce-card:not(.annonce-card--no-image) .annonce-main {
+    grid-column: 2;
+}
+
+.annonce-card--no-image .annonce-main {
+    grid-column: 1;
+}
+
+/* =========================================================
+   LIGNE TYPE / STATUT
+   ========================================================= */
+
+.annonce-card__topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    width: 100%;
+    min-width: 0;
+
+    margin: 0 0 12px;
+}
+
+
+/* =========================================================
+   STATUT
+   ========================================================= */
+
+.annonce-status {
+    display: inline-flex;
+    align-items: center;
+
+    min-height: 26px;
+
+    margin: 0;
+    padding: 5px 9px;
+
+    border-radius: 5px;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 0.4px;
+}
+
+.annonce-status--pending {
+    background: #555;
+    color: white;
+}
+
+.annonce-status--valid {
+    background: #E4013A;
+    color: white;
+}
+
+
+/* =========================================================
+   TYPE
+   ========================================================= */
+
+.annonce-type {
+    display: inline-flex;
+    align-items: center;
+
+    max-width: 100%;
+    min-height: 28px;
+
+    margin: 0;
+    padding: 5px 10px;
+
+    background: #f5edf8;
+    color: #7E4093;
+
+    border-radius: 999px;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+
+    overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   TITRE
+   ========================================================= */
+
+.annonce-card .annonce-title {
+    width: 100%;
+
+    margin: 0 0 12px;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1.3;
+}
+
+.annonce-card .annonce-title a {
+    display: block;
+
+    width: 100%;
+    min-width: 0;
+
+    margin: 0;
+    padding: 0;
+
+    color: #E4013A;
+
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+
+    text-decoration: none;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+
+    transition: color 0.2s ease;
+}
+
+.annonce-card .annonce-title a:hover {
+    color: #B81C61;
+}
+
+
+/* =========================================================
+   INFORMATIONS
+   ========================================================= */
+
+.annonce-meta {
+    width: 100%;
+    min-width: 0;
+
+    margin: 0 0 7px;
+
+    color: #555;
+
+    font-family: "Montserrat", sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.annonce-meta strong {
+    color: #333;
+}
+
+.annonce-dates {
+    width: 100%;
+    min-width: 0;
+
+    margin: 0 0 14px;
+
+    color: #7E4093;
+
+    font-family: "Montserrat", sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.4;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+
+/* =========================================================
+   PRÉSENTATION
+   ========================================================= */
+
+.annonce-presentation {
+    display: -webkit-box;
+
+    width: 100%;
+    min-width: 0;
+
+    color: #444;
+
+    font-family: "Montserrat", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+
+    overflow: hidden;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.annonce-presentation p:first-child {
+    margin-top: 0;
+}
+
+.annonce-presentation p:last-child {
+    margin-bottom: 0;
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.annonce-actions {
+    grid-column: 1 / -1;
+    grid-row: 2;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+
+    gap: 8px;
+
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
+    margin: 0;
+    padding: 14px 12px;
+
+    background: #fafafa;
+
+    border-top: 1px solid #eeeeee;
+}
+
+.annonce-card--pending .annonce-actions {
+    background: #e9e9e9;
+    border-top-color: #d4d4d4;
+}
+
+.annonce-actions form {
+    display: block;
+
+    width: 100px;
+    min-width: 0;
+
+    margin: 0;
+    padding: 0;
+}
+
+.annonce-actions > a,
+.annonce-actions > form > button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100px;
+    min-width: 0;
+    height: 42px;
+
+    margin: 0;
+    padding: 8px;
+
+    border: none;
+    border-radius: 7px;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+
+    text-align: center;
+    text-decoration: none;
+
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.2s ease,
+        opacity 0.2s ease;
+}
+
+.annonce-actions > a:hover,
+.annonce-actions > form > button:hover {
+    transform: translateY(-2px);
+
+    opacity: 0.92;
+
+    color: white;
+}
+
+.annonce-action--show {
+    background: #666;
+    color: white;
+}
+
+.annonce-action--edit {
+    background: #7E4093;
+    color: white;
+}
+
+.annonce-action--validate {
+    background: #E4013A;
+    color: white;
+}
+
+.annonce-action--unvalidate {
+    background: #555;
+    color: white;
+}
+
+.annonce-action--delete {
+    background: #1C1C1A;
+    color: white;
+}
+
+
+/* =========================================================
+   LISTE VIDE
+   ========================================================= */
+
+.annonce-empty {
+    grid-column: 1 / -1;
+
+    width: 100%;
+
+    margin: 20px auto;
+    padding: 35px 20px;
+
+    background: #f8f8f8;
+    color: #555;
+
+    border: 1px solid #eeeeee;
+    border-radius: 15px;
+
+    font-family: "Montserrat", sans-serif;
+    font-size: 15px;
+
+    text-align: center;
+}
+
+
+/* =========================================================
+   PAGINATION
+   ========================================================= */
+
+.annonce-pagination {
+    display: flex;
+    justify-content: center;
+
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
+    margin: 18px auto 28px;
+}
+
+.annonce-pagination .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+
+    gap: 5px;
+
+    max-width: 100%;
+
+    margin: 0;
+    padding: 0;
+
+    background: transparent;
+}
+
+.annonce-pagination .pagination span {
+    display: inline-flex;
+}
+
+.annonce-pagination .pagination a,
+.annonce-pagination .pagination .current {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 32px;
+    height: 32px;
+
+    padding: 0 8px;
+
+    border: 1px solid #E4013A;
+    border-radius: 6px;
+
+    background: white;
+    color: #E4013A;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+
+    text-decoration: none;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.annonce-pagination .pagination a:hover {
+    background: #E4013A;
+    color: white;
+
+    transform: translateY(-2px);
+}
+
+.annonce-pagination .pagination .current {
+    background: #E4013A;
+    color: white;
+
+    font-weight: 900;
+}
+
+.annonce-pagination .pagination .disabled {
+    opacity: 0.4;
+}
+
+
+/* =========================================================
+   ÉCRANS INTERMÉDIAIRES
+   ========================================================= */
+
+@media screen and (max-width: 1200px) {
+
+    .annonce-list {
+        grid-template-columns: minmax(0, 1fr);
+
+        max-width: 1000px;
     }
-    
-    .presentation::after {
-        content: '...';
-        position: absolute;
-        right: 0;
-        bottom: 0;
-        background: black; /* même couleur que le fond */
-        padding-left: 0.5rem;
+
+    .annonce-card {
+        grid-template-columns:
+            170px
+            minmax(0, 1fr);
+    }
+
+    .annonce-card.annonce-card--no-image {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .annonce-image {
+        width: 170px;
     }
 }
 
-/* Responsive design amélioré */
-@media (max-width: 1200px) {
-    .annonces-row {
-        grid-template-columns: 1fr;
+
+/* =========================================================
+   TABLETTE
+   ========================================================= */
+
+@media screen and (max-width: 768px) {
+
+    .annonce-hero__content {
+        padding:
+            45px
+            20px
+            60px;
     }
-    
-    section {
-        grid-template-columns: 100px auto 100px;
+
+    .annonce-hero h1 {
+        font-size: 32px;
     }
-    
-    .col1 {
-        width: 100px;
+
+    .annonce-content-wrapper {
+        padding:
+            25px
+            16px
+            45px;
     }
-    
-    .col1 img {
-        width: 100%;
-        max-width: 100px;
+
+    .annonce-card {
+        grid-template-columns:
+            130px
+            minmax(0, 1fr);
     }
-    
-    .col3 {
-        width: 100px;
-        flex-direction: row;
+
+    .annonce-card.annonce-card--no-image {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .annonce-image {
+        width: 130px;
+    }
+
+    .annonce-image img {
+        min-height: 190px;
+    }
+
+    .annonce-main {
+        padding: 17px;
+    }
+
+    .annonce-card .annonce-title {
+        font-size: 16px;
+    }
+
+    .annonce-actions {
         justify-content: center;
-        flex-wrap: wrap;
-        gap: 10px;
-        padding: 10px;
-    }
-    .col3 .btn {
-        margin: 0;
-        min-width: 100px;
     }
 
-    .col3 form {
-        margin: 0;
-        flex: 0 1 auto;
+    .annonce-pagination .pagination {
+        gap: 4px;
+    }
+
+    .annonce-pagination .pagination a,
+    .annonce-pagination .pagination .current {
+        min-width: 30px;
+        height: 30px;
+
+        padding: 0 6px;
+
+        font-size: 11px;
     }
 }
 
-@media (max-width: 768px) {
-    .annonce {
-        margin: 10px;
-        width: calc(100% - 20px);
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 560px) {
+
+    .annonce-page {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
     }
-    
-    section {
-        grid-template-columns: 1fr;
+
+    .annonce-hero__content {
+        padding:
+            38px
+            14px
+            52px;
+    }
+
+    .annonce-hero h1 {
+        font-size: 28px;
+    }
+
+    .annonce-content-wrapper {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+
+        padding:
+            22px
+            12px
+            40px;
+    }
+
+    .annonce-list {
+        grid-template-columns: minmax(0, 1fr);
+
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+
+        gap: 16px;
+
+        margin: 0;
+    }
+
+    .annonce-card,
+    .annonce-card.annonce-card--no-image {
+        grid-template-columns: minmax(0, 1fr);
         grid-template-rows: auto auto auto;
+
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+
+    /* IMAGE */
+
+    .annonce-card .annonce-image {
+        grid-column: 1;
+        grid-row: 1;
+
+        width: 100%;
+        max-width: 100%;
+        height: 180px;
+    }
+
+    .annonce-card .annonce-image img {
+        width: 100%;
+        height: 180px;
+        min-height: 0;
+
+        object-fit: cover;
     }
     
-    .col1, .col2 {
-        width: 100%;
+    .annonce-card__topline {
+        gap: 8px;
     }
-    .col3 {
-        width: 100%;
 
-        padding: 15px 5px;
-        gap: 5px;
+    .annonce-type,
+    .annonce-status {
+        max-width: calc(50% - 4px);
     }
-    .btn-primary, .btn-danger {
-        padding: 8px 15px;
-        font-size: 12px;
+
+    .annonce-type {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .annonce-status {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+
+    /* CONTENU */
+
+    .annonce-card .annonce-main,
+    .annonce-card:not(.annonce-card--no-image) .annonce-main,
+    .annonce-card.annonce-card--no-image .annonce-main {
+        grid-column: 1;
+        grid-row: 2;
+
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+
+        padding: 16px;
+    }
+
+    .annonce-card .annonce-title {
+        font-size: 15px;
+    }
+
+
+    /* ACTIONS */
+
+    .annonce-card .annonce-actions {
+        grid-column: 1;
+        grid-row: 3;
+
+        display: grid;
+
+        grid-template-columns:
+            minmax(0, 1fr)
+            minmax(0, 1fr);
+
+        gap: 8px;
+
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+
+        padding: 12px;
+    }
+
+    .annonce-card .annonce-actions > a,
+    .annonce-card .annonce-actions > form {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+
+        margin: 0;
+    }
+
+    .annonce-card .annonce-actions > a,
+    .annonce-card .annonce-actions > form > button {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        height: 42px;
+
+        margin: 0;
+        padding: 8px;
+    }
+
+
+    /* PAGINATION */
+
+    .annonce-pagination {
+        width: 100%;
+        max-width: 100%;
+
+        padding: 0 2px;
+    }
+
+    .annonce-pagination .pagination {
+        width: 100%;
+        max-width: 100%;
+
+        justify-content: center;
+
+        gap: 4px;
     }
 }
 
-    
+
+/* =========================================================
+   TRÈS PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 380px) {
+
+    .annonce-hero__content {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .annonce-hero h1 {
+        font-size: 25px;
+    }
+
+    .annonce-content-wrapper {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .annonce-card .annonce-actions {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .annonce-card .annonce-actions > a,
+    .annonce-card .annonce-actions > form,
+    .annonce-card .annonce-actions > form > button {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+}
+
 </style>
-    <div>
-        <h1>
-            Liste des annonces
-        </h1>
-        <article>
-            <div class="annonce">
-                {% for annonce in annonces %}
-                    {% if loop.index == 0 or loop.index % 2 == 1 %}
-                        {# ✅ Ouvre une nouvelle ligne TOUS LES 2 ÉLÉMENTS #}
-                        <div class="annonces-row">
-                        {% endif %}
-                        <section {% if not annonce.valid %} style="background-color:gray" {% endif %}>
-                            <div class="col1">
-                                {% if annonce.thumbnail %}
-                                    <img src="{{ vich_uploader_asset(annonce, 'thumbnailFile') }}" alt="Photo de {{ annonce.titre }}">
-                                    {% endif %}
-                                </div>
-                                <div class="col2">
-                                    <p class="type">
-                                        {{ annonce.type }}
-                                    </p>
-                                    <p class="titre">
-                                        <a href="{{ path('admin.annonce.show', {id: annonce.id }) }}">
+    <div class="annonce-page">
+        {# =========================================================
+            BANDEAU ROUGE
+        ========================================================= #}
+        <div class="annonce-hero">
+            <div class="annonce-hero__content">
+                <h1>
+                    Validation des annonces
+                </h1>
+            </div>
+            <img class="annonce-hero__bottom" src="/images/top-content-dechire-D.gif" alt=""></div>
+            {# =========================================================
+                ZONE BLANCHE
+            ========================================================= #}
+            <div class="annonce-content-wrapper">
+                {% if annonces.pageCount > 1 %}
+                    <div class="annonce-pagination">
+                        {{ knp_pagination_render(annonces) }}
+                    </div>
+                {% endif %}
+                <article class="annonce-list">
+                    {% for annonce in annonces %}
+                        <section class="
+                                annonce-card
+                                {{ not annonce.thumbnail
+                                ? 'annonce-card--no-image'
+                                : '' }}
+                                {{ not annonce.valid
+                                ? 'annonce-card--pending'
+                                : '' }}
+                            ">
+                            {# =================================================
+                                IMAGE
+                            ================================================= #}
+                            {% if annonce.thumbnail %}
+                                <div class="annonce-image">
+                                    <img src="{{ vich_uploader_asset(
+                                    annonce,
+                                    'thumbnailFile'
+                                ) }}" alt="Photo de {{ annonce.titre }}"></div>
+                                {% endif %}
+                                {# =================================================
+                                    CONTENU
+                                ================================================= #}
+                                <div class="annonce-main">
+                                    <div class="annonce-card__topline">
+                                        <div class="annonce-type">
+                                            {{ annonce.type }}
+                                        </div>
+                                        {% if annonce.valid %}
+                                            <div class="annonce-status annonce-status--valid">
+                                                VALIDÉE
+                                            </div>
+                                        {% else %}
+                                            <div class="annonce-status annonce-status--pending">
+                                                À VALIDER
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <h2 class="annonce-title">
+                                        <a href="{{ path(
+                                'admin.annonce.show',
+                                {
+                                    id: annonce.id
+                                }
+                            ) }}">
                                             {{ annonce.titre }}
                                         </a>
-                                    </p>
-                                    <p class="orga">
-                                        {{ annonce.organisateur }}
-                                    </p>
-                                    <p class="ville">
-                                        {{ annonce.ville }}
-                                    </p>
-                                    <p class="departement">
-                                        {{ annonce.departement }}
-                                    </p>
-                                    <p class="debutFin">
-                                        {{ annonce.dateDebut|date('d/m/Y') }}
-                                        -
-                                        {{ annonce.dateFin|date('d/m/Y') }}
-                                        -
-                                        {{ annonce.horaire }}
-                                    </p>
-                                    <p class="presentation">
-                                        {{ annonce.presentation | raw }}
-                                    </p>
+                                    </h2>
+                                    <div class="annonce-meta">
+                                        {% if annonce.organisateur %}
+                                            <strong>
+                                                {{ annonce.organisateur }}
+                                            </strong>
+                                        {% endif %}
+                                        {% if annonce.ville %}
+                                            {% if annonce.organisateur %}
+                                                ·
+                                            {% endif %}
+                                            {{ annonce.ville }}
+                                            {% if annonce.departement %}
+                                                (
+                                                {{ annonce.departement }}
+                                                )
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                    <div class="annonce-dates">
+                                        {% if annonce.dateDebut %}
+                                            {% if
+                                    annonce.dateFin
+                                    and
+                                    annonce.dateDebut|date('Y-m-d')
+                                    !=
+                                    annonce.dateFin|date('Y-m-d') %}
+                                                Du
+                                                {{ annonce.dateDebut|date('d/m/Y') }}
+                                                au
+                                                {{ annonce.dateFin|date('d/m/Y') }}
+                                            {% else %}
+                                                {{ annonce.dateDebut|date('d/m/Y') }}
+                                            {% endif %}
+                                        {% endif %}
+                                        {% if annonce.horaire %}
+                                            {% if annonce.dateDebut %}
+                                                ·
+                                            {% endif %}
+                                            {{ annonce.horaire }}
+                                        {% endif %}
+                                    </div>
+                                    {% if annonce.presentation %}
+                                        <div class="annonce-presentation">
+                                            {{ annonce.presentation|raw }}
+                                        </div>
+                                    {% endif %}
                                 </div>
-                                <div class="col3">
-                                    <a class="btn btn-primary btn-sm" href="{{ path('admin.annonce.edit', {id: annonce.id}) }}" data-controller="return" data-return-url-value="{{ path('admin.annonce.edit', { id: annonce.id }) }}" data-action="click->return#redirectWithReturnTo">
+                                {# =================================================
+                                    ACTIONS
+                                ================================================= #}
+                                <div class="annonce-actions">
+                                    <a class="annonce-action--show" href="{{ path(
+                                'admin.annonce.show',
+                                {
+                                    id: annonce.id
+                                }
+                            ) }}">
+                                        Voir
+                                    </a>
+                                    <a class="annonce-action--edit" href="{{ path(
+                                'admin.annonce.edit',
+                                {
+                                    id: annonce.id
+                                }
+                            ) }}" data-controller="return" data-return-url-value="{{ path(
+                                'admin.annonce.edit',
+                                {
+                                    id: annonce.id
+                                }
+                            ) }}" data-action="
+                                            click->return#redirectWithReturnTo
+                                        ">
                                         Éditer
                                     </a>
                                     {% if annonce.valid %}
-                                        <form action="{{ path('admin.annonce.unvalid', {id: annonce.id}) }}" method="post">
-                                            <button type="submit" class="btn btn-primary btn-sm">
+                                        <form action="{{ path(
+                                    'admin.annonce.unvalid',
+                                    {
+                                        id: annonce.id
+                                    }
+                                ) }}" method="post">
+                                            <button type="submit" class="
+                                                    annonce-action--unvalidate
+                                                ">
                                                 Dévalider
                                             </button>
                                         </form>
                                     {% else %}
-                                        <form action="{{ path('admin.annonce.valid', {id: annonce.id}) }}" method="post">
-                                            <button type="submit" class="btn btn-primary btn-sm">
+                                        <form action="{{ path(
+                                    'admin.annonce.valid',
+                                    {
+                                        id: annonce.id
+                                    }
+                                ) }}" method="post">
+                                            <button type="submit" class="
+                                                    annonce-action--validate
+                                                ">
                                                 Valider
                                             </button>
                                         </form>
                                     {% endif %}
-                                     <form action="{{ path('admin.annonce.softDelete', { id: annonce.id }) }}" method="post" data-controller="return" data-action="submit->return#confirmBeforeSubmit submit->return#redirectWithReturnTo">
-                                                            <input type="hidden" name="_method" value="DELETE">
-                                                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ annonce.id) }}">
-                                                                    <button type="submit" class="btn-action btn-delete">
-                                                                        Supprimer
-                                                                    </button>
-                                                                </form>
+                                    <form action="{{ path(
+                                'admin.annonce.softDelete',
+                                {
+                                    id: annonce.id
+                                }
+                            ) }}" method="post" data-controller="return" data-action="
+                                            submit->return#confirmBeforeSubmit
+                                            submit->return#redirectWithReturnTo
+                                        ">
+                                        <input type="hidden" name="_method" value="DELETE">
+                                            <input type="hidden" name="_token" value="{{ csrf_token(
+                                    'delete' ~ annonce.id
+                                ) }}">
+                                                <button type="submit" class="annonce-action--delete">
+                                                    Supprimer
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </section>
+                                {% else %}
+                                    <div class="annonce-empty">
+                                        Aucune annonce à afficher.
                                     </div>
-                                </section>
-                                {% if loop.index0 % 2 == 1 or loop.last %}
-                                {# ✅ Ferme la ligne après 2 annonces ou si c'est la DERNIÈRE annonce seule #}
+                                {% endfor %}
+                            </article>
+                            {% if annonces.pageCount > 1 %}
+                                <div class="annonce-pagination">
+                                    {{ knp_pagination_render(annonces) }}
                                 </div>
                             {% endif %}
-                        {% endfor %}
+                        </div>
                     </div>
-                </article>
-            </div>
-        {% endblock %}
-        
+                {% endblock %}
+                

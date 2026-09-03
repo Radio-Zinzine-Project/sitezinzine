@@ -272,7 +272,6 @@ class GrilleController extends AbstractController
         );
     }
 
-
     #[Route(
         '/{startOfWeek}/publish',
         name: 'publish',

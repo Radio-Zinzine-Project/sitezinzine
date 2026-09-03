@@ -163,6 +163,10 @@
     box-shadow: 0 18px 38px rgba(28, 28, 26, .13);
   }
 
+  .annonce-card--no-image {
+    grid-template-columns: minmax(0, 1fr);
+}
+
   /* =========================
      IMAGE
      ========================= */
@@ -261,6 +265,61 @@
     margin-top: 0;
     margin-bottom: 0;
   }
+
+  .annonces-pagination {
+    margin-top: 38px;
+    display: flex;
+    justify-content: center;
+}
+
+.annonces-pagination .pagination {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 7px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.annonces-pagination .pagination > * {
+    list-style: none;
+}
+
+.annonces-pagination .pagination a,
+.annonces-pagination .pagination span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 38px;
+    height: 38px;
+
+    padding: 0 11px;
+
+    border: 1px solid #eadff0;
+    border-radius: 999px;
+
+    background: #fff;
+    color: #7E4093;
+
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.annonces-pagination .pagination a:hover {
+    background: #f5edf8;
+    border-color: #d8c4e1;
+}
+
+.annonces-pagination .pagination .current {
+    background: #E40039;
+    border-color: #E40039;
+    color: #fff;
+}
+
+
 
   /* =========================
      RESPONSIVE
@@ -361,6 +420,22 @@
       padding-right: 14px;
       font-size: 14px;
     }
+
+    .annonces-pagination {
+        margin-top: 28px;
+    }
+
+    .annonces-pagination .pagination {
+        gap: 5px;
+    }
+
+    .annonces-pagination .pagination a,
+    .annonces-pagination .pagination span {
+        min-width: 34px;
+        height: 34px;
+        padding: 0 9px;
+        font-size: 13px;
+    }
   }
 
   @media (max-width: 360px) {
@@ -387,55 +462,66 @@
           Créer une nouvelle annonce
         </a>
       </p>
-      <img class="imgbottom" src="/images/top-content-dechire-D.gif" alt="">
-    </div>
-    <div class="annonces-tear">
-      <div class="annonces-white-zone">
-        <div class="annonces-container">
-          <article class="annonces-grid">
-            {% for annonce in annonces %}
-              <section class="annonce-card">
-                {% if annonce.thumbnail %}
-                  <div class="annonce-image">
-                    <img src="{{ vich_uploader_asset(annonce, 'thumbnailFile') }}" alt="Photo de {{ annonce.titre }}"></div>
-                  {% endif %}
-                  <div class="annonce-content">
-                    <div class="annonce-type">
-                      {{ annonce.type }}
+      <img class="imgbottom" src="/images/top-content-dechire-D.gif" alt=""></div>
+      <div class="annonces-tear">
+        <div class="annonces-white-zone">
+          <div class="annonces-container">
+            <article class="annonces-grid">
+              {% for annonce in annonces %}
+                <section class="annonce-card {{ not annonce.thumbnail ? 'annonce-card--no-image' : '' }}">
+                  {% if annonce.thumbnail %}
+                    <div class="annonce-image">
+                      <img src="{{ vich_uploader_asset(annonce, 'thumbnailFile') }}" alt="Photo de {{ annonce.titre }}"></div>
+                    {% endif %}
+                    <div class="annonce-content">
+                      <div class="annonce-type">
+                        {{ annonce.type }}
+                      </div>
+                      <h2 class="annonce-title">
+                        <a href="{{ path('annonce.show', { id: annonce.id }) }}">
+                          {{ annonce.titre }}
+                        </a>
+                      </h2>
+                      <div class="annonce-meta">
+                        <span>
+                          {{ annonce.organisateur }}
+                        </span>
+                        ·
+                        <span>
+                          {{ annonce.ville }}
+                          (
+                          {{ annonce.departement }}
+                          )
+                        </span>
+                      </div>
+                      <div class="annonce-dates">
+                        {% if annonce.dateDebut|date('Y-m-d') == annonce.dateFin|date('Y-m-d') %}
+                          {{ annonce.dateDebut|date('d/m/Y') }}
+                        {% else %}
+                          Du
+                          {{ annonce.dateDebut|date('d/m/Y') }}
+                          au
+                          {{ annonce.dateFin|date('d/m/Y') }}
+                        {% endif %}
+                        {% if annonce.horaire %}
+                          ·
+                          {{ annonce.horaire }}
+                        {% endif %}
+                      </div>
+                      <div class="annonce-presentation">
+                        {{ annonce.presentation|raw }}
+                      </div>
                     </div>
-                    <h2 class="annonce-title">
-                      <a href="{{ path('annonce.show', { id: annonce.id }) }}">
-                        {{ annonce.titre }}
-                      </a>
-                    </h2>
-                    <div class="annonce-meta">
-                      <span>
-                        {{ annonce.organisateur }}
-                      </span>
-                      ·
-                      <span>
-                        {{ annonce.ville }}
-                        (
-                        {{ annonce.departement }}
-                        )
-                      </span>
-                    </div>
-                    <div class="annonce-dates">
-                      {{ annonce.dateDebut|date('d/m/Y') }}
-                      –
-                      {{ annonce.dateFin|date('d/m/Y') }}
-                      ·
-                      {{ annonce.horaire }}
-                    </div>
-                    <div class="annonce-presentation">
-                      {{ annonce.presentation|raw }}
-                    </div>
-                  </div>
-                </section>
-              {% endfor %}
-            </article>
+                  </section>
+                {% endfor %}
+              </article>
+              {% if annonces.pageCount > 1 %}
+                <div class="annonces-pagination">
+                  {{ knp_pagination_render(annonces) }}
+                </div>
+              {% endif %}
+            </div>
           </div>
         </div>
-      </div>
-    {% endblock %}
-    
+      {% endblock %}
+      

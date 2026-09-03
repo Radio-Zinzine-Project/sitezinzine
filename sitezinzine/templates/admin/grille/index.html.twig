@@ -602,6 +602,41 @@
       white-space: nowrap;
   }
 
+  .postit__compact-line {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    gap: 4px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.postit__compact-line .postit__label {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 28%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.postit__compact-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+}
+
+.postit__compact-line .postit__badge {
+    flex: 0 0 auto;
+    width: auto;
+    margin: 0;
+}
+
     /* =========================================================
        Sidebar : structure
        ========================================================= */
@@ -927,10 +962,11 @@
     }
 
     .grid-print-action {
-      display: flex;
-      justify-content: center;
-
-      margin: 10px 0 14px;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 10px 0 14px;
     }
 
    /* =========================================================
@@ -1410,6 +1446,11 @@
             startOfWeek: startOfWeek|date('Y-m-d')
         }) }}" class="grid-print-btn" target="_blank" rel="noopener">
                   Imprimer la grille
+                </a>
+                <a href="{{ path('admin.grille.print_announcements', {
+            startOfWeek: startOfWeek|date('Y-m-d')
+        }) }}" class="grid-print-btn" target="_blank" rel="noopener">
+                  Imprimer les émissions à annoncer
                 </a>
               </div>
             {% endif %}

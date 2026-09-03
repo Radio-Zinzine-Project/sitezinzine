@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Annonce;
 use App\Form\AnnonceType;
+use Knp\Component\Pager\PaginatorInterface;
 use App\Repository\AnnonceRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,43 +18,63 @@ use Symfony\Component\Routing\Requirement\Requirement;
 class AnnonceController extends AbstractController
 {
     #[Route('/', name: 'index')]
-    public function index(AnnonceRepository $annonceRepository): Response
-    {
-        $annonces = $annonceRepository->findUpcomingAnnonces();
+    public function index(
+        AnnonceRepository $annonceRepository,
+        PaginatorInterface $paginator,
+        Request $request
+    ): Response {
+        $query = $annonceRepository->findUpcomingAnnoncesQuery();
+
+        $annonces = $paginator->paginate(
+            $query,
+            $request->query->getInt('page', 1),
+            12
+        );
+
         return $this->render('/home/annonces.html.twig', [
             'annonces' => $annonces,
         ]);
     }
 
     #[Route('/create', name: 'create')]
-    public function create(Request $request, EntityManagerInterface $em): Response
-    { {
-            $annonce = new Annonce();
-            $form = $this->createForm(AnnonceType::class, $annonce, [
-                'show_valid' => false, // Cacher le champ valid
-            ]);
-            $form->handleRequest($request);
-            if ($form->isSubmitted() && $form->isValid()) {
-                // Récupérer la valeur du champ "autreType"
-                $autreType = $form->get('autreType')->getData();
-                // Si "Autre" est sélectionné ET que l'utilisateur a entré une valeur, on l'enregistre dans "type"
-                if ($annonce->getType() === 'autre' && !empty($autreType)) {
-                    $annonce->setType($autreType);
-                }
-                $annonce->setUpdateAt(new \DateTime());
-                $annonce->setValid(false);
-                $annonce->setSoftDelete(false);
-                $em->persist($annonce);
-                $em->flush();
-                $this->addFlash('success', 'L\'annonce a bien été créee, il faudra attendre sa validation pour qu\'elle s\'affiche');
+    public function create(
+        Request $request,
+        EntityManagerInterface $em
+    ): Response {
+        $annonce = new Annonce();
 
-                return $this->redirectToRoute('annonce.index');
+        $form = $this->createForm(AnnonceType::class, $annonce, [
+            'show_valid' => false,
+        ]);
+
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+
+            $autreType = trim((string) $form->get('autreType')->getData());
+
+            if ($annonce->getType() === '__autre__' && $autreType !== '') {
+                $annonce->setType($autreType);
             }
 
-            return $this->render('/home/annoncesCreate.html.twig', [
-                'form' => $form->createView(),
-            ]);
+            $annonce->setUpdateAt(new \DateTime());
+            $annonce->setValid(false);
+            $annonce->setSoftDelete(false);
+
+            $em->persist($annonce);
+            $em->flush();
+
+            $this->addFlash(
+                'success',
+                'L\'annonce a bien été créée, il faudra attendre sa validation pour qu\'elle s\'affiche'
+            );
+
+            return $this->redirectToRoute('annonce.index');
         }
+
+        return $this->render('/home/annoncesCreate.html.twig', [
+            'form' => $form->createView(),
+        ]);
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => Requirement::DIGITS])]

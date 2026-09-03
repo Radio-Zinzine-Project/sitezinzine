@@ -286,8 +286,8 @@ final class GridPublicationService
              * La preview fournit déjà les éléments dans l’ordre chronologique
              * puisque findPublishableByWeek() trie par horaire.
              *
-             * On trie néanmoins explicitement ici pour sécuriser la règle
-             * de numérotation.
+             * On trie néanmoins explicitement ici pour conserver
+             * un ordre de traitement stable.
              */
                 $items = $preview['items'];
 
@@ -321,25 +321,6 @@ final class GridPublicationService
                         return $draftIdA <=> $draftIdB;
                     }
                 );
-
-                $emissionIds = [];
-
-                foreach ($items as $item) {
-                    $draft = $item['draft'] ?? null;
-                    $emissionId = $draft instanceof DiffusionDraft
-                        ? $draft->getEmission()?->getId()
-                        : null;
-
-                    if (\is_int($emissionId) && $emissionId > 0) {
-                        $emissionIds[] = $emissionId;
-                    }
-                }
-
-                $numberCounters = $this->diffusionRepository
-                    ->findMaxNumbersBeforeForEmissionIds(
-                        $emissionIds,
-                        $preview['weekStart']
-                    );
 
                 $created = [];
                 $updated = [];
@@ -384,10 +365,21 @@ final class GridPublicationService
                         );
                     }
 
-                    $emissionId = $emission->getId();
+                    /*
+                 * Le rang est déjà déterminé dans DiffusionDraft.
+                 * On ne le recalcule pas à partir de l'historique
+                 * des diffusions de l'émission.
+                 */
+                    $nombreDiffusion = $draft->getNombreDiffusion();
 
-                    $numberCounters[$emissionId] =
-                        ($numberCounters[$emissionId] ?? 0) + 1;
+                    if (null === $nombreDiffusion || $nombreDiffusion < 1) {
+                        throw new \LogicException(
+                            sprintf(
+                                'Le draft #%d possède un nombreDiffusion invalide.',
+                                $draft->getId() ?? 0
+                            )
+                        );
+                    }
 
                     $diffusion = $draft->getPublishedDiffusion();
 
@@ -426,7 +418,7 @@ final class GridPublicationService
                     $diffusion
                         ->setEmission($emission)
                         ->setHoraireDiffusion($mutableStartsAt)
-                        ->setNombreDiffusion($numberCounters[$emissionId])
+                        ->setNombreDiffusion($nombreDiffusion)
                         ->setDurationMinutes($durationMinutes)
                         ->setEndsAt($mutableEndsAt)
                         ->setAssignmentGroupKey($draft->getAssignmentGroupKey())
@@ -440,11 +432,6 @@ final class GridPublicationService
                     $publishedDrafts[] = $draft;
                 }
 
-                /*
-             * wrapInTransaction() effectuera également un flush à la fin,
-             * mais le flush explicite rend l’intention claire et permet de
-             * détecter une erreur SQL avant de construire le résultat.
-             */
                 $this->entityManager->flush();
 
                 return [

@@ -170,6 +170,18 @@ export async function selectEmission(event) {
         return
     }
 
+    /*
+     * Un créneau annulé ou l'origine d'un créneau déplacé est affiché
+     * comme une projection/restauration dans la grille.
+     *
+     * Si on lui affecte une émission, une simple mise à jour du post-it
+     * dans le DOM ne suffit pas : il faut reconstruire la grille depuis
+     * l'état serveur après l'affectation.
+     */
+    const requiresGridReload =
+        this.selectedPostit.dataset.isCancelled === 'true' ||
+        this.selectedPostit.dataset.isRescheduledOrigin === 'true'
+
     try {
         const data = await postForm('/admin/grille/assign', {
             slotId,
@@ -177,18 +189,27 @@ export async function selectEmission(event) {
             startsAt
         })
 
-        if (data.propagated === true) {
+        /*
+         * Comportement existant :
+         * une propagation nécessite déjà un rechargement complet.
+         *
+         * On ajoute uniquement les occurrences annulées/déplacées,
+         * dont la représentation projetée doit également être reconstruite.
+         */
+        if (data.propagated === true || requiresGridReload) {
             this.saveScrollTarget(startsAt)
             window.location.reload()
             return
         }
 
         if (data.emissionCategoryTitle) {
-            this.selectedPostit.dataset.categoryTitle = data.emissionCategoryTitle
+            this.selectedPostit.dataset.categoryTitle =
+                data.emissionCategoryTitle
         }
 
         if (data.emissionCategorySlug) {
-            this.selectedPostit.dataset.categorySlug = data.emissionCategorySlug
+            this.selectedPostit.dataset.categorySlug =
+                data.emissionCategorySlug
         }
 
         await updateAssignedPostit(
@@ -215,7 +236,10 @@ export async function selectEmission(event) {
         card.classList.add('is-selected')
 
     } catch (error) {
-        alert(error.message || 'Erreur lors de l’affectation de l’émission.')
+        alert(
+            error.message ||
+            'Erreur lors de l’affectation de l’émission.'
+        )
     }
 }
 

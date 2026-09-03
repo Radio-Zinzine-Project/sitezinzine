@@ -75,41 +75,65 @@
                     height:calc({{ slots }} * var(--slot-h) - 2px);
                 " data-segment-key="{{ seg.segmentKey|default('') }}" data-slot-id="{{ seg.slotId|default('') }}" data-draft-id="{{ seg.draftId|default('') }}" data-rule-id="{{ seg.ruleId|default('') }}" data-slots="{{ slots }}" data-duration="{{ seg.duration }}" data-broadcast-rank="{{ broadcastRank }}" data-starts-at="{{ seg.startsAt|default('') }}" data-ends-at="{{ seg.endsAt|default('') }}" data-category-title="{{ categoryTitle }}" data-category-slug="{{ categorySlug }}" data-assigned-emission-id="{{ seg.emissionId|default('') }}" data-assigned-emission-title="{{ assignedEmissionTitle }}" data-emission-is-auto-generated="{{ isLive ? 'true' : 'false' }}" data-slot-locked="{{ isRebroadcast or isGhost ? 'true' : 'false' }}" data-has-conflict="{{ hasConflict ? 'true' : 'false' }}" data-conflict-type="{{ seg.conflictType|default('') }}" data-conflict-severity="{{ seg.conflictSeverity|default('') }}" data-conflict-count="{{ seg.conflictCount|default(0) }}" data-conflict-with="{{ seg.conflictWith|default([])|json_encode|e('html_attr') }}" data-can-reschedule="{{ seg.canBeRescheduled|default(false) ? 'true' : 'false' }}" data-is-projected-override="{{ isProjectedOverride ? 'true' : 'false' }}" data-original-starts-at="{{ seg.originalStartsAt|default('') }}" data-projection-type="{{ seg.projectionType|default('') }}" data-is-cancelled="{{ isCancelled ? 'true' : 'false' }}" data-can-restore="{{ canRestore ? 'true' : 'false' }}" data-is-blocking="{{ isBlocking ? 'true' : 'false' }}" data-is-rescheduled-origin="{{ isRescheduledOrigin ? 'true' : 'false' }}" data-action="click->grid#selectSlot" draggable="{{ isRebroadcast or isGhost ? 'false' : 'true' }}" {% if isRebroadcast or isGhost %} aria-disabled="true" {% endif %}>
                     <div class="postit__content">
-                        <div class="postit__topline">
-                            <span class="postit__label">
-                                {% if isCancelled %}
-                                    Créneau annulé
-                                {% elseif isRescheduledOrigin %}
-                                    Créneau déplacé
-                                {% else %}
+                        {% if slots <= 2 and not isGhost and assignedEmissionTitle %}
+                            {# 15 / 30 min : catégorie + titre + rang sur une seule ligne #}
+                            <div class="postit__compact-line">
+                                <span class="postit__label">
                                     {{ displayCategory|upper }}
-                                {% endif %}
-                            </span>
-                            <span class="postit__badge">
-                                {% if isCancelled %}
-                                    ↩ Restaurer
-                                {% elseif isRescheduledOrigin %}
-                                    ↩ Origine
-                                {% elseif isRebroadcast %}
-                                    ↺ Rediff
-                                    {{ broadcastRank - 1 }}
-                                {% elseif isProjectedOverride %}
-                                    ⇢ Déplacé
-                                {% elseif isLive %}
-                                    ● Direct
-                                {% else %}
-                                    1re diff
-                                {% endif %}
-                            </span>
-                        </div>
-                        {% if isGhost %}
-                            <span class="postit__subline">
-                                Restaurable
-                            </span>
-                        {% elseif assignedEmissionTitle %}
-                            <span class="postit__subline">
-                                {{ assignedEmissionTitle }}
-                            </span>
+                                </span>
+                                <span class="postit__compact-title">
+                                    {{ assignedEmissionTitle }}
+                                </span>
+                                <span class="postit__badge">
+                                    {% if isRebroadcast %}
+                                        ↺ Rediff
+                                        {{ broadcastRank - 1 }}
+                                    {% elseif isProjectedOverride %}
+                                        ⇢ Déplacé
+                                    {% elseif isLive %}
+                                        ● Direct
+                                    {% else %}
+                                        1re diff
+                                    {% endif %}
+                                </span>
+                            </div>
+                        {% else %}
+                            <div class="postit__topline">
+                                <span class="postit__label">
+                                    {% if isCancelled %}
+                                        Créneau annulé
+                                    {% elseif isRescheduledOrigin %}
+                                        Créneau déplacé
+                                    {% else %}
+                                        {{ displayCategory|upper }}
+                                    {% endif %}
+                                </span>
+                                <span class="postit__badge">
+                                    {% if isCancelled %}
+                                        ↩ Restaurer
+                                    {% elseif isRescheduledOrigin %}
+                                        ↩ Origine
+                                    {% elseif isRebroadcast %}
+                                        ↺ Rediff
+                                        {{ broadcastRank - 1 }}
+                                    {% elseif isProjectedOverride %}
+                                        ⇢ Déplacé
+                                    {% elseif isLive %}
+                                        ● Direct
+                                    {% else %}
+                                        1re diff
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% if isGhost %}
+                                <span class="postit__subline">
+                                    Restaurable
+                                </span>
+                            {% elseif assignedEmissionTitle %}
+                                <span class="postit__subline">
+                                    {{ assignedEmissionTitle }}
+                                </span>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>
@@ -132,22 +156,42 @@
                     height:calc({{ slots }} * var(--slot-h) - 2px);
                 " data-is-manual-draft="true" data-draft-id="{{ draft.id }}" data-slots="{{ slots }}" data-duration="{{ draft.duration }}" data-starts-at="{{ draft.startsAt }}" data-ends-at="{{ draft.endsAt|default('') }}" data-category-title="{{ draft.categoryTitle }}" data-category-slug="{{ draftCategorySlug }}" data-assigned-emission-id="{{ draft.emissionId|default('') }}" data-assigned-emission-title="{{ draft.title }}" data-emission-is-auto-generated="{{ isManualLive ? 'true' : 'false' }}" data-draft-type="{{ draftType }}" data-nombre-diffusion="{{ nombreDiffusion }}" data-broadcast-rank="{{ nombreDiffusion }}" data-assignment-group-key="{{ draft.assignmentGroupKey|default('') }}" data-slot-locked="false" data-has-conflict="false" data-is-blocking="true" data-action="click->grid#selectSlot">
                     <div class="postit__content">
-                        <div class="postit__topline">
-                            <span class="postit__label">
-                                {{ displayDraftCategory|upper }}
-                            </span>
-                            <span class="postit__badge">
-                                {% if isManualRebroadcast %}
-                                    ↺ Rediff
-                                    {{ nombreDiffusion - 1 }}
-                                {% elseif isManualLive %}
-                                    ● Direct
-                                {% else %}
-                                    1re diff
-                                {% endif %}
-                            </span>
-                        </div>
-                        {% if slots > 1 %}
+                        {% if slots <= 2 %}
+                            {# 15 / 30 min : catégorie + titre + rang sur une seule ligne #}
+                            <div class="postit__compact-line">
+                                <span class="postit__label">
+                                    {{ displayDraftCategory|upper }}
+                                </span>
+                                <span class="postit__compact-title">
+                                    {{ draft.title }}
+                                </span>
+                                <span class="postit__badge">
+                                    {% if isManualRebroadcast %}
+                                        ↺ Rediff
+                                        {{ nombreDiffusion - 1 }}
+                                    {% elseif isManualLive %}
+                                        ● Direct
+                                    {% else %}
+                                        1re diff
+                                    {% endif %}
+                                </span>
+                            </div>
+                        {% else %}
+                            <div class="postit__topline">
+                                <span class="postit__label">
+                                    {{ displayDraftCategory|upper }}
+                                </span>
+                                <span class="postit__badge">
+                                    {% if isManualRebroadcast %}
+                                        ↺ Rediff
+                                        {{ nombreDiffusion - 1 }}
+                                    {% elseif isManualLive %}
+                                        ● Direct
+                                    {% else %}
+                                        1re diff
+                                    {% endif %}
+                                </span>
+                            </div>
                             <span class="postit__subline">
                                 {{ draft.title }}
                             </span>

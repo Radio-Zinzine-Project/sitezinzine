@@ -16,7 +16,7 @@ class PublicScheduleBuilder
         $start = $startOfWeek->setTime(0, 0);
         $end = $start->modify('+7 days');
 
-        $diffusions = $this->diffusionRepository->findPublishedByWeek(
+        $diffusions = $this->diffusionRepository->findByWeek(
             $start,
             $end
         );

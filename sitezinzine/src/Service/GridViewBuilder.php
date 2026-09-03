@@ -163,6 +163,11 @@ final class GridViewBuilder
         }
         unset($draftsForDay);
 
+        $daySegments = $this->hideCoveredGhostSegments(
+            $daySegments,
+            $manualDraftsByDay
+        );
+
         foreach ($daySegments as &$segments) {
             foreach ($segments as &$seg) {
                 $seg['assigned'] = false;
@@ -424,5 +429,135 @@ final class GridViewBuilder
             ->orderBy('c.titre', 'ASC')
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Masque les représentations fantômes des occurrences régulières
+     * annulées ou déplacées lorsqu'un draft manuel les recouvre.
+     *
+     * Important :
+     * cette méthode ne modifie aucune donnée persistée.
+     * L'arbitrage reste intact en base.
+     *
+     * Si le draft manuel est supprimé, le fantôme sera donc de nouveau
+     * présent lors de la prochaine construction de la grille et pourra
+     * être restauré.
+     *
+     * @param array<int, array<int, array<string, mixed>>> $daySegments
+     * @param array<int, array<int, array<string, mixed>>> $manualDraftsByDay
+     *
+     * @return array<int, array<int, array<string, mixed>>>
+     */
+    private function hideCoveredGhostSegments(
+        array $daySegments,
+        array $manualDraftsByDay
+    ): array {
+        foreach ($daySegments as $dayIndex => $segments) {
+            $manualDrafts = $manualDraftsByDay[$dayIndex] ?? [];
+
+            if ([] === $manualDrafts) {
+                continue;
+            }
+
+            $daySegments[$dayIndex] = array_values(
+                array_filter(
+                    $segments,
+                    static function (array $segment) use ($manualDrafts): bool {
+                        $isGhost =
+                            ($segment['isCancelled'] ?? false) === true
+                            || ($segment['isRescheduledOrigin'] ?? false) === true;
+
+                        /*
+                     * Un segment régulier normal ou un segment réellement
+                     * déplacé reste totalement inchangé.
+                     */
+                        if (!$isGhost) {
+                            return true;
+                        }
+
+                        $segmentStartsAtRaw =
+                            $segment['originalStartsAt']
+                            ?? $segment['startsAt']
+                            ?? null;
+
+                        $segmentEndsAtRaw =
+                            $segment['endsAt']
+                            ?? null;
+
+                        if (!$segmentStartsAtRaw || !$segmentEndsAtRaw) {
+                            return true;
+                        }
+
+                        $segmentStartsAt =
+                            $segmentStartsAtRaw instanceof \DateTimeInterface
+                            ? \DateTimeImmutable::createFromInterface(
+                                $segmentStartsAtRaw
+                            )
+                            : new \DateTimeImmutable(
+                                (string) $segmentStartsAtRaw
+                            );
+
+                        $segmentEndsAt =
+                            $segmentEndsAtRaw instanceof \DateTimeInterface
+                            ? \DateTimeImmutable::createFromInterface(
+                                $segmentEndsAtRaw
+                            )
+                            : new \DateTimeImmutable(
+                                (string) $segmentEndsAtRaw
+                            );
+
+                        foreach ($manualDrafts as $manualDraft) {
+                            $manualStartsAtRaw =
+                                $manualDraft['startsAt'] ?? null;
+
+                            $manualEndsAtRaw =
+                                $manualDraft['endsAt'] ?? null;
+
+                            if (!$manualStartsAtRaw || !$manualEndsAtRaw) {
+                                continue;
+                            }
+
+                            $manualStartsAt =
+                                $manualStartsAtRaw instanceof \DateTimeInterface
+                                ? \DateTimeImmutable::createFromInterface(
+                                    $manualStartsAtRaw
+                                )
+                                : new \DateTimeImmutable(
+                                    (string) $manualStartsAtRaw
+                                );
+
+                            $manualEndsAt =
+                                $manualEndsAtRaw instanceof \DateTimeInterface
+                                ? \DateTimeImmutable::createFromInterface(
+                                    $manualEndsAtRaw
+                                )
+                                : new \DateTimeImmutable(
+                                    (string) $manualEndsAtRaw
+                                );
+
+                            /*
+                         * Chevauchement réel entre deux intervalles :
+                         *
+                         * manuel :   [----------]
+                         * fantôme :       [----------]
+                         *
+                         * Les bornes qui se touchent seulement ne sont
+                         * pas considérées comme un chevauchement.
+                         */
+                            if (
+                                $manualStartsAt < $segmentEndsAt
+                                && $manualEndsAt > $segmentStartsAt
+                            ) {
+                                return false;
+                            }
+                        }
+
+                        return true;
+                    }
+                )
+            );
+        }
+
+        return $daySegments;
     }
 }

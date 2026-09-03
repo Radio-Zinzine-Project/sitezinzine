@@ -265,8 +265,34 @@
         }
 
         .print-info-block--weekly {
-            flex: 0 0 18mm;
+            flex: 0 0 auto;
+            min-height: 0;
             font-size: 10pt;
+        }
+
+        .print-weekly-note {
+            width: 100%;
+            height: 24mm;
+            min-height: 24mm;
+            max-height: 24mm;
+            padding: 1.5mm;
+
+            border: 1px dashed #999999;
+            border-radius: 1mm;
+
+            font-size: 9pt;
+            line-height: 1.2;
+            text-align: left;
+
+            outline: none;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .print-weekly-note:empty::before {
+            content: attr(data-placeholder);
+            color: #777777;
+            font-style: italic;
         }
 
         .print-info-block--studio,
@@ -669,6 +695,16 @@
                 break-inside: avoid;
                 page-break-inside: avoid;
             }
+
+            .print-weekly-note {
+                border: 0;
+                padding: 0;
+                overflow: hidden;
+            }
+
+            .print-weekly-note:empty::before {
+                content: '';
+            }
         }
     </style>
         {% if printFormat == 'a3' %}
@@ -708,6 +744,8 @@
                 {{ startOfWeek|date('d/m/Y') }}
                 au
                 {{ startOfWeek|date_modify('+6 days')|date('d/m/Y') }}
+                -
+                {{ printFormat|upper }}
             </p>
             <div class="print-grid">
                 {# =====================================================
@@ -1110,8 +1148,9 @@
                         </section>
                         <section class="print-info-block print-info-block--weekly">
                             <h2>
-                                Message hebdomadaire
+                                Remarques
                             </h2>
+                            <div class="print-weekly-note" contenteditable="true" data-placeholder="Cliquez ici pour ajouter une remarque..."></div>
                             <section class="print-info-block print-info-block--studio">
                                 <h2>
                                     Studio Limans
@@ -1134,6 +1173,11 @@
                                     <strong>
                                         www.radiozinzine.org
                                     </strong>
+                                </p>
+                                <p>
+                                    <strong>Si vous ne trouvez pas une émission :</strong>
+                                    joviale@poivron.org
+                                    signal : 0652955077
                                 </p>
                             </section>
                             <section class="print-info-block print-info-block--studio">

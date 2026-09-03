@@ -1,265 +1,687 @@
 {% extends 'admin/admin.html.twig' %}
-{% block title "Évènement : " ~ evenement.titre %}
+{% block title %}
+    Évènement :
+    {{ evenement.titre }}
+{% endblock %}
 {% block body %}
+    <style>
+    /* =========================================================
+       CONTENEUR
+       ========================================================= */
 
-<style>
+    .evenement-container {
+        width: calc(100% - 40px);
+        max-width: 800px;
 
-.evenement-container {
-    max-width: 800px;
-    margin: 40px auto;
-    padding: 20px;
-    border-radius: 10px;
-    background-color: #f9f9f9;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    font-family: Arial, sans-serif;
-}
-.evenement-container img {
-    width: 100%;
-    max-height: 400px;
-    object-fit: cover;
-    border-radius: 8px;
-}
+        margin: 40px auto;
+        padding: 25px;
 
-.evenement-image {
-    width: 100%;
-    max-height: 400px;
-    object-fit: cover;
-    border-radius: 8px;
-}
+        box-sizing: border-box;
 
-.evenement-titre {
-    text-align: center;
-    color: black;
-    font-family: "Montserrat Alternates", sans-serif;
-    font-weight: 900;
-    font-style: normal;
-    font-size: clamp(24px, 5vw, 36pt);
-    margin: 20px auto;
-}
+        background: #f9f9f9;
+        color: #1C1C1A;
 
-.evenement-infos {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-    color: black;
-}
+        border-radius: 10px;
 
-.evenement-col {
-    width: 48%;
-}
+        box-shadow:
+            0 4px 10px
+            rgba(0, 0, 0, 0.10);
 
-.evenement-section {
-    margin-top: 20px;
-    padding-top: 10px;
-    border-top: 2px solid #ddd;
-}
-
-.evenement-section h3 {
-    font-size: 20px;
-    color: #444;
-}
-
-.evenement-actions {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin-top: 30px;
-}
-
-.btn {
-    padding: 10px 20px;
-    border-radius: 5px;
-    text-decoration: none;
-    text-align: center;
-    background-color: #007bff;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-    border: none;
-}
-
-.btn-danger {
-    background-color: #dc3545;
-}
-
-.btn:hover {
-    opacity: 0.9;
-}
-.btn-secondary {
-    background-color: #6c757d;
-    transition: background-color 0.3s ease;
-}
-
-.btn-secondary:hover {
-    background-color: #5a6268;
-    opacity: 0.9;
-}
-
-    /* Styles pour la modal */
-.evenement-container img {
-    cursor: zoom-in;
-    transition: transform 0.3s ease;
-}
-
-.evenement-container img:hover {
-    transform: scale(1.02);
-}
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.9);
-    justify-content: center;
-    align-items: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-}
-
-.modal-content {
-    max-width: 90%;
-    max-height: 90vh;
-    margin: auto;
-    display: block;
-    cursor: pointer;
-    transform: scale(0.9);
-    transition: transform 0.3s ease;
-}
-
-.modal.active {
-    display: flex;
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.close {
-    position: absolute;
-    top: 15px;
-    right: 35px;
-    color: #f1f1f1;
-    font-size: 40px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: color 0.3s ease;
-}
-.close:hover {
-    color: #E40039;
-}
-.modal.active .modal-content {
-    transform: scale(1);
-}
-
-    /* Rendre l'image cliquable */
-    .evenement-container img {
-        cursor: pointer;
-    }
-/* 📱 Responsive Design */
-@media (max-width: 768px) {
-    .evenement-details {
-        flex-direction: column;
-        align-items: center;
+        font-family: "Montserrat", sans-serif;
     }
 
-    .evenement-thumbnail img {
-        max-width: 100%;
+
+    /* =========================================================
+       IMAGE
+       ========================================================= */
+
+    .evenement-container .evenement-image {
+        display: block;
+
+        width: 100%;
+        max-height: 400px;
+
+        object-fit: contain;
+
+        border-radius: 8px;
+
+        cursor: zoom-in;
+
+        transition:
+            transform 0.3s ease,
+            box-shadow 0.3s ease;
     }
 
-    .evenement-info {
+    .evenement-container .evenement-image:hover {
+        transform: scale(1.01);
+
+        box-shadow:
+            0 5px 15px
+            rgba(0, 0, 0, 0.12);
+    }
+
+
+    /* =========================================================
+       TITRE
+       ========================================================= */
+
+    .evenement-container .evenement-titre {
+        margin: 25px auto 10px;
+
+        color: #E4013A !important;
+
+        font-family: "Montserrat Alternates", sans-serif;
+        font-size: clamp(26px, 5vw, 38px);
+        font-weight: 900;
+        line-height: 1.2;
+
         text-align: center;
+
+        overflow-wrap: anywhere;
     }
-}
 
 
-    </style>
-    <div>
+    /* =========================================================
+       ÉTAT
+       ========================================================= */
 
-<div class="evenement-container">
+    .evenement-status {
+        display: flex;
+        justify-content: center;
 
-{% if evenement.thumbnail %}
-    <img src="{{ vich_uploader_asset(evenement, 'thumbnailFile') }}" 
-         alt="Photo de {{ evenement.titre }}"
-         onclick="openModal(this.src)">
-{% endif %}
-    
-    <h1 class="evenement-titre">{{ evenement.titre }}</h1>
+        margin: 10px 0 20px;
+    }
 
-    <div class="evenement-infos">
-        <div class="evenement-col">
-            <p><strong>Organisateur :</strong> {{ evenement.organisateur }}</p>
-            <p><strong>Lieu :</strong> {{ evenement.ville }} ({{ evenement.departement }})</p>
-            <p><strong>Adresse :</strong> {{ evenement.adresse }}</p>
-        </div>
-        <div class="evenement-col">
-            <p><strong>Date :</strong> Du {{ evenement.dateDebut|date('d/m/Y') }} au {{ evenement.dateFin|date('d/m/Y') }}</p>
-            <p><strong>Horaires :</strong> {{ evenement.horaire }}</p>
-            <p><strong>Prix :</strong> {{ evenement.prix }}</p>
-        </div>
-    </div>
+    .evenement-status__badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
 
-    <div class="evenement-section">
-        <h3>Présentation</h3>
-        <p>{{ evenement.presentation| raw }}</p>
-    </div>
+        padding: 5px 10px;
 
-    <div class="evenement-section">
-        <h3>Informations supplémentaires</h3>
-        <p><strong>Type :</strong> {{ evenement.type }}</p>
-        
-    </div>
+        background: #555;
+        color: white;
 
-    <div class="evenement-section">
-        <h3>Contact</h3>
-        <p><strong>Email/Téléphone :</strong> {{ evenement.contact }}</p>
-    </div>
+        border-radius: 5px;
 
-    <div class="evenement-actions">
-<a href="{{ path('admin.evenement.index') }}" class="btn btn-secondary">Retour</a>
-        <a href="{{ path('admin.evenement.edit', {id: evenement.id}) }}" data-controller="return"
-    data-return-url-value="{{ path('admin.evenement.edit', { id: evenement.id }) }}"
-    data-action="click->return#redirectWithReturnTo" class="btn">Modifier</a>
-        <form action="{{ path('admin.evenement.softDelete', {id: evenement.id}) }}" method="post">
-            <input type="hidden" name="_method" value="DELETE">
-            <button type="submit" class="btn btn-danger">Supprimer</button>
-        </form>
-    </div>
-</div>
-<div id="imageModal" class="modal">
-    <span class="close" onclick="closeModal()">&times;</span>
-    <img class="modal-content" id="modalImage">
-</div>
-    </div>
+        font-family: "Montserrat Alternates", sans-serif;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.4px;
+    }
 
-    <script>
-        function openModal(imgSrc) {
-            const modal = document.getElementById('imageModal');
-            const modalImg = document.getElementById('modalImage');
-            modal.classList.add('active');
-            modalImg.src = imgSrc;
+
+    /* =========================================================
+       INFORMATIONS
+       ========================================================= */
+
+    .evenement-infos {
+        display: flex;
+        justify-content: space-between;
+
+        gap: 30px;
+
+        margin-top: 25px;
+
+        color: #333;
+    }
+
+    .evenement-col {
+        width: 48%;
+        min-width: 0;
+    }
+
+    .evenement-col p {
+        margin: 0 0 10px;
+
+        font-size: 14px;
+        line-height: 1.5;
+
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .evenement-col p:last-child {
+        margin-bottom: 0;
+    }
+
+    .evenement-col strong {
+        color: #1C1C1A;
+
+        font-weight: 700;
+    }
+
+
+    /* =========================================================
+       SECTIONS
+       ========================================================= */
+
+    .evenement-section {
+        margin-top: 25px;
+        padding-top: 18px;
+
+        border-top: 2px solid #ddd;
+    }
+
+    .evenement-section h3 {
+        margin: 0 0 12px;
+
+        color: #444;
+
+        font-family: "Montserrat Alternates", sans-serif;
+        font-size: 20px;
+        font-weight: 800;
+    }
+
+    .evenement-section-content {
+        color: #333;
+
+        font-size: 15px;
+        line-height: 1.6;
+
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .evenement-section-content p:first-child {
+        margin-top: 0;
+    }
+
+    .evenement-section-content p:last-child {
+        margin-bottom: 0;
+    }
+
+
+    /* =========================================================
+       ACTIONS
+       ========================================================= */
+
+    .evenement-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+
+        gap: 15px;
+
+        margin-top: 30px;
+    }
+
+    .evenement-actions form {
+        margin: 0;
+        padding: 0;
+    }
+
+    .evenement-actions .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        min-width: 120px;
+        height: 44px;
+
+        padding: 10px 20px;
+
+        box-sizing: border-box;
+
+        background: #E4013A;
+        color: white;
+
+        border: none;
+        border-radius: 6px;
+
+        font-family: "Montserrat", sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+
+        line-height: 1;
+
+        text-align: center;
+        text-decoration: none;
+
+        cursor: pointer;
+
+        transition:
+            transform 0.2s ease,
+            opacity 0.2s ease;
+    }
+
+    .evenement-actions .btn-secondary {
+        background: #666;
+    }
+
+    .evenement-actions .btn-danger {
+        background: #B81C61;
+    }
+
+    .evenement-actions .btn:hover {
+        color: white;
+
+        opacity: 0.95;
+
+        transform: translateY(-2px);
+    }
+
+
+    /* =========================================================
+       MODAL IMAGE
+       ========================================================= */
+
+    .evenement-modal {
+        display: none;
+
+        position: fixed;
+        z-index: 1000;
+
+        inset: 0;
+
+        width: 100%;
+        height: 100%;
+
+        background: rgba(0, 0, 0, 0.9);
+
+        justify-content: center;
+        align-items: center;
+
+        opacity: 0;
+        pointer-events: none;
+
+        transition: opacity 0.3s ease;
+    }
+
+    .evenement-modal.active {
+        display: flex;
+
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .evenement-modal-content {
+        display: block;
+
+        max-width: 90%;
+        max-height: 90vh;
+
+        margin: auto;
+
+        object-fit: contain;
+
+        cursor: pointer;
+
+        transform: scale(0.9);
+
+        transition: transform 0.3s ease;
+    }
+
+    .evenement-modal.active .evenement-modal-content {
+        transform: scale(1);
+    }
+
+    .evenement-modal-close {
+        position: absolute;
+
+        top: 15px;
+        right: 35px;
+
+        color: #f1f1f1;
+
+        font-family: Arial, sans-serif;
+        font-size: 40px;
+        font-weight: bold;
+        line-height: 1;
+
+        cursor: pointer;
+
+        transition: color 0.3s ease;
+    }
+
+    .evenement-modal-close:hover {
+        color: #E40039;
+    }
+
+
+    /* =========================================================
+       TABLETTE / MOBILE
+       ========================================================= */
+
+    @media screen and (max-width: 768px) {
+
+        .evenement-container {
+            width: calc(100% - 30px);
+
+            margin: 25px auto;
+            padding: 20px;
         }
-    
-        function closeModal() {
-            const modal = document.getElementById('imageModal');
-            modal.classList.remove('active');
+
+        .evenement-infos {
+            flex-direction: column;
+
+            gap: 0;
         }
-    
-        // Fermer la modal en cliquant en dehors de l'image
-        document.getElementById('imageModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal();
+
+        .evenement-col {
+            width: 100%;
+        }
+
+        .evenement-col + .evenement-col {
+            margin-top: 10px;
+        }
+
+        .evenement-actions {
+            gap: 10px;
+        }
+    }
+
+
+    /* =========================================================
+       PETIT MOBILE
+       ========================================================= */
+
+    @media screen and (max-width: 500px) {
+
+        .evenement-container {
+            width: calc(100% - 20px);
+
+            margin: 15px auto;
+            padding: 15px;
+        }
+
+        .evenement-titre {
+            margin-top: 20px;
+
+            font-size: 25px;
+        }
+
+        .evenement-section h3 {
+            font-size: 18px;
+        }
+
+        .evenement-actions {
+            flex-direction: column;
+        }
+
+        .evenement-actions > a,
+        .evenement-actions > form {
+            width: 100%;
+        }
+
+        .evenement-actions .btn {
+            width: 100%;
+        }
+
+        .evenement-modal-close {
+            top: 10px;
+            right: 15px;
+        }
+    }
+
+
+    /* =========================================================
+       PAYSAGE PETITE HAUTEUR
+       ========================================================= */
+
+    @media screen and (max-height: 500px) and (orientation: landscape) {
+
+        .evenement-container {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .evenement-modal-content {
+            max-height: 82vh;
+        }
+    }
+</style>
+    <div class="evenement-container">
+        {# =========================================================
+            IMAGE
+        ========================================================= #}
+        {% if evenement.thumbnail %}
+            <img class="evenement-image" src="{{ vich_uploader_asset(
+                evenement,
+                'thumbnailFile'
+            ) }}" alt="Photo de {{ evenement.titre }}" onclick="openEvenementModal(this.src)">
+            {% endif %}
+            {# =========================================================
+                TITRE
+            ========================================================= #}
+            <h1 class="evenement-titre">
+                {{ evenement.titre }}
+            </h1>
+            {# =========================================================
+                ÉTAT
+            ========================================================= #}
+            {% if not evenement.valid %}
+                <div class="evenement-status">
+                    <span class="evenement-status__badge">
+                        NON VALIDÉ
+                    </span>
+                </div>
+            {% endif %}
+            {# =========================================================
+                INFORMATIONS
+            ========================================================= #}
+            <div class="evenement-infos">
+                <div class="evenement-col">
+                    {% if evenement.organisateur %}
+                        <p>
+                            <strong>
+                                Organisateur :
+                            </strong>
+                            {{ evenement.organisateur }}
+                        </p>
+                    {% endif %}
+                    {% if evenement.ville or evenement.departement %}
+                        <p>
+                            <strong>
+                                Lieu :
+                            </strong>
+                            {% if evenement.ville %}
+                                {{ evenement.ville }}
+                            {% endif %}
+                            {% if evenement.departement %}
+                                {% if evenement.ville %}
+                                    (
+                                    {{ evenement.departement }}
+                                    )
+                                {% else %}
+                                    {{ evenement.departement }}
+                                {% endif %}
+                            {% endif %}
+                        </p>
+                    {% endif %}
+                    {% if evenement.adresse %}
+                        <p>
+                            <strong>
+                                Adresse :
+                            </strong>
+                            {{ evenement.adresse }}
+                        </p>
+                    {% endif %}
+                </div>
+                <div class="evenement-col">
+                    {% if evenement.dateDebut %}
+                        <p>
+                            <strong>
+                                Date :
+                            </strong>
+                            {% if evenement.dateFin
+                        and evenement.dateFin|date('Y-m-d')
+                        != evenement.dateDebut|date('Y-m-d') %}
+                                Du
+                                {{ evenement.dateDebut|date('d/m/Y') }}
+                                au
+                                {{ evenement.dateFin|date('d/m/Y') }}
+                            {% else %}
+                                {{ evenement.dateDebut|date('d/m/Y') }}
+                            {% endif %}
+                        </p>
+                    {% endif %}
+                    {% if evenement.horaire %}
+                        <p>
+                            <strong>
+                                Horaires :
+                            </strong>
+                            {{ evenement.horaire }}
+                        </p>
+                    {% endif %}
+                    {% if evenement.prix %}
+                        <p>
+                            <strong>
+                                Prix :
+                            </strong>
+                            {{ evenement.prix }}
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+            {# =========================================================
+                PRÉSENTATION
+            ========================================================= #}
+            {% if evenement.presentation %}
+                <div class="evenement-section">
+                    <h3>
+                        Présentation
+                    </h3>
+                    <div class="evenement-section-content">
+                        {{ evenement.presentation|raw }}
+                    </div>
+                </div>
+            {% endif %}
+            {# =========================================================
+                INFORMATIONS SUPPLÉMENTAIRES
+            ========================================================= #}
+            {% if evenement.type %}
+                <div class="evenement-section">
+                    <h3>
+                        Informations supplémentaires
+                    </h3>
+                    <div class="evenement-section-content">
+                        <p>
+                            <strong>
+                                Type :
+                            </strong>
+                            {{ evenement.type }}
+                        </p>
+                    </div>
+                </div>
+            {% endif %}
+            {# =========================================================
+                CONTACT
+            ========================================================= #}
+            {% if evenement.contact %}
+                <div class="evenement-section">
+                    <h3>
+                        Contact
+                    </h3>
+                    <div class="evenement-section-content">
+                        <p>
+                            <strong>
+                                Email/Téléphone :
+                            </strong>
+                            {{ evenement.contact }}
+                        </p>
+                    </div>
+                </div>
+            {% endif %}
+            {# =========================================================
+                ACTIONS
+            ========================================================= #}
+            <div class="evenement-actions">
+                <a href="{{ path('admin.evenement.index') }}" class="btn btn-secondary">
+                    Retour
+                </a>
+                <a href="#" class="btn" data-controller="return" data-return-url-value="{{ path(
+                'admin.evenement.edit',
+                {
+                    id: evenement.id
+                }
+            ) }}" data-action="click->return#redirectWithReturnTo">
+                    Modifier
+                </a>
+                <form action="{{ path(
+                'admin.evenement.softDelete',
+                {
+                    id: evenement.id
+                }
+            ) }}" method="post">
+                    <input type="hidden" name="_method" value="DELETE">
+                        <button type="submit" class="btn btn-danger">
+                            Supprimer
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {# =============================================================
+                MODAL IMAGE
+            ============================================================= #}
+            {% if evenement.thumbnail %}
+                <div id="evenementImageModal" class="evenement-modal">
+                    <span class="evenement-modal-close" onclick="closeEvenementModal()">
+                        &times;
+                    </span>
+                    <img class="evenement-modal-content" id="evenementModalImage" alt=""></div>
+                {% endif %}
+                <script>
+    function openEvenementModal(imgSrc) {
+
+        const modal =
+            document.getElementById('evenementImageModal');
+
+        const modalImg =
+            document.getElementById('evenementModalImage');
+
+        if (!modal || !modalImg) {
+            return;
+        }
+
+        modalImg.src = imgSrc;
+        modal.classList.add('active');
+    }
+
+
+    function closeEvenementModal() {
+
+        const modal =
+            document.getElementById('evenementImageModal');
+
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.remove('active');
+    }
+
+
+    const evenementModal =
+        document.getElementById('evenementImageModal');
+
+    if (evenementModal) {
+
+        evenementModal.addEventListener(
+            'click',
+            function (event) {
+
+                if (event.target === this) {
+                    closeEvenementModal();
+                }
+
             }
-        });
-    
-        // Fermer la modal avec la touche Echap
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeModal();
+        );
+
+    }
+
+
+    document.addEventListener(
+        'keydown',
+        function (event) {
+
+            if (event.key === 'Escape') {
+                closeEvenementModal();
             }
-        });
-    </script>
-  
+
+        }
+    );
+</script>
             {% endblock %}
             

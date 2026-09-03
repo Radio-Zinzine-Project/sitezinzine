@@ -238,18 +238,20 @@ class EmissionController extends AbstractController
     public function delete(Request $request, Emission $emission, EntityManagerInterface $em): Response
     {
         $token = $request->request->get('_token');
+
         if (!$this->isCsrfTokenValid('delete' . $emission->getId(), $token)) {
             $this->addFlash('error', 'Jeton CSRF invalide.');
+
             return $this->redirectToRoute('admin.emission.index');
         }
 
-        $em->remove($emission);
+        $emission->softDelete();
         $em->flush();
 
         $this->addFlash('success', 'L\'émission a bien été supprimée.');
 
-        // Retourne à l'URL courante (fournie en paramètre)
         $returnTo = $request->query->get('returnTo');
+
         if ($returnTo) {
             return $this->redirect($returnTo);
         }

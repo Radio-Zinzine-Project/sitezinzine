@@ -64,25 +64,31 @@ class WeeklyAnnouncementPrintBuilder
         return array_values($items);
     }
 
-    private function hasRealDescription(Emission $emission): bool
-    {
-        $text = html_entity_decode(
-            strip_tags($emission->getDescriptif()),
-            ENT_QUOTES | ENT_HTML5,
-            'UTF-8'
-        );
+private function hasRealDescription(Emission $emission): bool
+{
+    $text = html_entity_decode(
+        strip_tags($emission->getDescriptif()),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
+    );
 
-        $text = str_replace("\u{00A0}", ' ', $text);
-        $text = trim($text);
+    $text = str_replace("\u{00A0}", ' ', $text);
+    $text = trim($text);
 
-        if ($text === '') {
-            return false;
-        }
-
-        if (mb_strtolower($text) === 'description à remplir') {
-            return false;
-        }
-
-        return true;
+    if ($text === '') {
+        return false;
     }
+
+    $normalizedText = mb_strtolower($text);
+
+    if ($normalizedText === 'description à remplir') {
+        return false;
+    }
+
+    if (str_contains($normalizedText, 'générée automatiquement')) {
+        return false;
+    }
+
+    return true;
+}
 }
