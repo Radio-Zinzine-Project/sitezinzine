@@ -8,7 +8,7 @@
 - Modification des tag annonce (à valider, validée, terminée) et des codes couleurs associés.
 - Quand on choisit "Autre" comme type d'annonce que ce soit à la création ou à l'édition, c'est ce qui sera indiqué dans le champ à remplir qui s'affichera, si rien, alors "Autre" s'affichera.
 - Les 3 évènements les plus récents s'affichent (futurs ou passés).
-- Refonte du style despages create et edit evenement pour correspondre au style global du site.
+- Refonte du style des pages create et edit evenement pour correspondre au style global du site.
 - Refonte totalement de la page admin/emission qui ne montre à présent que les émissions du user connecté avec une recherche.
 
 
