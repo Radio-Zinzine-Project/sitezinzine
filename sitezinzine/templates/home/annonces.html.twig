@@ -200,7 +200,6 @@
     align-items: center;
     min-height: 28px;
 
-    margin-bottom: 8px;
     padding: 5px 10px;
 
     border-radius: 999px;
@@ -211,6 +210,24 @@
     line-height: 1;
     font-weight: 800;
   }
+
+  .annonce-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+    min-width: 0;
+}
+
+.annonce-id {
+    flex: 0 0 auto;
+    color: #777078;
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 700;
+    white-space: nowrap;
+}
 
   .annonce-title {
     margin: 0 0 10px;
@@ -474,8 +491,14 @@
                       <img src="{{ vich_uploader_asset(annonce, 'thumbnailFile') }}" alt="Photo de {{ annonce.titre }}"></div>
                     {% endif %}
                     <div class="annonce-content">
-                      <div class="annonce-type">
-                        {{ annonce.type }}
+                      <div class="annonce-topline">
+                        <div class="annonce-type">
+                          {{ annonce.type }}
+                        </div>
+                        <span class="annonce-id">
+                          Annonce n°
+                          {{ annonce.id }}
+                        </span>
                       </div>
                       <h2 class="annonce-title">
                         <a href="{{ path('annonce.show', { id: annonce.id }) }}">

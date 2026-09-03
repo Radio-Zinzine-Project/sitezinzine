@@ -1,82 +1,470 @@
 {% extends 'admin/admin.html.twig' %}
-
 {% block title %}
-    Toutes les émissions !
-{% endblock %}
-{% block stylesheets %}
-    {{ parent() }}
-    <style>
-
-        /* Bouton normal (desktop) */
-.admin-emission-page .btn-create {
-  display: inline-block;
-  padding: 12px 18px;
-  border-radius: 8px;
-  background: #E4013A;
-  color: #fff;
-  text-decoration: none;
-  font-weight: 800;
-  text-align: center;
-}
-
-.imgbottom {
-    display: block;
-    width: 100%;
-    height: auto;
-    margin-bottom: -1px;
-}
-
-/* Conteneur */
-.admin-emission-page .create {
-  text-align: left;
-  margin-bottom: 20px;
-  padding: 0 20px;
-
-}
-
-/* =========================
-   RESPONSIVE
-   ========================= */
-@media (max-width: 768px) {
-  .admin-emission-page .btn-create {
-    display: block;
-    width: 100%;
-    max-width: 260px;   /* limite la largeur */
-    margin: 0 auto;     /* centre */
-    padding: 10px 12px; /* réduit */
-    font-size: 14px;
-    border-radius: 10px;
-  }
-}
-
-    </style>
+    Mes émissions
 {% endblock %}
 {% block body %}
+<style>
+    .mes-emissions {
+        background: linear-gradient(#E4013A, #B81C61);
+        background-size: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
 
+        font-family: "Montserrat Alternates", sans-serif;
+        font-weight: 500;
+        font-style: normal;
+    }
 
-    <div class="admin-emission-page">
-        <p class="create">
+    .mes-emissions h1 {
+        color: white;
+        font-family: "Montserrat Alternates", sans-serif;
+        font-weight: 900;
+        font-style: normal;
+        text-align: center;
+        font-size: 36pt;
+        margin: 20px;
+    }
+
+    /* =========================================================
+       BOUTON CRÉATION
+       ========================================================= */
+
+    .mes-emissions .create-wrapper {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px 50px 0;
+        box-sizing: border-box;
+    }
+
+    .mes-emissions .btn-create {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        padding: 12px 18px;
+
+        background: #E4013A;
+        color: white;
+
+        border: 2px solid white;
+        border-radius: 4px;
+
+        font-family: "Montserrat Alternates", sans-serif;
+        font-size: 14px;
+        font-weight: 800;
+
+        text-decoration: none;
+        transition: all .3s ease;
+    }
+
+    .mes-emissions .btn-create:hover {
+        background: white;
+        color: #E4013A;
+    }
+
+    /* =========================================================
+       FORMULAIRE
+       ========================================================= */
+
+    .mes-emissions .form {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 30px 50px 50px;
+        box-sizing: border-box;
+    }
+
+    .mes-emissions .search-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .mes-emissions .search-row > div {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .mes-emissions label {
+        display: block;
+        color: white;
+
+        font-family: "Montserrat Alternates", sans-serif;
+        font-weight: normal;
+        font-size: 16pt;
+
+        margin-bottom: 8px;
+    }
+
+    .mes-emissions input[type="search"],
+    .mes-emissions select {
+        display: block;
+
+        width: 100%;
+        padding: 12px 20px;
+        margin: 8px 0;
+
+        border: 1px solid #ccc;
+        border-radius: 4px;
+
+        background: white;
+        color: #333;
+
+        font-family: "Montserrat", sans-serif;
+        font-size: 16px;
+
+        box-sizing: border-box;
+    }
+
+    /* =========================================================
+       ÉTATS
+       ========================================================= */
+
+    .mes-emissions .status-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+
+        margin: 20px 0;
+    }
+
+    .mes-emissions .status-filter {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        min-height: 42px;
+        padding: 9px 18px;
+
+        border: 2px solid white;
+        border-radius: 4px;
+
+        background: transparent;
+        color: white;
+
+        font-family: "Montserrat Alternates", sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+
+        text-decoration: none;
+        transition: all .3s ease;
+    }
+
+    .mes-emissions .status-filter:hover,
+    .mes-emissions .status-filter.active {
+        background: white;
+        color: #E4013A;
+    }
+
+    /* =========================================================
+       BOUTONS DU FORMULAIRE
+       ========================================================= */
+
+    .mes-emissions .button-group {
+        display: flex;
+        gap: 20px;
+
+        margin: 20px 0 0;
+    }
+
+    .mes-emissions .button-group button,
+    .mes-emissions .button-group .btn-reset {
+        flex: 1;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        min-height: 52px;
+        padding: 14px 20px;
+
+        border-radius: 4px;
+
+        font-family: "Montserrat Alternates", sans-serif;
+        font-weight: bold;
+        font-size: 16pt;
+
+        text-align: center;
+        text-decoration: none;
+
+        cursor: pointer;
+        box-sizing: border-box;
+        transition: all .3s ease;
+    }
+
+    /* Rechercher */
+    .mes-emissions .button-group button[type="submit"] {
+        background-color: white;
+        color: #E4013A;
+
+        border: none;
+    }
+
+    .mes-emissions .button-group button[type="submit"]:hover {
+        background-color: #E4013A;
+        color: white;
+
+        box-shadow: 0 4px 8px rgba(0, 0, 0, .2);
+    }
+
+    /* Réinitialiser */
+    .mes-emissions .button-group .btn-reset {
+        background-color: transparent;
+        color: white;
+
+        border: 2px solid white;
+    }
+
+    .mes-emissions .button-group .btn-reset:hover {
+        background-color: white;
+        color: #E4013A;
+    }
+
+    /* =========================================================
+       DÉCHIRURE
+       ========================================================= */
+
+    .mes-emissions .imgbottom {
+        display: block;
+
+        width: 100%;
+        height: auto;
+
+        margin-bottom: -1px;
+    }
+
+    /* =========================================================
+       ZONE RÉSULTATS
+       ========================================================= */
+
+    .admin-emission-results {
+        min-height: calc(100vh - 250px);
+        background: white;
+    }
+
+    /* =========================================================
+       RESPONSIVE INTERMÉDIAIRE
+       ========================================================= */
+
+    @media screen and (max-width: 900px) {
+        .mes-emissions .search-row {
+            flex-wrap: wrap;
+        }
+
+        .mes-emissions .search-row > div {
+            flex: 1 1 calc(50% - 10px);
+        }
+    }
+
+    /* =========================================================
+       TABLETTE / MOBILE
+       ========================================================= */
+
+    @media screen and (max-width: 768px) {
+        .mes-emissions h1 {
+            font-size: 30pt;
+        }
+
+        .mes-emissions .create-wrapper {
+            padding: 16px 20px 0;
+        }
+
+        .mes-emissions .form {
+            padding: 25px 20px 35px;
+        }
+
+        .mes-emissions .search-row {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mes-emissions .search-row > div {
+            width: 100%;
+            flex: none;
+        }
+
+        .mes-emissions .button-group {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mes-emissions .button-group button,
+        .mes-emissions .button-group .btn-reset {
+            width: 100%;
+            flex: none;
+        }
+    }
+
+    /* =========================================================
+       PETIT MOBILE
+       ========================================================= */
+
+    @media screen and (max-width: 480px) {
+        .mes-emissions h1 {
+            font-size: 25pt;
+            margin: 16px 10px;
+        }
+
+        .mes-emissions .create-wrapper {
+            padding: 14px 14px 0;
+        }
+
+        .mes-emissions .btn-create {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .mes-emissions .form {
+            padding: 20px 14px 30px;
+        }
+
+        .mes-emissions label {
+            font-size: 14pt;
+        }
+
+        .mes-emissions input[type="search"],
+        .mes-emissions select {
+            padding: 11px 12px;
+            font-size: 16px;
+        }
+
+        .mes-emissions .status-group {
+            gap: 8px;
+        }
+
+        .mes-emissions .status-filter {
+            flex: 1 1 auto;
+
+            padding: 8px 10px;
+
+            font-size: 13px;
+        }
+
+        .mes-emissions .button-group button,
+        .mes-emissions .button-group .btn-reset {
+            font-size: 14pt;
+        }
+    }
+
+    /* =========================================================
+       MOBILE PAYSAGE
+       ========================================================= */
+
+    @media screen and (max-height: 500px) and (orientation: landscape) {
+        .mes-emissions h1 {
+            font-size: 25pt;
+            margin: 12px;
+        }
+
+        .mes-emissions .create-wrapper {
+            padding-top: 12px;
+        }
+
+        .mes-emissions .form {
+            padding-top: 15px;
+            padding-bottom: 25px;
+        }
+    }
+</style>
+    <div class="mes-emissions">
+        <div class="create-wrapper">
             <a class="btn-create" href="{{ path('admin.emission.create') }}">
                 Créer une nouvelle émission
             </a>
-        </p>
-
-        <h1>Liste des émissions</h1>
-
-            <img class="imgbottom" src="/images/top-content-dechire-D.gif">
-
-        {% include 'partials/_emission_results.html.twig' with {
+        </div>
+        <h1>
+            Mes émissions
+        </h1>
+        <form method="get" action="{{ path('admin.emission.index') }}" class="form">
+            <div class="search-row">
+                <div>
+                    <label for="emission-search">
+                        Titre
+                    </label>
+                    <input id="emission-search" type="search" name="q" value="{{ search }}" placeholder="Rechercher une émission"></div>
+                    <div>
+                        <label for="emission-category">
+                            Catégorie
+                        </label>
+                        <select id="emission-category" name="categorie">
+                            <option value="">
+                                Toutes les catégories
+                            </option>
+                            {% for categorie in categories %}
+                                <option value="{{ categorie.id }}" {{ selectedCategory == categorie.id ? 'selected' : '' }}>
+                                    {{ categorie.titre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="emission-theme">
+                            Thème
+                        </label>
+                        <select id="emission-theme" name="theme">
+                            <option value="">
+                                Tous les thèmes
+                            </option>
+                            {% for theme in themes %}
+                                <option value="{{ theme.id }}" {{ selectedTheme == theme.id ? 'selected' : '' }}>
+                                    {{ theme.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="status-group">
+                    <a href="{{ path('admin.emission.index', app.request.query.all|merge({
+                        status: null,
+                        page: 1
+                    })) }}" class="status-filter {{ status is empty ? 'active' : '' }}">
+                        Toutes
+                    </a>
+                    <a href="{{ path('admin.emission.index', app.request.query.all|merge({
+                        status: 'pending',
+                        page: 1
+                    })) }}" class="status-filter {{ status == 'pending' ? 'active' : '' }}">
+                        À finaliser
+                    </a>
+                    <a href="{{ path('admin.emission.index', app.request.query.all|merge({
+                        status: 'without_diffusion',
+                        page: 1
+                    })) }}" class="status-filter {{ status == 'without_diffusion' ? 'active' : '' }}">
+                        Sans diffusion
+                    </a>
+                </div>
+                <div class="button-group">
+                    <button type="submit">
+                        Rechercher
+                    </button>
+                    <a class="btn-reset" href="{{ path('admin.emission.index') }}">
+                        Réinitialiser
+                    </a>
+                </div>
+            </form>
+            <img class="imgbottom" src="/images/top-content-dechire-D.gif" alt=""></div>
+            <div class="admin-emission-results">
+                <div id="resultats" tabindex="-1"></div>
+                {% include 'partials/_emission_results.html.twig' with {
             emissions: emissions,
+            showNoResults: true,
             resultsTitle: 'Résultats :',
             noResultsText: 'Aucune émission trouvée.',
-            showNoResults: true,
-            useKnpPagination: true,
-            useLivePagination: false,
             showRoute: 'admin.emission.show',
             isAdmin: true,
             showAdminActions: true,
             editRoute: 'admin.emission.edit',
-            deleteRoute: 'admin.emission.delete'
+            deleteRoute: 'admin.emission.delete',
+            useKnpPagination: true,
+            useAlphabetPagination: true,
+            initiale: initiale,
+            alphabet: alphabet,
+            alphabetRoute: 'admin.emission.index'
         } only %}
-    </div>
-{% endblock %}
+            </div>
+        {% endblock %}
+        

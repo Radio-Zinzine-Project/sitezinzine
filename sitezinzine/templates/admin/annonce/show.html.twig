@@ -1,263 +1,840 @@
 {% extends 'admin/admin.html.twig' %}
-{% block title "Annonce : " ~ annonce.titre %}
+
+{% block title %}
+    Annonce : {{ annonce.titre }}
+{% endblock %}
+
 {% block body %}
 
 <style>
-    .anshow {
-   
+/* =========================================================
+   PAGE
+   ========================================================= */
+
+.annonce-show-page,
+.annonce-show-page * {
+    box-sizing: border-box;
 }
 
-    .annonce-container {
-    max-width: 800px;
-    margin: 40px auto;
-    padding: 20px;
+.annonce-show-page {
+    width: 100%;
+    min-width: 0;
+    padding: 40px 20px 60px;
+
+    font-family: "Montserrat", sans-serif;
+}
+
+
+/* =========================================================
+   CARTE PRINCIPALE
+   ========================================================= */
+
+.annonce-show-container {
+    width: min(100%, 800px);
+    min-width: 0;
+
+    margin: 0 auto;
+    padding: 24px;
+
+    background: #f9f9f9;
+    color: #1c1c1a;
+
+    border-radius: 14px;
+
+    box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.10);
+}
+
+
+/* =========================================================
+   IMAGE
+   ========================================================= */
+
+.annonce-show-image {
+    display: block;
+
+    width: 100%;
+    max-height: 400px;
+
+    margin: 0;
+
+    object-fit: cover;
+
     border-radius: 10px;
-    background-color: #f9f9f9;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    font-family: Arial, sans-serif;
-}
-    .annonce-container img {
-    width: 100%;
-    max-height: 400px;
-    object-fit: cover;
-    border-radius: 8px;
+
+    cursor: zoom-in;
+
+    transition:
+        transform 0.25s ease,
+        opacity 0.25s ease;
 }
 
-.annonce-image {
-    width: 100%;
-    max-height: 400px;
-    object-fit: cover;
-    border-radius: 8px;
+.annonce-show-image:hover {
+    transform: scale(1.01);
+    opacity: 0.96;
 }
 
-.annonce-titre {
+
+/* =========================================================
+   TITRE
+   ========================================================= */
+
+.annonce-show-container .annonce-show-title {
+    width: 100%;
+
+    margin: 24px 0 0;
+
+    color: #E4013A !important;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: clamp(26px, 5vw, 36px);
+    font-weight: 900;
+    line-height: 1.2;
+
     text-align: center;
-    font-size: 28px;
-    color: #333;
-    margin-top: 20px;
+
+    overflow-wrap: anywhere;
 }
 
-.annonce-infos {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
+
+/* =========================================================
+   RÉFÉRENCE
+   ========================================================= */
+
+.annonce-show-reference {
+    margin: 7px 0 0;
+
+    color: #777;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1;
+
+    text-align: center;
 }
 
-.annonce-col {
-    width: 48%;
+
+/* =========================================================
+   INFORMATIONS PRINCIPALES
+   ========================================================= */
+
+.annonce-show-infos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 30px;
+
+    width: 100%;
+    min-width: 0;
+
+    margin-top: 28px;
 }
 
-.annonce-section {
-    margin-top: 20px;
-    padding-top: 10px;
+.annonce-show-column {
+    min-width: 0;
+}
+
+.annonce-show-column p {
+    margin: 0 0 10px;
+
+    color: #444;
+
+    font-size: 15px;
+    line-height: 1.5;
+
+    overflow-wrap: anywhere;
+}
+
+.annonce-show-column p:last-child {
+    margin-bottom: 0;
+}
+
+.annonce-show-column strong {
+    color: #1c1c1a;
+}
+
+
+/* =========================================================
+   SECTIONS
+   ========================================================= */
+
+.annonce-show-section {
+    width: 100%;
+
+    margin-top: 24px;
+    padding-top: 18px;
+
     border-top: 2px solid #ddd;
 }
 
-.annonce-section h3 {
-    font-size: 20px;
+.annonce-show-section h2 {
+    margin: 0 0 12px;
+
     color: #444;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.3;
 }
 
-.annonce-actions {
+.annonce-show-section p {
+    margin: 0;
+
+    color: #444;
+
+    font-size: 15px;
+    line-height: 1.6;
+
+    overflow-wrap: anywhere;
+}
+
+.annonce-show-section p + p {
+    margin-top: 8px;
+}
+
+
+/* =========================================================
+   PRÉSENTATION HTML
+   ========================================================= */
+
+.annonce-show-presentation {
+    color: #444;
+
+    font-size: 15px;
+    line-height: 1.6;
+
+    overflow-wrap: anywhere;
+}
+
+.annonce-show-presentation > :first-child {
+    margin-top: 0;
+}
+
+.annonce-show-presentation > :last-child {
+    margin-bottom: 0;
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.annonce-show-actions {
     display: flex;
+    align-items: center;
     justify-content: center;
-    gap: 15px;
-    margin-top: 30px;
+    flex-wrap: wrap;
+
+    gap: 12px;
+
+    width: 100%;
+
+    margin-top: 32px;
 }
 
-.btn {
-    padding: 10px 20px;
-    border-radius: 5px;
-    text-decoration: none;
-    text-align: center;
-    background-color: #007bff;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
+.annonce-show-actions form {
+    margin: 0;
+}
+
+.annonce-show-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 120px;
+    min-height: 44px;
+
+    margin: 0;
+    padding: 10px 18px;
+
     border: none;
+    border-radius: 7px;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1;
+
+    text-align: center;
+    text-decoration: none;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.2s ease,
+        opacity 0.2s ease;
 }
 
-.btn-danger {
-    background-color: #dc3545;
-}
-
-.btn:hover {
+.annonce-show-button:hover {
+    transform: translateY(-2px);
     opacity: 0.9;
-}
-.btn-secondary {
-    background-color: #6c757d;
-    transition: background-color 0.3s ease;
+    color: white;
 }
 
-.btn-secondary:hover {
-    background-color: #5a6268;
-    opacity: 0.9;
+.annonce-show-button--back {
+    background: #666;
+    color: white;
 }
 
-/* 📱 Responsive Design */
-@media (max-width: 768px) {
-    .annonce-details {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .annonce-thumbnail img {
-        max-width: 100%;
-    }
-
-    .annonce-info {
-        text-align: center;
-    }
+.annonce-show-button--edit {
+    background: #7E4093;
+    color: white;
 }
 
-    /* Styles pour la modal */
-    .annonce-container img {
-    cursor: zoom-in;
-    transition: transform 0.3s ease;
+.annonce-show-button--delete {
+    background: #E4013A;
+    color: white;
 }
 
-.annonce-container img:hover {
-    transform: scale(1.02);
-}
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.9);
-        justify-content: center;
-        align-items: center;
-        opacity: 0;
-    transition: opacity 0.3s ease;
+
+/* =========================================================
+   MODALE IMAGE
+   ========================================================= */
+
+.annonce-image-modal {
+    position: fixed;
+    inset: 0;
+
+    z-index: 1000;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    height: 100%;
+
+    padding: 30px;
+
+    background: rgba(0, 0, 0, 0.90);
+
+    opacity: 0;
+
     pointer-events: none;
-    }
 
-    .modal-content {
-        max-width: 90%;
-        max-height: 90vh;
-        margin: auto;
-        display: block;
-        cursor: pointer;
-        transform: scale(0.9);
-    transition: transform 0.3s ease;
-    }
-
-    .modal.active {
-        display: flex;
-        opacity: 1;
-    pointer-events: auto;
-    }
-
-    .close {
-        position: absolute;
-        top: 15px;
-        right: 35px;
-        color: #f1f1f1;
-        font-size: 40px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: color 0.3s ease;
-    }
-    .close:hover {
-    color: #E40039;
+    transition: opacity 0.25s ease;
 }
-    .modal.active .modal-content {
+
+.annonce-image-modal.is-active {
+    display: flex;
+
+    opacity: 1;
+
+    pointer-events: auto;
+}
+
+.annonce-image-modal__image {
+    display: block;
+
+    max-width: 90vw;
+    max-height: 90vh;
+
+    object-fit: contain;
+
+    cursor: pointer;
+
+    transform: scale(0.94);
+
+    transition: transform 0.25s ease;
+}
+
+.annonce-image-modal.is-active .annonce-image-modal__image {
     transform: scale(1);
 }
 
-    /* Rendre l'image cliquable */
-    .annonce-container img {
-        cursor: pointer;
+.annonce-image-modal__close {
+    position: absolute;
+
+    top: 15px;
+    right: 25px;
+
+    padding: 0;
+
+    background: transparent;
+    color: white;
+
+    border: none;
+
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1;
+
+    cursor: pointer;
+
+    transition: color 0.2s ease;
+}
+
+.annonce-image-modal__close:hover {
+    color: #E4013A;
+}
+
+
+/* =========================================================
+   TABLETTE
+   ========================================================= */
+
+@media screen and (max-width: 768px) {
+
+    .annonce-show-page {
+        padding:
+            30px
+            16px
+            45px;
     }
-    </style>
-    <div>
 
-<div class="annonce-container">
+    .annonce-show-container {
+        padding: 20px;
+    }
 
-{% if annonce.thumbnail %}
-    <img src="{{ vich_uploader_asset(annonce, 'thumbnailFile') }}" 
-         alt="Photo de {{ annonce.titre }}"
-         onclick="openModal(this.src)">
-{% endif %}
-    
-    <h1 class="annonce-titre">{{ annonce.titre }}</h1>
+    .annonce-show-infos {
+        grid-template-columns: minmax(0, 1fr);
 
-    <div class="annonce-infos">
-        <div class="annonce-col">
-            <p><strong>Organisateur :</strong> {{ annonce.organisateur }}</p>
-            <p><strong>Lieu :</strong> {{ annonce.ville }} ({{ annonce.departement }})</p>
-            <p><strong>Adresse :</strong> {{ annonce.adresse }}</p>
+        gap: 0;
+
+        margin-top: 24px;
+    }
+
+    .annonce-show-column + .annonce-show-column {
+        margin-top: 10px;
+    }
+
+    .annonce-show-actions {
+        gap: 10px;
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 560px) {
+
+    .annonce-show-page {
+        padding:
+            20px
+            12px
+            35px;
+    }
+
+    .annonce-show-container {
+        padding: 16px;
+
+        border-radius: 10px;
+    }
+
+    .annonce-show-image {
+        max-height: 300px;
+    }
+
+    .annonce-show-container .annonce-show-title {
+        margin-top: 20px;
+
+        font-size: 26px;
+    }
+
+    .annonce-show-reference {
+        font-size: 12px;
+    }
+
+    .annonce-show-section h2 {
+        font-size: 18px;
+    }
+
+    .annonce-show-column p,
+    .annonce-show-section p,
+    .annonce-show-presentation {
+        font-size: 14px;
+    }
+
+    .annonce-show-actions {
+        display: grid;
+        grid-template-columns:
+            minmax(0, 1fr)
+            minmax(0, 1fr);
+
+        width: 100%;
+    }
+
+    .annonce-show-actions form {
+        width: 100%;
+    }
+
+    .annonce-show-button {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .annonce-image-modal {
+        padding: 16px;
+    }
+}
+
+
+/* =========================================================
+   TRÈS PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 380px) {
+
+    .annonce-show-page {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .annonce-show-container {
+        padding: 14px;
+    }
+
+    .annonce-show-container .annonce-show-title {
+        font-size: 23px;
+    }
+
+    .annonce-show-actions {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+
+/* =========================================================
+   PETIT ÉCRAN EN PAYSAGE
+   ========================================================= */
+
+@media screen and (max-height: 500px) and (orientation: landscape) {
+
+    .annonce-show-page {
+        padding-top: 20px;
+        padding-bottom: 30px;
+    }
+
+    .annonce-show-image {
+        max-height: 260px;
+    }
+
+    .annonce-image-modal__image {
+        max-height: 85vh;
+    }
+}
+
+</style>
+
+
+<div class="annonce-show-page">
+
+    <article class="annonce-show-container">
+
+        {# =====================================================
+           IMAGE
+           ===================================================== #}
+
+        {% if annonce.thumbnail %}
+            <img
+                class="annonce-show-image"
+                src="{{ vich_uploader_asset(annonce, 'thumbnailFile') }}"
+                alt="Photo de {{ annonce.titre }}"
+                onclick="openAnnonceModal(this.src)"
+            >
+        {% endif %}
+
+
+        {# =====================================================
+           TITRE ET RÉFÉRENCE
+           ===================================================== #}
+
+        <h1 class="annonce-show-title">
+            {{ annonce.titre }}
+        </h1>
+
+        <div class="annonce-show-reference">
+            #{{ annonce.id }}
         </div>
-        <div class="annonce-col">
-            <p><strong>Date :</strong> Du {{ annonce.dateDebut|date('d/m/Y') }} au {{ annonce.dateFin|date('d/m/Y') }}</p>
-            <p><strong>Horaires :</strong> {{ annonce.horaire }}</p>
-            <p><strong>Prix :</strong> {{ annonce.prix }}</p>
+
+
+        {# =====================================================
+           INFORMATIONS PRINCIPALES
+           ===================================================== #}
+
+        <div class="annonce-show-infos">
+
+            <div class="annonce-show-column">
+
+                {% if annonce.organisateur %}
+                    <p>
+                        <strong>Organisateur :</strong>
+                        {{ annonce.organisateur }}
+                    </p>
+                {% endif %}
+
+                {% if annonce.ville %}
+                    <p>
+                        <strong>Lieu :</strong>
+                        {{ annonce.ville }}
+
+                        {% if annonce.departement %}
+                            ({{ annonce.departement }})
+                        {% endif %}
+                    </p>
+                {% endif %}
+
+                {% if annonce.adresse %}
+                    <p>
+                        <strong>Adresse :</strong>
+                        {{ annonce.adresse }}
+                    </p>
+                {% endif %}
+
+            </div>
+
+            <div class="annonce-show-column">
+
+                {% if annonce.dateDebut %}
+                    <p>
+                        <strong>Date :</strong>
+
+                        {% if
+                            annonce.dateFin
+                            and annonce.dateDebut|date('Y-m-d')
+                            != annonce.dateFin|date('Y-m-d')
+                        %}
+                            Du {{ annonce.dateDebut|date('d/m/Y') }}
+                            au {{ annonce.dateFin|date('d/m/Y') }}
+                        {% else %}
+                            {{ annonce.dateDebut|date('d/m/Y') }}
+                        {% endif %}
+                    </p>
+                {% endif %}
+
+                {% if annonce.horaire %}
+                    <p>
+                        <strong>Horaires :</strong>
+                        {{ annonce.horaire }}
+                    </p>
+                {% endif %}
+
+                {% if annonce.prix %}
+                    <p>
+                        <strong>Prix :</strong>
+                        {{ annonce.prix }}
+                    </p>
+                {% endif %}
+
+            </div>
+
         </div>
+
+
+        {# =====================================================
+           PRÉSENTATION
+           ===================================================== #}
+
+        {% if annonce.presentation %}
+            <section class="annonce-show-section">
+
+                <h2>
+                    Présentation
+                </h2>
+
+                <div class="annonce-show-presentation">
+                    {{ annonce.presentation|raw }}
+                </div>
+
+            </section>
+        {% endif %}
+
+
+        {# =====================================================
+           INFORMATIONS SUPPLÉMENTAIRES
+           ===================================================== #}
+
+        {% if annonce.type %}
+            <section class="annonce-show-section">
+
+                <h2>
+                    Informations supplémentaires
+                </h2>
+
+                <p>
+                    <strong>Type :</strong>
+                    {{ annonce.type }}
+                </p>
+
+            </section>
+        {% endif %}
+
+
+        {# =====================================================
+           CONTACT
+           ===================================================== #}
+
+        {% if annonce.contact %}
+            <section class="annonce-show-section">
+
+                <h2>
+                    Contact
+                </h2>
+
+                <p>
+                    <strong>Email / Téléphone :</strong>
+                    {{ annonce.contact }}
+                </p>
+
+            </section>
+        {% endif %}
+
+
+        {# =====================================================
+           ACTIONS
+           ===================================================== #}
+
+        <div class="annonce-show-actions">
+
+            <a
+                href="{{ path('admin.annonce.index') }}"
+                class="
+                    annonce-show-button
+                    annonce-show-button--back
+                "
+            >
+                Retour
+            </a>
+
+            <a
+                href="{{ path('admin.annonce.edit', { id: annonce.id }) }}"
+                class="
+                    annonce-show-button
+                    annonce-show-button--edit
+                "
+                data-controller="return"
+                data-return-url-value="{{ path(
+                    'admin.annonce.edit',
+                    { id: annonce.id }
+                ) }}"
+                data-action="click->return#redirectWithReturnTo"
+            >
+                Modifier
+            </a>
+
+            <form
+                action="{{ path(
+                    'admin.annonce.softDelete',
+                    { id: annonce.id }
+                ) }}"
+                method="post"
+            >
+                <input
+                    type="hidden"
+                    name="_method"
+                    value="DELETE"
+                >
+
+                <input
+                    type="hidden"
+                    name="_token"
+                    value="{{ csrf_token('delete' ~ annonce.id) }}"
+                >
+
+                <button
+                    type="submit"
+                    class="
+                        annonce-show-button
+                        annonce-show-button--delete
+                    "
+                >
+                    Supprimer
+                </button>
+            </form>
+
+        </div>
+
+    </article>
+
+
+    {# =========================================================
+       MODALE IMAGE
+       ========================================================= #}
+
+    <div
+        id="annonceImageModal"
+        class="annonce-image-modal"
+        aria-hidden="true"
+    >
+
+        <button
+            type="button"
+            class="annonce-image-modal__close"
+            aria-label="Fermer l'image"
+            onclick="closeAnnonceModal()"
+        >
+            &times;
+        </button>
+
+        <img
+            id="annonceModalImage"
+            class="annonce-image-modal__image"
+            alt=""
+        >
+
     </div>
 
-    <div class="annonce-section">
-        <h3>Présentation</h3>
-        <p>{{ annonce.presentation| raw }}</p>
-    </div>
-
-    <div class="annonce-section">
-        <h3>Informations supplémentaires</h3>
-        <p><strong>Type :</strong> {{ annonce.type }}</p>
-        
-    </div>
-
-    <div class="annonce-section">
-        <h3>Contact</h3>
-        <p><strong>Email/Téléphone :</strong> {{ annonce.contact }}</p>
-    </div>
-
-    <div class="annonce-actions">
-<a href="{{ path('admin.annonce.index') }}" class="btn btn-secondary">Retour</a>
-        <a href="{{ path('admin.annonce.edit', {id: annonce.id}) }}" data-controller="return"
-    data-return-url-value="{{ path('admin.annonce.edit', { id: annonce.id }) }}"
-    data-action="click->return#redirectWithReturnTo" class="btn">Modifier</a>
-        <form action="{{ path('admin.annonce.softDelete', {id: annonce.id}) }}" method="post">
-            <input type="hidden" name="_method" value="DELETE">
-            <button type="submit" class="btn btn-danger">Supprimer</button>
-        </form>
-    </div>
 </div>
-<div id="imageModal" class="modal">
-    <span class="close" onclick="closeModal()">&times;</span>
-    <img class="modal-content" id="modalImage">
-</div>
-    </div>
 
-    <script>
-        function openModal(imgSrc) {
-            const modal = document.getElementById('imageModal');
-            const modalImg = document.getElementById('modalImage');
-            modal.classList.add('active');
-            modalImg.src = imgSrc;
+
+<script>
+function openAnnonceModal(imgSrc) {
+    const modal = document.getElementById('annonceImageModal');
+    const modalImage = document.getElementById('annonceModalImage');
+
+    if (!modal || !modalImage) {
+        return;
+    }
+
+    modalImage.src = imgSrc;
+    modal.classList.add('is-active');
+    modal.setAttribute('aria-hidden', 'false');
+}
+
+
+function closeAnnonceModal() {
+    const modal = document.getElementById('annonceImageModal');
+    const modalImage = document.getElementById('annonceModalImage');
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.remove('is-active');
+    modal.setAttribute('aria-hidden', 'true');
+
+    if (modalImage) {
+        modalImage.src = '';
+    }
+}
+
+
+const annonceImageModal = document.getElementById('annonceImageModal');
+
+if (annonceImageModal) {
+
+    annonceImageModal.addEventListener('click', function (event) {
+
+        if (event.target === annonceImageModal) {
+            closeAnnonceModal();
         }
-    
-        function closeModal() {
-            const modal = document.getElementById('imageModal');
-            modal.classList.remove('active');
-        }
-    
-        // Fermer la modal en cliquant en dehors de l'image
-        document.getElementById('imageModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal();
-            }
-        });
-    
-        // Fermer la modal avec la touche Echap
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeModal();
-            }
-        });
-    </script>
-  
-            {% endblock %}
-            
+
+    });
+
+}
+
+
+document.addEventListener('keydown', function (event) {
+
+    if (event.key === 'Escape') {
+        closeAnnonceModal();
+    }
+
+});
+</script>
+
+{% endblock %}

@@ -154,6 +154,10 @@ class EmissionType extends AbstractType
                     'data-emission-form-target' => 'duree',
                 ],
             ])
+            ->add('isLive', CheckboxType::class, [
+                'label' => 'Émission en direct',
+                'required' => false,
+            ])
             ->add('url', UrlType::class, [
                 'required' => false,
                 'default_protocol' => 'http',

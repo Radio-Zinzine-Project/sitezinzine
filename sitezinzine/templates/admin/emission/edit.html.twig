@@ -3,622 +3,769 @@
 
 {% block body %}
 <style>
-/* scope strict, MAIS on exclut TinyMCE */
-.main-content .em-form,
-.main-content .em-form *:not(.tox):not(.tox *) {
-  box-sizing: border-box;
-}
-
-/* TinyMCE: empêche les styles globaux de transformer la toolbar */
-.main-content .em-form .tox button,
-.main-content .em-form .tox .tox-tbtn,
-.main-content .em-form .tox .tox-mbtn {
-  background: initial !important;
-  color: inherit !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  padding: initial !important;
-  margin: initial !important;
-  width: auto !important;
-  height: auto !important;
-}
-
-/* card blanche */
-.main-content .em-form {
-  font-family: "Montserrat Alternates", sans-serif;
-  max-width: 1080px;
-  margin: 18px auto 28px;
-  padding: 16px 16px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-  color: #1C1C1A;
-}
-
-.main-content .em-form h1 {
-  margin: 0 0 12px 0;
-  text-align: center;
-  color: #E4013A;
-  font-weight: 900;
-  font-size: 22px;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-}
-
-.main-content .em-form .preview {
-  display: flex;
-  justify-content: center;
-  margin: 10px 0 14px;
-}
-
-.main-content .em-form img.emedit {
-  width: min(320px, 100%);
-  border-radius: 10px;
-  display: block;
-}
-
-/* form layout */
-.main-content .em-form form {
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.main-content .em-form .grid-4 {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  width: 100%;
-}
-
-.main-content .em-form .grid-3 {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  width: 100%;
-}
-
-.main-content .em-form .grid-2 {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  width: 100%;
-}
-
-.main-content .em-form .field {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.main-content .em-form label {
-  margin: 0 0 6px 0;
-  font-weight: 800;
-  color: #333;
-  font-size: 14px;
-}
-
-/* évite les décalages quand un label est plus long */
-.main-content .em-form .grid-3 label {
-  min-height: 34px;
-  line-height: 1.15;
-}
-
-.main-content .em-form input[type="text"],
-.main-content .em-form input[type="number"],
-.main-content .em-form input[type="file"],
-.main-content .em-form select,
-.main-content .em-form textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 15px;
-  background: #fff;
-}
-
-.main-content .em-form input[type="file"] {
-  padding: 8px 10px;
-}
-
-.main-content .em-form textarea {
-  min-height: 140px;
-}
-
-.main-content .em-form input:focus,
-.main-content .em-form select:focus,
-.main-content .em-form textarea:focus {
-  outline: none;
-  border-color: #E4013A;
-  box-shadow: 0 0 0 3px rgba(228, 1, 58, 0.15);
-}
-
-/* submit principal */
-.main-content .em-form button,
-.main-content .em-form input[type="submit"] {
-  width: 100%;
-  padding: 12px 14px;
-  border: 0;
-  border-radius: 26px;
-  background: #E4013A;
-  color: #fff;
-  font-weight: 900;
-  cursor: pointer;
-  transition: background-color .2s ease;
-}
-
-.main-content .em-form button:hover,
-.main-content .em-form input[type="submit"]:hover {
-  background: #b30021;
-}
-
-/* TinyMCE: arrondis */
-.main-content .em-form .tinymce-wrap .tox {
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-/* multi-select confort */
-.main-content .em-form select[multiple] {
-  min-height: 160px;
-}
-
-/* checkline */
-.main-content .em-form .checkline {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  background: #fafafa;
-}
-
-.main-content .em-form .thumb-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
-  align-items: center;
-}
-
-.main-content .em-form .delete-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.main-content .em-form .delete-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.main-content .em-form .thumb-mini {
-  width: 56px;
-  height: 56px;
-  object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  flex-shrink: 0;
-}
-
-.main-content .em-form .field-error {
-  margin-top: 6px;
-  padding: 8px 10px;
-  border: 1px solid #e11d48;
-  background: rgba(225, 29, 72, 0.08);
-  border-radius: 10px;
-  color: #9f1239;
-  font-weight: 700;
-  font-size: 14px;
-  line-height: 1.2;
-}
-
-.main-content .em-form .field-error ul {
-  margin: 0;
-  padding-left: 18px;
-}
-
-.field-mp3 {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.current-mp3-card {
-  width: 100%;
-  background: #fff;
-  border: 1px solid #e6e6e6;
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.current-mp3-content {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.current-mp3-title {
-  margin: 0 0 8px;
-  font-weight: 700;
-  color: #1C1C1A;
-}
-
-.current-mp3-name {
-  margin: 0;
-  color: #555;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-
-.current-mp3-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  flex: 0 0 auto;
-}
-
-.field-full {
-  grid-column: 1 / -1;
-  margin-top: 14px;
-  margin-bottom: 14px;
-}
-
-.btn-listen-mp3,
-.btn-download-mp3,
-.btn-delete-mp3 {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 18px;
-  border-radius: 999px;
-  border: none;
-  text-decoration: none;
-  font-family: inherit;
-  font-weight: 700;
-  cursor: pointer;
-  box-sizing: border-box;
-  white-space: nowrap;
-}
-
-.btn-listen-mp3 {
-  background: #222;
-  color: #fff;
-}
-
-.btn-listen-mp3:hover {
-  background: #000;
-}
-
-.btn-download-mp3 {
-  background: #666;
-  color: #fff;
-}
-
-.btn-download-mp3:hover {
-  background: #444;
-}
-
-.btn-delete-mp3 {
-  background: #c62828;
-  color: #fff;
-}
-
-.btn-delete-mp3:hover {
-  background: #8e0000;
-}
-
-/* bloc fiche finalisée */
-.main-content .em-form .completion-box {
-  margin-top: 8px;
-  padding: 14px;
-  border: 1px solid rgba(228, 1, 58, 0.18);
-  border-radius: 12px;
-  background: rgba(228, 1, 58, 0.05);
-}
-
-.main-content .em-form .completion-box .form-row,
-.main-content .em-form .completion-box > div {
-  margin: 0;
-}
-
-/* checkbox suppression mp3 */
-.main-content .em-form .checkline-danger {
-  background: rgba(198, 40, 40, 0.05);
-  border-color: rgba(198, 40, 40, 0.20);
-}
-
-/* aligne correctement les checkbox Symfony */
-.main-content .em-form .checkline .form-check,
-.main-content .em-form .completion-box .form-check {
-  margin: 0;
-}
-
-.main-content .em-form .checkline input[type="checkbox"],
-.main-content .em-form .completion-box input[type="checkbox"] {
-  width: auto;
-  margin-right: 8px;
-  transform: translateY(1px);
-}
-
-.main-content .em-form .checkline label,
-.main-content .em-form .completion-box label {
-  margin: 0;
-  min-height: auto;
-}
-
-/* bloc bouton sauvegarder */
-.main-content .em-form .form-actions {
-  margin-top: 4px;
-}
-
-/* responsive */
-@media (max-width: 768px) {
-  .field-full {
-    margin-top: 12px;
-    margin-bottom: 12px;
+  /* ============================================================
+     SCOPE GLOBAL DU FORMULAIRE
+     On exclut volontairement TinyMCE pour éviter de casser sa UI.
+     ============================================================ */
+  .main-content .em-form,
+  .main-content .em-form *:not(.tox):not(.tox *) {
+    box-sizing: border-box;
   }
 
-  .current-mp3-card {
-    flex-direction: column;
-    align-items: stretch;
+  /* ============================================================
+     TINYMCE
+     Empêche les styles globaux du formulaire de modifier
+     les boutons et menus de la barre d'outils.
+     ============================================================ */
+  .main-content .em-form .tox button,
+  .main-content .em-form .tox .tox-tbtn,
+  .main-content .em-form .tox .tox-mbtn {
+    background: initial !important;
+    color: inherit !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: initial !important;
+    margin: initial !important;
+    width: auto !important;
+    height: auto !important;
   }
 
-  .current-mp3-actions {
-    justify-content: stretch;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .btn-listen-mp3,
-  .btn-download-mp3,
-  .btn-delete-mp3 {
-    width: 100%;
-    text-align: center;
-  }
-}
-
-@media (max-width: 960px) {
+  /* ============================================================
+     CONTENEUR PRINCIPAL
+     ============================================================ */
   .main-content .em-form {
-    margin: 14px 12px 22px;
-    padding: 14px 12px;
+    font-family: "Montserrat Alternates", sans-serif;
+    max-width: 1080px;
+    margin: 18px auto 28px;
+    padding: 16px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    color: #1C1C1A;
   }
 
-  .main-content .em-form .grid-4 { grid-template-columns: 1fr; }
-  .main-content .em-form .grid-3 { grid-template-columns: 1fr; }
-  .main-content .em-form .grid-2 { grid-template-columns: 1fr; }
+  .main-content .em-form h1 {
+    margin: 0 0 12px;
+    text-align: center;
+    color: #E4013A;
+    font-weight: 900;
+    font-size: 22px;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  /* ============================================================
+     APERÇU DE L'IMAGE ACTUELLE
+     ============================================================ */
+  .main-content .em-form .preview {
+    display: flex;
+    justify-content: center;
+    margin: 10px 0 14px;
+  }
 
   .main-content .em-form img.emedit {
-    width: min(260px, 100%);
-  }
-
-  .main-content .em-form .thumb-row {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-  }
-}
-
-@media (max-width: 420px) {
-  .main-content .em-form {
-    margin: 10px 8px 16px;
-    padding: 12px 10px;
+    display: block;
+    width: min(320px, 100%);
     border-radius: 10px;
   }
 
-  .main-content .em-form h1 { font-size: 18px; }
-  .main-content .em-form label { font-size: 13px; }
+  /* ============================================================
+     STRUCTURE DU FORMULAIRE
+     ============================================================ */
+  .main-content .em-form form {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .main-content .em-form .grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+  }
+
+  .main-content .em-form .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+  }
+
+  .main-content .em-form .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+  }
+
+  .main-content .em-form .field {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  /* ============================================================
+     LABELS ET CHAMPS
+     ============================================================ */
+  .main-content .em-form label {
+    margin: 0 0 6px;
+    font-weight: 800;
+    color: #333;
+    font-size: 14px;
+  }
+
+  /* Évite les décalages quand un label de la grille 3 colonnes
+     passe sur deux lignes. */
+  .main-content .em-form .grid-3 label {
+    min-height: 34px;
+    line-height: 1.15;
+  }
 
   .main-content .em-form input[type="text"],
   .main-content .em-form input[type="number"],
   .main-content .em-form input[type="file"],
   .main-content .em-form select,
   .main-content .em-form textarea {
-    padding: 9px 10px;
-    font-size: 14px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+    background: #fff;
   }
 
-  .main-content .em-form select[multiple] { min-height: 130px; }
-}
-
-@media (max-height: 520px) and (orientation: landscape) {
-  .main-content .em-form {
-    margin: 10px 12px 14px;
-    padding: 12px 12px;
+  .main-content .em-form input[type="file"] {
+    padding: 8px 10px;
   }
 
-  .main-content .em-form .preview { margin: 6px 0 10px; }
-  .main-content .em-form img.emedit { width: min(220px, 100%); }
+  .main-content .em-form textarea {
+    min-height: 140px;
+  }
 
-  .main-content .em-form select[multiple] { min-height: 120px; }
-  .main-content .em-form textarea { min-height: 110px; }
+  .main-content .em-form input:focus,
+  .main-content .em-form select:focus,
+  .main-content .em-form textarea:focus {
+    outline: none;
+    border-color: #E4013A;
+    box-shadow: 0 0 0 3px rgba(228, 1, 58, 0.15);
+  }
 
+  /* ============================================================
+     BOUTON PRINCIPAL
+     ============================================================ */
   .main-content .em-form button,
   .main-content .em-form input[type="submit"] {
-    padding: 10px 12px;
-    border-radius: 22px;
+    width: 100%;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 26px;
+    background: #E4013A;
+    color: #fff;
+    font-weight: 900;
+    cursor: pointer;
+    transition: background-color .2s ease;
   }
-}
+
+  .main-content .em-form button:hover,
+  .main-content .em-form input[type="submit"]:hover {
+    background: #b30021;
+  }
+
+  /* ============================================================
+     TINYMCE
+     ============================================================ */
+  .main-content .em-form .tinymce-wrap .tox {
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  /* ============================================================
+     MULTI-SELECTS
+     ============================================================ */
+  .main-content .em-form select[multiple] {
+    min-height: 160px;
+  }
+
+  /* ============================================================
+     LIGNES DE CHECKBOX
+     ============================================================ */
+  .main-content .em-form .checkline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #fafafa;
+  }
+
+  /* ============================================================
+     IMAGE
+     ============================================================ */
+  .main-content .em-form .thumb-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .main-content .em-form .delete-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .main-content .em-form .delete-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .main-content .em-form .thumb-mini {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    flex-shrink: 0;
+  }
+
+  /* ============================================================
+     ERREURS DE CHAMP
+     ============================================================ */
+  .main-content .em-form .field-error {
+    margin-top: 6px;
+    padding: 8px 10px;
+    border: 1px solid #e11d48;
+    background: rgba(225, 29, 72, 0.08);
+    border-radius: 10px;
+    color: #9f1239;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .main-content .em-form .field-error ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+
+  /* ============================================================
+     MP3
+     ============================================================ */
+  .field-mp3 {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .current-mp3-card {
+    width: 100%;
+    background: #fff;
+    border: 1px solid #e6e6e6;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .current-mp3-content {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .current-mp3-title {
+    margin: 0 0 8px;
+    font-weight: 700;
+    color: #1C1C1A;
+  }
+
+  .current-mp3-name {
+    margin: 0;
+    color: #555;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .current-mp3-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+  }
+
+  .field-full {
+    grid-column: 1 / -1;
+    margin-top: 14px;
+    margin-bottom: 14px;
+  }
+
+  .btn-listen-mp3,
+  .btn-download-mp3,
+  .btn-delete-mp3 {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: none;
+    text-decoration: none;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    box-sizing: border-box;
+    white-space: nowrap;
+  }
+
+  .btn-listen-mp3 {
+    background: #222;
+    color: #fff;
+  }
+
+  .btn-listen-mp3:hover {
+    background: #000;
+  }
+
+  .btn-download-mp3 {
+    background: #666;
+    color: #fff;
+  }
+
+  .btn-download-mp3:hover {
+    background: #444;
+  }
+
+  .btn-delete-mp3 {
+    background: #c62828;
+    color: #fff;
+  }
+
+  .btn-delete-mp3:hover {
+    background: #8e0000;
+  }
+
+  /* ============================================================
+     FINALISATION D'UNE FICHE AUTO-GÉNÉRÉE
+     ============================================================ */
+  .main-content .em-form .completion-box {
+    margin-top: 8px;
+    padding: 14px;
+    border: 1px solid rgba(228, 1, 58, 0.18);
+    border-radius: 12px;
+    background: rgba(228, 1, 58, 0.05);
+  }
+
+  .main-content .em-form .completion-box .form-row,
+  .main-content .em-form .completion-box > div {
+    margin: 0;
+  }
+
+  /* ============================================================
+     SUPPRESSION DU MP3
+     ============================================================ */
+  .main-content .em-form .checkline-danger {
+    background: rgba(198, 40, 40, 0.05);
+    border-color: rgba(198, 40, 40, 0.20);
+  }
+
+  /* Aligne correctement les checkbox générées par Symfony. */
+  .main-content .em-form .checkline .form-check,
+  .main-content .em-form .completion-box .form-check {
+    margin: 0;
+  }
+
+  .main-content .em-form .checkline input[type="checkbox"],
+  .main-content .em-form .completion-box input[type="checkbox"] {
+    width: auto;
+    margin-right: 8px;
+    transform: translateY(1px);
+  }
+
+  .main-content .em-form .checkline label,
+  .main-content .em-form .completion-box label {
+    margin: 0;
+    min-height: auto;
+  }
+
+  /* ============================================================
+     ÉMISSION EN DIRECT
+     Le champ reste sous la durée pour ne pas créer une 5e colonne.
+     ============================================================ */
+  .main-content .em-form .em-live-field {
+    margin-top: 10px;
+  }
+
+  .main-content .em-form .em-live-field > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .main-content .em-form .em-live-field label {
+    margin: 0;
+    min-height: auto;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .main-content .em-form .em-live-field input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: #E4013A;
+    cursor: pointer;
+  }
+
+  /* ============================================================
+     ACTIONS
+     ============================================================ */
+  .main-content .em-form .form-actions {
+    margin-top: 4px;
+  }
+
+  /* ============================================================
+     RESPONSIVE — TABLETTE / PETIT ÉCRAN
+     ============================================================ */
+  @media (max-width: 960px) {
+    .main-content .em-form {
+      margin: 14px 12px 22px;
+      padding: 14px 12px;
+    }
+
+    .main-content .em-form .grid-4,
+    .main-content .em-form .grid-3,
+    .main-content .em-form .grid-2 {
+      grid-template-columns: 1fr;
+    }
+
+    .main-content .em-form img.emedit {
+      width: min(260px, 100%);
+    }
+
+    .main-content .em-form .thumb-row {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+  }
+
+  /* ============================================================
+     RESPONSIVE — MP3 / ACTIONS
+     ============================================================ */
+  @media (max-width: 768px) {
+    .field-full {
+      margin-top: 12px;
+      margin-bottom: 12px;
+    }
+
+    .current-mp3-card {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .current-mp3-actions {
+      justify-content: stretch;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .btn-listen-mp3,
+    .btn-download-mp3,
+    .btn-delete-mp3 {
+      width: 100%;
+      text-align: center;
+    }
+  }
+
+  /* ============================================================
+     RESPONSIVE — MOBILE
+     ============================================================ */
+  @media (max-width: 420px) {
+    .main-content .em-form {
+      margin: 10px 8px 16px;
+      padding: 12px 10px;
+      border-radius: 10px;
+    }
+
+    .main-content .em-form h1 {
+      font-size: 18px;
+    }
+
+    .main-content .em-form label {
+      font-size: 13px;
+    }
+
+    .main-content .em-form input[type="text"],
+    .main-content .em-form input[type="number"],
+    .main-content .em-form input[type="file"],
+    .main-content .em-form select,
+    .main-content .em-form textarea {
+      padding: 9px 10px;
+      font-size: 14px;
+    }
+
+    .main-content .em-form select[multiple] {
+      min-height: 130px;
+    }
+
+    .main-content .em-form .delete-row {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .main-content .em-form .thumb-mini {
+      width: 52px;
+      height: 52px;
+    }
+  }
+
+  /* ============================================================
+     RESPONSIVE — PETIT ÉCRAN EN PAYSAGE
+     ============================================================ */
+  @media (max-height: 520px) and (orientation: landscape) {
+    .main-content .em-form {
+      margin: 10px 12px 14px;
+      padding: 12px;
+    }
+
+    .main-content .em-form .preview {
+      margin: 6px 0 10px;
+    }
+
+    .main-content .em-form img.emedit {
+      width: min(220px, 100%);
+    }
+
+    .main-content .em-form select[multiple] {
+      min-height: 120px;
+    }
+
+    .main-content .em-form textarea {
+      min-height: 110px;
+    }
+
+    .main-content .em-form button,
+    .main-content .em-form input[type="submit"] {
+      padding: 10px 12px;
+      border-radius: 22px;
+    }
+  }
 </style>
 
+
 <div class="em-form">
-  <h1>{{ 'Modifier ' ~ emission.titre }}</h1>
 
+  {# ============================================================
+     TITRE
+     ============================================================ #}
+  <h1>Modifier {{ emission.titre }}</h1>
+
+
+  {# ============================================================
+     IMAGE ACTUELLE
+     ============================================================ #}
   {% if emission.thumbnail %}
-    <div class="preview">
-      <img
-        class="emedit"
-        src="{{ vich_uploader_asset(emission, 'thumbnailFile') }}"
-        alt="Photo de {{ emission.titre }}"
-      >
-    </div>
+  <div class="preview">
+    <img class="emedit" src="{{ vich_uploader_asset(emission, 'thumbnailFile') }}" alt="Photo de {{ emission.titre }}"></div>
   {% endif %}
-
-  {{ form_start(formEmission, { attr: { 'data-turbo': 'false' } }) }}
+  {# ============================================================
+    FORMULAIRE
+  ============================================================ #}
+  {{ form_start(formEmission, {
+    attr: {
+      'data-turbo': 'false'
+    }
+  }) }}
   {{ form_errors(formEmission) }}
-
-  {# Ligne 1 : Catégorie / Thème / Durée / Éditeur #}
+  {# ==========================================================
+    INFORMATIONS PRINCIPALES
+    Catégorie / Thème / Durée + Direct / Éditeur
+  ========================================================== #}
   <div class="grid-4">
-    <div class="field">{{ form_row(formEmission.categorie) }}</div>
-    <div class="field">{{ form_row(formEmission.theme) }}</div>
-    <div class="field">{{ form_row(formEmission.duree) }}</div>
-    <div class="field">{{ form_row(formEmission.editeur) }}</div>
+    <div class="field">
+      {{ form_row(formEmission.categorie) }}
+    </div>
+    <div class="field">
+      {{ form_row(formEmission.theme) }}
+    </div>
+    <div class="field">
+      {{ form_row(formEmission.duree) }}
+      <div class="em-live-field">
+        {{ form_row(formEmission.isLive) }}
+      </div>
+    </div>
+    <div class="field">
+      {{ form_row(formEmission.editeur) }}
+    </div>
   </div>
-
-  {# Ligne 2 : Titre / Keyword / Ref #}
+  {# ==========================================================
+    IDENTIFICATION
+    Titre / Keyword / Référence
+  ========================================================== #}
   <div class="grid-3">
-    <div class="field">{{ form_row(formEmission.titre) }}</div>
-    <div class="field">{{ form_row(formEmission.keyword) }}</div>
-    <div class="field">{{ form_row(formEmission.ref) }}</div>
+    <div class="field">
+      {{ form_row(formEmission.titre) }}
+    </div>
+    <div class="field">
+      {{ form_row(formEmission.keyword) }}
+    </div>
+    <div class="field">
+      {{ form_row(formEmission.ref) }}
+    </div>
   </div>
-
-  {# Ligne 3 : Users / Invités / Anciens animateurs #}
+  {# ==========================================================
+    PARTICIPANTS
+    Animateurs / anciens animateurs / invités
+  ========================================================== #}
   <div class="grid-3">
+    {# Utilisateurs / animateurs enregistrés #}
     <div class="field">
       {{ form_label(formEmission.users) }}
       {{ form_widget(formEmission.users) }}
       {% if formEmission.vars.submitted %}
         {% for error in formEmission.users.vars.errors %}
-          <div class="field-error" role="alert">{{ error.message }}</div>
+          <div class="field-error" role="alert">
+            {{ error.message }}
+          </div>
         {% endfor %}
       {% endif %}
     </div>
-
+    {# Anciens animateurs #}
     <div class="field">
       {{ form_label(formEmission.inviteOldAnimateurs) }}
       {{ form_widget(formEmission.inviteOldAnimateurs) }}
       {% if formEmission.vars.submitted %}
         {% for error in formEmission.inviteOldAnimateurs.vars.errors %}
-          <div class="field-error" role="alert">{{ error.message }}</div>
+          <div class="field-error" role="alert">
+            {{ error.message }}
+          </div>
         {% endfor %}
       {% endif %}
     </div>
-
+    {# Invités saisis librement #}
     <div class="field">
       {{ form_row(formEmission.invites) }}
     </div>
   </div>
-
-  <small style="opacity:.7; display:block; margin-top: -6px;">
+  <small style="opacity:.7; display:block; margin-top:-6px;">
     Maintenez Ctrl (ou Cmd sur Mac) pour ajouter ou retirer une sélection
   </small>
-
-  {# Descriptif TinyMCE #}
+  {# ==========================================================
+    DESCRIPTION
+  ========================================================== #}
   <div class="tinymce-wrap" data-controller="tinymce">
     {{ form_row(formEmission.descriptif) }}
   </div>
-
-  {# Image : upload + suppression + miniature #}
+  {# ==========================================================
+    IMAGE
+    Nouvelle image + suppression de l'image actuelle.
+  ========================================================== #}
   <div class="thumb-row">
     <div class="field">
       {{ form_label(formEmission.thumbnailFile) }}
       {{ form_widget(formEmission.thumbnailFile) }}
       {% if formEmission.vars.submitted %}
         {% for error in formEmission.thumbnailFile.vars.errors %}
-          <div class="field-error" role="alert">{{ error.message }}</div>
+          <div class="field-error" role="alert">
+            {{ error.message }}
+          </div>
         {% endfor %}
       {% endif %}
     </div>
-
     {% if emission.thumbnail %}
       <div class="field">
         <div class="checkline">
           <div class="delete-row">
             <div class="delete-left">
               <input type="checkbox" id="delete_thumbnail" name="delete_thumbnail" value="1">
-              <label for="delete_thumbnail" style="margin:0;">
-                Supprimer l’image actuelle
-              </label>
+                <label for="delete_thumbnail" style="margin:0;">
+                  Supprimer l’image actuelle
+                </label>
+              </div>
+              <img class="thumb-mini" src="{{ vich_uploader_asset(emission, 'thumbnailFile') }}" alt="Miniature de {{ emission.titre }}" loading="lazy"></div>
             </div>
-
-            <img
-              class="thumb-mini"
-              src="{{ vich_uploader_asset(emission, 'thumbnailFile') }}"
-              alt="Miniature de {{ emission.titre }}"
-              loading="lazy"
-            >
           </div>
-        </div>
+        {% endif %}
       </div>
-    {% endif %}
-  </div>
-
-  {# Mp3 + Url #}
-  <div class="grid-2">
-    <div class="field">
-      {% if formEmission.thumbnailFileMp3 is defined %}
-        {{ form_row(formEmission.thumbnailFileMp3) }}
+      {# ==========================================================
+        MP3 + URL
+      ========================================================== #}
+      <div class="grid-2">
+        <div class="field">
+          {% if formEmission.thumbnailFileMp3 is defined %}
+            {{ form_row(formEmission.thumbnailFileMp3) }}
+          {% endif %}
+        </div>
+        <div class="field">
+          {{ form_row(formEmission.url) }}
+        </div>
+        {# MP3 actuellement enregistré #}
+        {% if emission.thumbnailMp3 and emission.url %}
+          <div class="field field-full">
+            <div class="current-mp3-card">
+              <div class="current-mp3-content">
+                <p class="current-mp3-title">
+                  Fichier MP3 actuel
+                </p>
+                <p class="current-mp3-name">
+                  {{ emission.thumbnailMp3|split('/')|last }}
+                </p>
+              </div>
+              <div class="current-mp3-actions">
+                <a href="{{ emission.url }}" target="_blank" rel="noopener" class="btn-listen-mp3">
+                  Lecture
+                </a>
+                <a href="{{ emission.url }}" download class="btn-download-mp3">
+                  Télécharger
+                </a>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {# Suppression du MP3 #}
+        {% if formEmission.deleteMp3 is defined %}
+          <div class="field field-full">
+            <div class="checkline checkline-danger">
+              {{ form_row(formEmission.deleteMp3) }}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+      {# ==========================================================
+        FINALISATION
+        Champ présent uniquement pour certaines fiches.
+      ========================================================== #}
+      {% if formEmission.markAsCompleted is defined %}
+        <div class="completion-box">
+          {{ form_row(formEmission.markAsCompleted) }}
+        </div>
       {% endif %}
-    </div>
-
-    <div class="field">
-      {{ form_row(formEmission.url) }}
-    </div>
-
-    {% if emission.thumbnailMp3 and emission.url %}
-      <div class="field field-full">
-        <div class="current-mp3-card">
-          <div class="current-mp3-content">
-            <p class="current-mp3-title">Fichier MP3 actuel</p>
-
-            <p class="current-mp3-name">
-              {{ emission.thumbnailMp3|split('/')|last }}
-            </p>
-          </div>
-
-          <div class="current-mp3-actions">
-            <a
-              href="{{ emission.url }}"
-              target="_blank"
-              rel="noopener"
-              class="btn-listen-mp3"
-            >
-              Lecture
-            </a>
-
-            <a
-              href="{{ emission.url }}"
-              download
-              class="btn-download-mp3"
-            >
-              Télécharger
-            </a>
-          </div>
-        </div>
+      {# ==========================================================
+        SAUVEGARDE
+      ========================================================== #}
+      <div class="form-actions">
+        {{ form_row(formEmission.Sauvegarder) }}
       </div>
-    {% endif %}
-
-    {% if formEmission.deleteMp3 is defined %}
-      <div class="field field-full">
-        <div class="checkline checkline-danger">
-          {{ form_row(formEmission.deleteMp3) }}
-        </div>
-      </div>
-    {% endif %}
-  </div>
-
-  {% if formEmission.markAsCompleted is defined %}
-    <div class="completion-box">
-      {{ form_row(formEmission.markAsCompleted) }}
+      {# ==========================================================
+        TOKEN CSRF
+        Nécessaire car form_end utilise render_rest:false.
+      ========================================================== #}
+      {% if formEmission._token is defined %}
+        {{ form_row(formEmission._token) }}
+      {% endif %}
+      {{ form_end(formEmission, {
+    render_rest: false
+  }) }}
     </div>
-  {% endif %}
-
-  <div class="form-actions">
-    {{ form_row(formEmission.Sauvegarder) }}
-  </div>
-{% if formEmission._token is defined %}
-  {{ form_row(formEmission._token) }}
-{% endif %}
-  {{ form_end(formEmission, { render_rest: false }) }}
-</div>
-
-{% endblock %}
+  {% endblock %}
+  

@@ -35,23 +35,65 @@ class EmissionController extends AbstractController
     use ReturnToTrait;
 
     #[Route('/', name: 'index')]
-    public function index(Request $request, EmissionRepository $repository, Security $security, SessionInterface $session): Response
-    {
+    public function index(
+        Request $request,
+        EmissionRepository $repository,
+        Security $security,
+        SessionInterface $session
+    ): Response {
         $page = $request->query->getInt('page', 1);
-        $limit = 25;
 
         // Stockage de la page courante dans la session
         $session->set('previous_page_emission', $page);
 
         $user = $security->getUser();
-        $isAdmin = $this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_SUPER_ADMIN');
 
-        $emissions = $repository->paginateEmissionsAdmin($page, '', $user, $isAdmin);
-        $maxPage = (int) ceil($emissions->getTotalItemCount() / $limit);
+        if (!$user) {
+            throw $this->createAccessDeniedException();
+        }
+
+        // Recherche par titre
+        $search = trim((string) $request->query->get('q', ''));
+
+        // Catégorie
+        $categoryId = $request->query->getInt('categorie');
+        $categoryId = $categoryId > 0 ? $categoryId : null;
+
+        // Thème
+        $themeId = $request->query->getInt('theme');
+        $themeId = $themeId > 0 ? $themeId : null;
+
+        // État : toutes / à finaliser / sans diffusion
+        $status = (string) $request->query->get('status', '');
+
+        // Navigation alphabétique
+        $initiale = strtoupper(
+            trim((string) $request->query->get('initiale', ''))
+        );
+
+        $emissions = $repository->paginateEmissionsAdmin(
+            page: $page,
+            user: $user,
+            search: $search,
+            categoryId: $categoryId,
+            themeId: $themeId,
+            status: $status,
+            initiale: $initiale
+        );
 
         return $this->render('admin/emission/index.html.twig', [
             'emissions' => $emissions,
-            'maxPage' => $maxPage,
+
+            'search' => $search,
+            'selectedCategory' => $categoryId,
+            'selectedTheme' => $themeId,
+            'status' => $status,
+
+            'initiale' => $initiale,
+            'alphabet' => range('A', 'Z'),
+
+            'categories' => $repository->findCategoriesForUser($user),
+            'themes' => $repository->findThemesForUser($user),
         ]);
     }
 

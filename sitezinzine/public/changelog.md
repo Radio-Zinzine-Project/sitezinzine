@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.110] - 2026-09-03
+### Ajout
+- Ajout du numéro d'annonce sur les fiches côté public.
+- Ajout sur la fiche émission (création et édition) de la coche "émission en direct".
+### Correction
+- Modification des tag annonce (à valider, validée, terminée) et des codes couleurs associés.
+- Quand on choisit "Autre" comme type d'annonce que ce soit à la création ou à l'édition, c'est ce qui sera indiqué dans le champ à remplir qui s'affichera, si rien, alors "Autre" s'affichera.
+- Les 3 évènements les plus récents s'affichent (futurs ou passés).
+- Refonte du style despages create et edit evenement pour correspondre au style global du site.
+- Refonte totalement de la page admin/emission qui ne montre à présent que les émissions du user connecté avec une recherche.
+
+
 ## [1.0.109] - 2026-09-03
 ### Ajout
 - Soft Delete des émissions, une émission supprimée reste dans la bdd (elle peut avoir eut des diffusions).

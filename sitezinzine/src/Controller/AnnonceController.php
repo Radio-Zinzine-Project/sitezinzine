@@ -53,8 +53,12 @@ class AnnonceController extends AbstractController
 
             $autreType = trim((string) $form->get('autreType')->getData());
 
-            if ($annonce->getType() === '__autre__' && $autreType !== '') {
-                $annonce->setType($autreType);
+            if ($annonce->getType() === '__autre__') {
+                if ($autreType !== '') {
+                    $annonce->setType($autreType);
+                } else {
+                    $annonce->setType('Autre');
+                }
             }
 
             $annonce->setUpdateAt(new \DateTime());

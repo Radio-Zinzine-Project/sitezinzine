@@ -47,7 +47,7 @@ class HomeController extends AbstractController
             'lastEmissions' => $programData['items'],
             'activeIndex' => $programData['activeIndex'],
             'lastEmissionsByTheme' => $emissionRepository->lastEmissionsByGroupTheme(''),
-            'evenements' => $evenementRepository->findUpcomingEvenements(),
+            'evenements' => $evenementRepository->findLatestPublicEvenements(3),
         ]);
     }
 

@@ -17,62 +17,58 @@ class EvenementRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return Evenement[] Returns an array of Evenement objects
+     * Retourne les 3 prochains événements ou événements en cours.
+     *
+     * @return Evenement[]
      */
     public function findUpcomingEvenements(): array
-{
-    $qb = $this->createQueryBuilder('a')
-        ->where('a.dateDebut >= :today')  // Événements futurs
-        ->orWhere('(:today BETWEEN a.dateDebut AND a.dateFin)') // Événements en cours
-        ->andWhere('a.valid = 1')
-        ->setParameter('today', new \DateTimeImmutable('today'))
-        ->orderBy('a.dateDebut', 'ASC')
-        ->setMaxResults(3);
+    {
+        return $this->createQueryBuilder('a')
+            ->where('a.dateDebut >= :today')
+            ->orWhere('(:today BETWEEN a.dateDebut AND a.dateFin)')
+            ->andWhere('a.valid = 1')
+            ->setParameter('today', new \DateTimeImmutable('today'))
+            ->orderBy('a.dateDebut', 'ASC')
+            ->setMaxResults(3)
+            ->getQuery()
+            ->getResult();
+    }
 
-    return $qb->getQuery()->getResult();
-}
+    /**
+     * Retourne les derniers événements publics,
+     * qu'ils soient à venir ou déjà terminés.
+     *
+     * Seuls les événements validés et non supprimés sont affichés.
+     *
+     * @return Evenement[]
+     */
+    public function findLatestPublicEvenements(int $limit = 3): array
+    {
+        return $this->createQueryBuilder('a')
+            ->where('a.valid = 1')
+            ->andWhere('a.softDelete = 0')
+            ->orderBy('a.dateDebut', 'DESC')
+            ->addOrderBy('a.id', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
 
-
-    public function findAllDesc() : array {
+    public function findAllDesc(): array
+    {
         return $this->createQueryBuilder('a')
             ->where('a.softDelete = 0')
             ->orderBy('a.id', 'DESC')
             ->getQuery()
             ->getResult();
-        
     }
 
     public function findOldEvenements(\DateTimeImmutable $dateLimit): array
-{
-    return $this->createQueryBuilder('a')
-        ->where('a.dateFin < :dateLimit')
-        ->setParameter('dateLimit', $dateLimit)
-        ->getQuery()
-        ->getResult();
-}
-
-    //    /**
-    //     * @return Evenement[] Returns an array of Evenement objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('a')
-    //            ->andWhere('a.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('a.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
-
-    //    public function findOneBySomeField($value): ?Evenement
-    //    {
-    //        return $this->createQueryBuilder('a')
-    //            ->andWhere('a.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    {
+        return $this->createQueryBuilder('a')
+            ->where('a.dateFin < :dateLimit')
+            ->setParameter('dateLimit', $dateLimit)
+            ->getQuery()
+            ->getResult();
+    }
 }

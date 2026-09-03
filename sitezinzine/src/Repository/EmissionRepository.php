@@ -26,40 +26,126 @@ class EmissionRepository extends ServiceEntityRepository
         parent::__construct($registry, Emission::class);
     }
 
-    public function paginateEmissionsAdmin(int $page, string $excludeUrl, ?User $user = null, bool $isAdmin = false): PaginationInterface
-    {
+    public function paginateEmissionsAdmin(
+        int $page,
+        ?User $user,
+        string $search = '',
+        ?int $categoryId = null,
+        ?int $themeId = null,
+        string $status = '',
+        string $initiale = ''
+    ): PaginationInterface {
         $qb = $this->createQueryBuilder('e')
-            ->select('e', 'c', '(SELECT MAX(d2.horaireDiffusion) FROM App\Entity\Diffusion d2 WHERE d2.emission = e) AS HIDDEN lastDiffusion')
+            ->select(
+                'e',
+                'c',
+                '(SELECT MAX(d2.horaireDiffusion)
+              FROM App\Entity\Diffusion d2
+              WHERE d2.emission = e) AS HIDDEN lastDiffusion'
+            )
             ->leftJoin('e.categorie', 'c')
-            ->andWhere('(e.url != :excludeUrl) OR (e.url = :excludeUrl AND SIZE(e.users) > 0)')
+            ->innerJoin('e.users', 'u_filter')
+            ->andWhere('u_filter = :user')
             ->andWhere('c.id != 0')
-            ->andWhere('e.deletedAt IS NULL')
-            ->setParameter('excludeUrl', $excludeUrl)
-            ->orderBy('lastDiffusion', 'DESC');
+            ->setParameter('user', $user);
 
-        if ($user && !$isAdmin) {
-            $qb->innerJoin('e.users', 'u_filter')
-                ->andWhere('u_filter = :user')
-                ->setParameter('user', $user)
-                ->distinct();
+        /*
+     * Recherche par titre
+     */
+        $search = trim($search);
+
+        if ($search !== '') {
+            $qb
+                ->andWhere('LOWER(e.titre) LIKE LOWER(:search)')
+                ->setParameter('search', '%' . $search . '%');
         }
 
-        /** @var PaginationInterface $pagination */
-        $pagination = $this->paginator->paginate($qb, $page, 20, [
-            'distinct' => true,
-            'sortFieldAllowList' => ['e.titre'],
-        ]);
+        /*
+     * Filtre catégorie
+     */
+        if ($categoryId !== null) {
+            $qb
+                ->andWhere('c.id = :categoryId')
+                ->setParameter('categoryId', $categoryId);
+        }
 
-        foreach ($pagination as $row) {
+        /*
+     * Filtre thème
+     */
+        if ($themeId !== null) {
+            $qb
+                ->innerJoin('e.theme', 'theme_filter')
+                ->andWhere('theme_filter.id = :themeId')
+                ->setParameter('themeId', $themeId);
+        }
+
+        /*
+     * État de la fiche
+     */
+        if ($status === 'pending') {
+            $qb->andWhere('e.isPendingCompletion = true');
+        }
+
+        if ($status === 'without_diffusion') {
+            $qb->andWhere(
+                'NOT EXISTS (
+                SELECT d3.id
+                FROM App\Entity\Diffusion d3
+                WHERE d3.emission = e
+            )'
+            );
+        }
+
+        /*
+     * Navigation alphabétique
+     */
+        $initiale = strtoupper(trim($initiale));
+
+        if ($initiale === '0-9') {
+            $qb->andWhere(
+                'SUBSTRING(UPPER(e.titre), 1, 1) BETWEEN :firstDigit AND :lastDigit'
+            )
+                ->setParameter('firstDigit', '0')
+                ->setParameter('lastDigit', '9');
+        } elseif (preg_match('/^[A-Z]$/', $initiale)) {
+            $qb
+                ->andWhere('UPPER(e.titre) LIKE :initiale')
+                ->setParameter('initiale', $initiale . '%');
+        }
+
+        /*
+     * Tri par défaut :
+     * dernière diffusion la plus récente.
+     */
+        $qb
+            ->orderBy('lastDiffusion', 'DESC')
+            ->addOrderBy('e.titre', 'ASC')
+            ->distinct();
+
+        $pagination = $this->paginator->paginate(
+            $qb,
+            $page,
+            20,
+            [
+                'distinct' => true,
+            ]
+        );
+
+        /*
+     * Alimente emission.lastDiffusion pour les cards existantes.
+     */
+        foreach ($pagination as $emission) {
             $lastDiffusion = $this->createQueryBuilder('e2')
                 ->select('MAX(d.horaireDiffusion)')
                 ->leftJoin('e2.diffusions', 'd')
                 ->andWhere('e2.id = :id')
-                ->setParameter('id', $row->getId())
+                ->setParameter('id', $emission->getId())
                 ->getQuery()
                 ->getSingleScalarResult();
 
-            $row->setLastDiffusion($lastDiffusion ? new \DateTime($lastDiffusion) : null);
+            $emission->setLastDiffusion(
+                $lastDiffusion ? new \DateTime($lastDiffusion) : null
+            );
         }
 
         return $pagination;
@@ -1263,4 +1349,35 @@ class EmissionRepository extends ServiceEntityRepository
             'activeIndex' => $activeIndex,
         ];
     }
+
+    public function findCategoriesForUser(User $user): array
+    {
+        return $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('DISTINCT c')
+            ->from(\App\Entity\Categories::class, 'c')
+            ->innerJoin(\App\Entity\Emission::class, 'e', 'WITH', 'e.categorie = c')
+            ->innerJoin('e.users', 'u')
+            ->andWhere('u = :user')
+            ->andWhere('c.id != 0')
+            ->setParameter('user', $user)
+            ->orderBy('c.titre', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findThemesForUser(User $user): array
+{
+    return $this->getEntityManager()
+        ->createQueryBuilder()
+        ->select('DISTINCT t')
+        ->from(\App\Entity\Theme::class, 't')
+        ->innerJoin(\App\Entity\Emission::class, 'e', 'WITH', 'e.theme = t')
+        ->innerJoin('e.users', 'u')
+        ->andWhere('u = :user')
+        ->setParameter('user', $user)
+        ->orderBy('t.name', 'ASC')
+        ->getQuery()
+        ->getResult();
+}
 }

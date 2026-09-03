@@ -288,6 +288,29 @@
     color: white;
 }
 
+/* =========================================================
+   ANNONCE TERMINÉE
+   ========================================================= */
+
+.annonce-status--finished {
+    background: #555;
+    color: #fff;
+}
+
+.annonce-card--finished {
+    background: #d6d6d6;
+    border: 1px solid #b5b5b5;
+}
+
+.annonce-card--finished:hover {
+    border-color: #999;
+}
+
+.annonce-card--finished .annonce-actions {
+    background: #c8c8c8;
+    border-top-color: #b5b5b5;
+}
+
 
 /* =========================================================
    TYPE
@@ -314,6 +337,18 @@
     line-height: 1;
 
     overflow-wrap: anywhere;
+}
+
+.annonce-id {
+    flex: 0 0 auto;
+
+    color: #777;
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+
+    white-space: nowrap;
 }
 
 
@@ -833,9 +868,28 @@
         gap: 8px;
     }
 
-    .annonce-type,
+    .annonce-card__topline {
+        gap: 8px;
+    }
+
+    .annonce-type {
+        flex: 0 1 auto;
+        min-width: 0;
+        max-width: 100%;
+
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .annonce-id {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+
     .annonce-status {
-        max-width: calc(50% - 4px);
+        flex: 0 0 auto;
+        white-space: nowrap;
     }
 
     .annonce-type {
@@ -962,6 +1016,20 @@
         max-width: 100%;
         min-width: 0;
     }
+
+    .annonce-card__topline {
+        gap: 6px;
+    }
+
+    .annonce-id {
+        font-size: 11px;
+    }
+
+    .annonce-status {
+        padding-left: 6px;
+        padding-right: 6px;
+        font-size: 10px;
+    }
 }
 
 </style>
@@ -987,14 +1055,24 @@
                 {% endif %}
                 <article class="annonce-list">
                     {% for annonce in annonces %}
+                        {% set annonceEndDate = annonce.dateFin ?? annonce.dateDebut %}
+                        {% set isFinished =
+    annonceEndDate
+    and annonceEndDate|date('Y-m-d') < 'now'|date('Y-m-d') %}
                         <section class="
                                 annonce-card
+                                
                                 {{ not annonce.thumbnail
                                 ? 'annonce-card--no-image'
                                 : '' }}
-                                {{ not annonce.valid
+                                
+                                {{ isFinished
+                                ? 'annonce-card--finished'
+                                : (
+                                not annonce.valid
                                 ? 'annonce-card--pending'
-                                : '' }}
+                                : ''
+                                ) }}
                             ">
                             {# =================================================
                                 IMAGE
@@ -1014,7 +1092,15 @@
                                         <div class="annonce-type">
                                             {{ annonce.type }}
                                         </div>
-                                        {% if annonce.valid %}
+                                        <span class="annonce-id">
+                                            #
+                                            {{ annonce.id }}
+                                        </span>
+                                        {% if isFinished %}
+                                            <div class="annonce-status annonce-status--finished">
+                                                TERMINÉE
+                                            </div>
+                                        {% elseif annonce.valid %}
                                             <div class="annonce-status annonce-status--valid">
                                                 VALIDÉE
                                             </div>

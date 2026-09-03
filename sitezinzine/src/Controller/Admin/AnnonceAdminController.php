@@ -19,53 +19,73 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_EDITOR')]
 class AnnonceAdminController extends AbstractController
 {
-    
 
-#[Route('/', name: 'index', methods: ['GET'])]
-public function index(
-    Request $request,
-    AnnonceRepository $annonceRepository,
-    PaginatorInterface $paginator
-): Response {
-    $query = $annonceRepository->findAllDescQuery();
 
-    $annonces = $paginator->paginate(
-        $query,
-        $request->query->getInt('page', 1),
-        20
-    );
+    #[Route('/', name: 'index', methods: ['GET'])]
+    public function index(
+        Request $request,
+        AnnonceRepository $annonceRepository,
+        PaginatorInterface $paginator
+    ): Response {
+        $query = $annonceRepository->findAllDescQuery();
 
-    return $this->render('/admin/annonce/index.html.twig', [
-        'annonces' => $annonces,
-    ]);
-}
+        $annonces = $paginator->paginate(
+            $query,
+            $request->query->getInt('page', 1),
+            20
+        );
+
+        return $this->render('/admin/annonce/index.html.twig', [
+            'annonces' => $annonces,
+        ]);
+    }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'], requirements: ['id' => Requirement::DIGITS])]
-    public function edit(Annonce $annonce, Request $request, EntityManagerInterface $em)
-    {
+    public function edit(
+        Annonce $annonce,
+        Request $request,
+        EntityManagerInterface $em
+    ): Response {
         $form = $this->createForm(AnnonceType::class, $annonce, [
-            'show_valid' => true, // Montrer le champ valid
-            
+            'show_valid' => true,
         ]);
-      
-        $form->handleRequest($request);
-        
-        if ($form->isSubmitted() && $form->isValid()) {
-              // ✅ Récupérer la valeur du champ "Autre type"
-        $autreType = $form->get('autreType')->getData();
 
-        // ✅ Si "Autre" est sélectionné et que le champ "Autre type" est rempli, on l'enregistre
-        if ($annonce->getType() === 'autre' && !empty($autreType)) {
-            $annonce->setType($autreType);
-        }
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+
+            /*
+         * Le champ autreType n'est pas mappé dans l'entité.
+         * Si l'utilisateur choisit "Autre", on remplace donc
+         * la valeur technique "__autre__" par le texte réellement saisi.
+         */
+            if ($annonce->getType() === '__autre__') {
+                $autreType = trim(
+                    (string) $form->get('autreType')->getData()
+                );
+
+                if ($autreType !== '') {
+                    $annonce->setType($autreType);
+                } else {
+                    $annonce->setType('Autre');
+                }
+            }
+
             $annonce->setUpdateAt(new \DateTime());
+
             $em->flush();
-            $this->addFlash('success', 'L\'annonce a bien été modifié');
+
+            $this->addFlash(
+                'success',
+                'L\'annonce a bien été modifiée'
+            );
+
             return $this->redirectToRoute('admin.annonce.index');
         }
+
         return $this->render('admin/annonce/edit.html.twig', [
             'annonce' => $annonce,
-            'form' => $form
+            'form' => $form,
         ]);
     }
 
@@ -75,7 +95,7 @@ public function index(
         $annonce = $annonceRepository->find($id);
         return $this->render('admin/annonce/show.html.twig', [
             'annonce' => $annonce,
-            
+
         ]);
     }
 
@@ -108,6 +128,4 @@ public function index(
         $this->addFlash('success', 'L\'annonce a bien été dé-validé');
         return $this->redirectToRoute('admin.annonce.index');
     }
-    
 }
-

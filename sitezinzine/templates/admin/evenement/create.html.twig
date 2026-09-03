@@ -1,185 +1,358 @@
 {% extends 'admin/admin.html.twig' %}
 {% block title 'Créer un évènement' %}
 {% block body %}
-
   <style>
+  /* ============================================================
+     SCOPE GLOBAL
+     On limite tous les styles à ce formulaire.
+     TinyMCE est volontairement exclu.
+     ============================================================ */
+  .main-content .event-form,
+  .main-content .event-form *:not(.tox):not(.tox *) {
+    box-sizing: border-box;
+  }
 
+  /* ============================================================
+     TINYMCE
+     Empêche les styles du formulaire de modifier sa toolbar.
+     ============================================================ */
+  .main-content .event-form .tox button,
+  .main-content .event-form .tox .tox-tbtn,
+  .main-content .event-form .tox .tox-mbtn {
+    background: initial !important;
+    color: inherit !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: initial !important;
+    margin: initial !important;
+    width: auto !important;
+    height: auto !important;
+  }
 
+  /* ============================================================
+     CARD PRINCIPALE
+     ============================================================ */
+  .main-content .event-form {
+    font-family: "Montserrat Alternates", sans-serif;
+    max-width: 1080px;
+    margin: 18px auto 28px;
+    padding: 16px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    color: #1C1C1A;
+  }
 
-  .tox-checklist > li:not(.tox-checklist--hidden) {
-  list-style: none;
-  margin: 0.25em 0;
-  position: relative;
-}
-.tox-checklist > li:not(.tox-checklist--hidden)::before {
-  content: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cg%20id%3D%22checklist-unchecked%22%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Crect%20id%3D%22Rectangle%22%20width%3D%2215%22%20height%3D%2215%22%20x%3D%22.5%22%20y%3D%22.5%22%20fill-rule%3D%22nonzero%22%20stroke%3D%22%234C4C4C%22%20rx%3D%222%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E%0A");
-  cursor: pointer;
-  height: 1em;
-  margin-left: -1.5em;
-  margin-top: 0.125em;
-  position: absolute;
-  width: 1em;
-}
-.tox-checklist li:not(.tox-checklist--hidden).tox-checklist--checked::before {
-  content: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cg%20id%3D%22checklist-checked%22%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Crect%20id%3D%22Rectangle%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%234099FF%22%20fill-rule%3D%22nonzero%22%20rx%3D%222%22%2F%3E%3Cpath%20id%3D%22Path%22%20fill%3D%22%23FFF%22%20fill-rule%3D%22nonzero%22%20d%3D%22M11.5703186%2C3.14417309%20C11.8516238%2C2.73724603%2012.4164781%2C2.62829933%2012.83558%2C2.89774797%20C13.260121%2C3.17069355%2013.3759736%2C3.72932262%2013.0909105%2C4.14168582%20L7.7580587%2C11.8560195%20C7.43776896%2C12.3193404%206.76483983%2C12.3852142%206.35607322%2C11.9948725%20L3.02491697%2C8.8138662%20C2.66090143%2C8.46625845%202.65798871%2C7.89594698%203.01850234%2C7.54483354%20C3.373942%2C7.19866177%203.94940006%2C7.19592841%204.30829608%2C7.5386474%20L6.85276923%2C9.9684299%20L11.5703186%2C3.14417309%20Z%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E%0A");
-}
+  .main-content .event-form h1 {
+    margin: 0 0 12px;
+    text-align: center;
+    color: #E4013A;
+    font-weight: 900;
+    font-size: 22px;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
 
-input[type=text], select {
-  width: 100%;
-  padding: 12px 20px;
-  margin: 8px 0;
-  display: inline-block;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
-}
+  /* ============================================================
+     FORMULAIRE
+     ============================================================ */
+  .main-content .event-form form {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
 
-input[type=submit] {
-  width: 100%;
-  background-color: #4CAF50;
-  color: white;
-  padding: 14px 20px;
-  margin: 8px 0;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
+  .main-content .event-form .grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+  }
 
-input[type=submit]:hover {
-  background-color: #45a049;
-}
+  .main-content .event-form .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+  }
 
-form {
-  padding: 50px;
-}
-div.mb-3 {
-  margin: 15px;
-  width: 100%;
-}
-label {
-  margin-bottom: 15px;
-}
+  .main-content .event-form .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+  }
 
-#mceu_14 {
-  margin: 15px 0;
-}
+  .main-content .event-form .field {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
 
-textarea {
-  width: auto;
-}
-.form-label { color:white;
-font-family: "Montserrat Alternates", sans-serif;
-font-weight: normal;
-font-style: normal;
+  /* ============================================================
+     LABELS ET CHAMPS
+     ============================================================ */
+  .main-content .event-form label {
+    margin: 0 0 6px;
+    font-weight: 800;
+    color: #333;
+    font-size: 14px;
+  }
 
-font-size: 16pt;
-}
-input {
-  width: 100%;
-  padding: 12px 20px;
-  margin: 8px 0;
-  display: inline-block;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
-}
+  .main-content .event-form input[type="text"],
+  .main-content .event-form input[type="number"],
+  .main-content .event-form input[type="date"],
+  .main-content .event-form input[type="time"],
+  .main-content .event-form input[type="file"],
+  .main-content .event-form select,
+  .main-content .event-form textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+    background: #fff;
+  }
 
+  .main-content .event-form input[type="file"] {
+    padding: 8px 10px;
+  }
 
-.ligne1, .ligne3, .ligne4 {
-  display: flex;
-  flex-direction: row;
-}
+  .main-content .event-form textarea {
+    min-height: 140px;
+  }
 
-.ligne2 {
-  display: flex;
-  flex-direction: row;
-}
+  .main-content .event-form input:focus,
+  .main-content .event-form select:focus,
+  .main-content .event-form textarea:focus {
+    outline: none;
+    border-color: #E4013A;
+    box-shadow: 0 0 0 3px rgba(228, 1, 58, 0.15);
+  }
+
+  /* ============================================================
+     BOUTONS
+     ============================================================ */
+  .main-content .event-form button,
+  .main-content .event-form input[type="submit"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 26px;
+    background: #E4013A;
+    color: #fff;
+    font-weight: 900;
+    cursor: pointer;
+    transition: background-color .2s ease;
+  }
+
+  .main-content .event-form button:hover,
+  .main-content .event-form input[type="submit"]:hover {
+    background: #b30021;
+  }
+
+  /* ============================================================
+     TINYMCE
+     ============================================================ */
+  .main-content .event-form .tinymce-wrap .tox {
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  /* ============================================================
+     AUTRE TYPE
+     ============================================================ */
+  .main-content .event-form .other-type {
+    min-width: 0;
+  }
+
+  /* ============================================================
+     AIDE / ERREURS
+     ============================================================ */
+  .main-content .event-form .form-text {
+    margin-top: 6px;
+    font-size: 13px;
+    opacity: .75;
+  }
+
+  .main-content .event-form .form-error-message {
+    color: #9f1239;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  /* ============================================================
+     RESPONSIVE — TABLETTE
+     ============================================================ */
+  @media (max-width: 960px) {
+    .main-content .event-form {
+      margin: 14px 12px 22px;
+      padding: 14px 12px;
+    }
+
+    .main-content .event-form .grid-4,
+    .main-content .event-form .grid-3,
+    .main-content .event-form .grid-2 {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ============================================================
+     RESPONSIVE — MOBILE
+     ============================================================ */
+  @media (max-width: 420px) {
+    .main-content .event-form {
+      margin: 10px 8px 16px;
+      padding: 12px 10px;
+      border-radius: 10px;
+    }
+
+    .main-content .event-form h1 {
+      font-size: 18px;
+    }
+
+    .main-content .event-form label {
+      font-size: 13px;
+    }
+
+    .main-content .event-form input[type="text"],
+    .main-content .event-form input[type="number"],
+    .main-content .event-form input[type="date"],
+    .main-content .event-form input[type="time"],
+    .main-content .event-form input[type="file"],
+    .main-content .event-form select,
+    .main-content .event-form textarea {
+      padding: 9px 10px;
+      font-size: 14px;
+    }
+  }
+
+  /* ============================================================
+     RESPONSIVE — PETIT ÉCRAN PAYSAGE
+     ============================================================ */
+  @media (max-height: 520px) and (orientation: landscape) {
+    .main-content .event-form {
+      margin: 10px 12px 14px;
+      padding: 12px;
+    }
+
+    .main-content .event-form textarea {
+      min-height: 110px;
+    }
+
+    .main-content .event-form button,
+    .main-content .event-form input[type="submit"] {
+      padding: 10px 12px;
+      border-radius: 22px;
+    }
+  }
 </style>
-  <div>
-  
-      <h1>
-        Créer un nouvel évènement
-      </h1>
-      {{ form_start (form) }}
-    <div class="ligne1">
-    {{ form_row (form.titre) }}
-    {{ form_row (form.organisateur) }}
-    {{ form_row (form.type, { 'attr': {'id': 'annonce_type'} }) }}
-  <div id="autre-type-wrapper"{% if form.autreType.vars.data %}style="display: block;"{% else %}style="display: none;"{% endif %}>
-      {{ form_row (form.autreType, { 'attr': {'id': 'annonce_autreType'} }) }}
+  <div class="event-form">
+    <h1>
+      Créer un nouvel évènement
+    </h1>
+    {{ form_start(form, {
+    attr: {
+      'data-turbo': 'false'
+    }
+  }) }}
+    {# ==========================================================
+      IDENTITÉ DE L'ÉVÈNEMENT
+      Titre / Organisateur / Type / Autre type
+    ========================================================== #}
+    <div class="grid-4">
+      <div class="field">
+        {{ form_row(form.titre) }}
+      </div>
+      <div class="field">
+        {{ form_row(form.organisateur) }}
+      </div>
+      <div class="field">
+        {{ form_row(form.type) }}
+      </div>
+      <div id="autre-type-wrapper" class="field other-type" {% if form.autreType.vars.data %} style="display:block;" {% else %} style="display:none;" {% endif %}>
+        {{ form_row(form.autreType) }}
+      </div>
+    </div>
+    {# ==========================================================
+      LIEU
+      Ville / Département / Adresse
+    ========================================================== #}
+    <div class="grid-3">
+      <div class="field">
+        {{ form_row(form.ville) }}
+      </div>
+      <div class="field">
+        {{ form_row(form.departement) }}
+      </div>
+      <div class="field">
+        {{ form_row(form.adresse) }}
+      </div>
+    </div>
+    {# ==========================================================
+      DATE / HORAIRE / PRIX
+    ========================================================== #}
+    <div class="grid-4">
+      <div class="field">
+        {{ form_row(form.dateDebut, {
+          attr: {
+            'data-controller': 'flatpickr'
+          }
+        }) }}
+      </div>
+      <div class="field">
+        {{ form_row(form.dateFin, {
+          attr: {
+            'data-controller': 'flatpickr'
+          }
+        }) }}
+      </div>
+      <div class="field">
+        {{ form_row(form.horaire) }}
+      </div>
+      <div class="field">
+        {{ form_row(form.prix) }}
+      </div>
+    </div>
+    {# ==========================================================
+      PRÉSENTATION
+    ========================================================== #}
+    <div class="tinymce-wrap" data-controller="tinymce">
+      {{ form_row(form.presentation) }}
+    </div>
+    {# ==========================================================
+      CONTACT
+    ========================================================== #}
+    <div class="field">
+      {{ form_row(form.contact) }}
+    </div>
+    {{ form_end(form) }}
   </div>
-    </div>
-   
-<div class="ligne3">
-    {{ form_row (form.ville) }}
-    {{ form_row (form.departement) }}
-    {{ form_row (form.adresse) }}
-    </div>
-    <div class="ligne4">
-     {{ form_row(form.dateDebut, {
-    attr: {
-      'data-controller': 'flatpickr'
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const typeSelect = document.getElementById('evenement_type');
+    const autreTypeWrapper = document.getElementById('autre-type-wrapper');
+    const autreTypeInput = document.getElementById('evenement_autreType');
+
+    if (!typeSelect || !autreTypeWrapper || !autreTypeInput) {
+      return;
     }
-}) }}
-    {{ form_row(form.dateFin, {
-    attr: {
-      'data-controller': 'flatpickr'
+
+    function toggleAutreType() {
+      if (typeSelect.value.toLowerCase() === 'autre') {
+        autreTypeWrapper.style.display = 'block';
+        autreTypeInput.style.display = 'block';
+      } else {
+        autreTypeWrapper.style.display = 'none';
+        autreTypeInput.value = '';
+      }
     }
-}) }}
-    {{ form_row (form.horaire) }}
-    {{ form_row (form.prix) }}
-    </div>
-    
-    <div class="ligne6" data-controller="tinymce">  
-    {{ form_row (form.presentation) }}
-    </div>
-    <div class="ligne7">
-    {{ form_row (form.contact) }}
-    </div>
-    {{ form_end (form) }}
-    </div>
 
+    toggleAutreType();
 
-    <script type="text/javascript" language="javascript">
-    
-
-        document.addEventListener("DOMContentLoaded", function() {
-          let typeSelect = document.getElementById("evenement_type"); // Sélection du menu déroulant
-          let autreTypeWrapper = document.getElementById("autre-type-wrapper"); // Sélection du div contenant autreType
-          let autreTypeInput = document.getElementById("evenement_autreType"); // Sélection de l'input texte
-      
-          function toggleAutreType() {
-            
-              if (!typeSelect) {
-                  console.error("⚠️ ERREUR : evenement_type est NULL !");
-                  return;
-              }
-      
-              // ✅ Vérifier avec "autre" en minuscule pour correspondre à ChoiceType
-              if (typeSelect.value.toLowerCase() === "autre") {
-                autreTypeInput.style.display = "block"; // 🔥 Affiche l'input au lieu de juste le div
-                autreTypeWrapper.style.display = "block"; // ✅ Afficher le champ si "Autre" est sélectionné
-                  
-              } else {
-                  autreTypeWrapper.style.display = "none"; // ✅ Cacher le champ sinon
-                  autreTypeInput.value = ''; // Réinitialiser si on sélectionne autre chose
-              }
-          }
-      
-          // ✅ Vérifie si un type personnalisé est déjà sélectionné
-          if (typeSelect.value.toLowerCase() === "autre") {
-              autreTypeWrapper.style.display = "block";
-          }
-      
-          // Exécuter immédiatement pour masquer si nécessaire
-          toggleAutreType();
-      
-          // Écouter les changements sur le select
-          typeSelect.addEventListener("change", toggleAutreType);    
-      });
-      
-
-        
-        </script>
-  {% endblock %}
-  
+    typeSelect.addEventListener('change', toggleAutreType);
+  });
+</script>
+{% endblock %}

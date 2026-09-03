@@ -1,197 +1,520 @@
 {% extends 'admin/admin.html.twig' %}
-
-{% block title %}Éditer l'annonce {{ annonce.titre }}{% endblock %}
-
+{% block title %}
+  Éditer l'annonce
+  {{ annonce.titre }}
+{% endblock %}
 {% block body %}
-<style>
-  .annonce-form-page,
-  .annonce-form-page *{ box-sizing: border-box; }
+  <style>
+/* =========================================================
+   PAGE
+   ========================================================= */
 
-  .annonce-form-page{
+.annonce-form-page,
+.annonce-form-page * {
+    box-sizing: border-box;
+}
+
+.annonce-form-page {
     width: 100%;
-    padding: 24px 16px 40px;
-    font-family: "Montserrat Alternates", sans-serif;
-  }
+    min-width: 0;
 
-  .annonce-form-card{
+    padding: 24px 16px 40px;
+
+    font-family: "Montserrat Alternates", sans-serif;
+}
+
+
+/* =========================================================
+   CARTE PRINCIPALE
+   ========================================================= */
+
+.annonce-form-card {
     width: 100%;
     max-width: 980px;
+    min-width: 0;
+
     margin: 0 auto;
+
+    overflow: hidden;
+
     background: #fff;
     color: #1C1C1A;
+
     border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.10);
-    overflow: hidden;
-  }
 
-  .annonce-form-header{
+    box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.10);
+}
+
+
+/* =========================================================
+   EN-TÊTE
+   ========================================================= */
+
+.annonce-form-header {
     padding: 18px 20px 12px;
+
     text-align: center;
+
     border-bottom: 1px solid #eee;
-  }
+}
 
-  .annonce-form-title{
+.annonce-form-card .annonce-form-title {
     margin: 0;
-    font-weight: 900;
-    font-size: clamp(18px, 3vw, 28px);
-    color: #333;
-  }
 
-  .annonce-thumb{
+    color: #333 !important;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: clamp(18px, 3vw, 28px);
+    font-weight: 900;
+    line-height: 1.25;
+
+    overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   IMAGE ACTUELLE
+   ========================================================= */
+
+.annonce-thumb {
+    width: 100%;
     max-width: 520px;
+
     margin: 14px auto 0;
     padding: 0 16px;
-  }
-  .annonce-thumb img{
+}
+
+.annonce-thumb img {
+    display: block;
+
     width: 100%;
     height: auto;
-    display: block;
+
     border-radius: 10px;
-  }
+}
 
-  .annonce-form-body{
+
+/* =========================================================
+   CORPS DU FORMULAIRE
+   ========================================================= */
+
+.annonce-form-body {
     padding: 18px 20px 22px;
-  }
+}
 
-  .form-grid{
+
+/* =========================================================
+   GRILLES
+   ========================================================= */
+
+.annonce-form-page .form-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns:
+        minmax(0, 1fr)
+        minmax(0, 1fr);
+
     gap: 14px 16px;
-  }
-  .form-grid--1{ grid-template-columns: 1fr; }
-  .form-grid--dates{ grid-template-columns: 1fr 1fr; }
 
-  .form-block{ margin-top: 14px; }
+    min-width: 0;
+}
 
-  .annonce-form-page label{
+.annonce-form-page .form-grid--1 {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.annonce-form-page .form-grid--dates {
+    grid-template-columns:
+        minmax(0, 1fr)
+        minmax(0, 1fr);
+}
+
+.annonce-form-page .form-block {
+    margin-top: 14px;
+}
+
+
+/* =========================================================
+   CHAMPS
+   ========================================================= */
+
+.annonce-form-page label {
     display: inline-block;
-    margin-bottom: 6px;
-    font-weight: 700;
-    color: #333;
-    font-size: 0.95rem;
-  }
 
-  .annonce-form-page input,
-  .annonce-form-page select,
-  .annonce-form-page textarea{
+    margin-bottom: 6px;
+
+    color: #333;
+
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.annonce-form-page input,
+.annonce-form-page select,
+.annonce-form-page textarea {
     width: 100%;
-    padding: 12px 12px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
+    max-width: 100%;
+    min-width: 0;
+
+    padding: 12px;
+
     background: #fff;
     color: #1C1C1A;
+
+    border: 1px solid #ccc;
+    border-radius: 8px;
+
     font-family: "Montserrat", sans-serif;
     font-size: 1rem;
-  }
+}
 
-  .field-limit{
+.annonce-form-page textarea {
+    resize: vertical;
+}
+
+.annonce-form-page input:focus,
+.annonce-form-page select:focus,
+.annonce-form-page textarea:focus {
+    outline: 2px solid rgba(228, 0, 57, 0.18);
+    outline-offset: 1px;
+
+    border-color: #E40039;
+}
+
+
+/* =========================================================
+   COMPTEUR / LIMITE DE CHAMP
+   ========================================================= */
+
+.annonce-form-page .field-limit {
     margin-top: 6px;
+
+    color: #B81C61;
+
     font-size: 0.85rem;
     font-weight: 700;
-    color: #B81C61;
-  }
+}
 
-  .annonce-form-actions{
-    margin-top: 18px;
+
+/* =========================================================
+   TYPE "AUTRE"
+   ========================================================= */
+
+.annonce-form-page .autre-type {
+    display: none;
+
+    min-width: 0;
+}
+
+.annonce-form-page .autre-type.is-visible {
+    display: block;
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.annonce-form-actions {
     display: flex;
+    align-items: center;
     justify-content: center;
-    gap: 12px;
-  }
 
-  .annonce-form-page button[type="submit"]{
-    border: 0;
-    cursor: pointer;
+    gap: 12px;
+
+    margin-top: 18px;
+}
+
+.annonce-form-page button[type="submit"] {
+    min-height: 42px;
+
     padding: 10px 16px;
-    border-radius: 10px;
-    font-weight: 800;
+
     background: #111;
     color: #fff;
-  }
 
-  .annonce-form-page button[type="submit"]:hover{
+    border: 0;
+    border-radius: 10px;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-weight: 800;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.annonce-form-page button[type="submit"]:hover {
     background: #E40039;
-    color: #000;
-  }
+    color: #fff;
 
-  .autre-type{ display: none; }
-  .autre-type.is-visible{ display: block; }
+    transform: translateY(-1px);
+}
 
-  @media (max-width: 860px){
-    .form-grid{ grid-template-columns: 1fr; }
-    .form-grid--dates{ grid-template-columns: 1fr; }
-    .annonce-form-body{ padding: 16px 14px 18px; }
-  }
+
+/* =========================================================
+   TABLETTE / PETIT ÉCRAN
+   ========================================================= */
+
+@media screen and (max-width: 860px) {
+
+    .annonce-form-page .form-grid,
+    .annonce-form-page .form-grid--dates {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .annonce-form-body {
+        padding: 16px 14px 18px;
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 560px) {
+
+    .annonce-form-page {
+        padding:
+            18px
+            10px
+            32px;
+    }
+
+    .annonce-form-card {
+        border-radius: 10px;
+    }
+
+    .annonce-form-header {
+        padding:
+            16px
+            14px
+            12px;
+    }
+
+    .annonce-thumb {
+        padding: 0;
+    }
+
+    .annonce-form-body {
+        padding:
+            14px
+            12px
+            18px;
+    }
+
+    .annonce-form-page input,
+    .annonce-form-page select,
+    .annonce-form-page textarea {
+        padding: 11px;
+
+        font-size: 16px;
+    }
+
+    .annonce-form-actions {
+        width: 100%;
+    }
+
+    .annonce-form-page button[type="submit"] {
+        width: 100%;
+    }
+}
+
+
+/* =========================================================
+   TRÈS PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 380px) {
+
+    .annonce-form-page {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .annonce-form-body {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+}
+
+
+/* =========================================================
+   PETIT ÉCRAN EN PAYSAGE
+   ========================================================= */
+
+@media screen and (max-height: 500px) and (orientation: landscape) {
+
+    .annonce-form-page {
+        padding-top: 16px;
+        padding-bottom: 24px;
+    }
+
+    .annonce-thumb {
+        max-width: 420px;
+    }
+}
+
 </style>
-
-<div class="annonce-form-page" data-controller="annonce-form">
-  <article class="annonce-form-card">
-    <header class="annonce-form-header">
-      <h1 class="annonce-form-title">Modifier : {{ annonce.titre }}</h1>
-
-      {% if annonce.thumbnail %}
-        <div class="annonce-thumb">
-          <img src="{{ vich_uploader_asset(annonce, 'thumbnailFile') }}" alt="Photo de {{ annonce.titre }}">
+  <div class="annonce-form-page" data-controller="annonce-form">
+    <article class="annonce-form-card">
+      {# =====================================================
+        EN-TÊTE
+      ===================================================== #}
+      <header class="annonce-form-header">
+        <h1 class="annonce-form-title">
+          Modifier :
+          {{ annonce.titre }}
+        </h1>
+        {% if annonce.thumbnail %}
+          <div class="annonce-thumb">
+            <img src="{{ vich_uploader_asset(
+                            annonce,
+                            'thumbnailFile'
+                        ) }}" alt="Photo de {{ annonce.titre }}"></div>
+          {% endif %}
+        </header>
+        {# =====================================================
+          FORMULAIRE
+        ===================================================== #}
+        <div class="annonce-form-body">
+          {{ form_start(form) }}
+          {# =================================================
+            INFORMATIONS PRINCIPALES
+          ================================================= #}
+          <div class="form-grid">
+            {{ form_row(form.titre, {
+                    attr: {
+                        'data-annonce-form-target': 'limitField',
+                        'data-maxlength': '100'
+                    }
+                }) }}
+            {{ form_row(form.organisateur, {
+                    attr: {
+                        'data-annonce-form-target': 'limitField',
+                        'data-maxlength': '100'
+                    }
+                }) }}
+            {# Type de l'annonce #}
+            {{ form_row(form.type, {
+                    attr: {
+                        'data-action':
+                            'change->annonce-form#toggleAutreType',
+                        'data-annonce-form-target':
+                            'typeSelect'
+                    }
+                }) }}
+            {# Champ personnalisé lorsque "Autre" est choisi.
+              
+              Le FormType préremplit autreType lorsqu'une annonce
+              possède déjà un type personnalisé.
+              
+              On teste également la valeur courante du select afin
+              que le champ reste visible après une erreur de
+              validation du formulaire.
+            #}
+            <div class="
+              autre-type
+              {% if
+              form.type.vars.value == '__autre__'
+              or form.autreType.vars.data %}
+              is-visible
+              {% endif %}
+            " data-annonce-form-target="autreTypeWrapper">
+              {{ form_row(form.autreType, {
+                        attr: {
+                            'data-annonce-form-target':
+                                'limitField',
+                            'data-maxlength': '50'
+                        }
+                    }) }}
+            </div>
+          </div>
+          {# =================================================
+            LIEU
+          ================================================= #}
+          <div class="form-grid form-block">
+            {{ form_row(form.ville, {
+                    attr: {
+                        'data-annonce-form-target': 'limitField',
+                        'data-maxlength': '50'
+                    }
+                }) }}
+            {{ form_row(form.departement) }}
+            {{ form_row(form.adresse, {
+                    attr: {
+                        'data-annonce-form-target': 'limitField',
+                        'data-maxlength': '50'
+                    }
+                }) }}
+          </div>
+          {# =================================================
+            DATES / HORAIRES / PRIX
+          ================================================= #}
+          <div class="form-grid form-grid--dates form-block">
+            {{ form_row(form.dateDebut, {
+                    attr: {
+                        'data-controller': 'flatpickr'
+                    }
+                }) }}
+            {{ form_row(form.dateFin, {
+                    attr: {
+                        'data-controller': 'flatpickr'
+                    }
+                }) }}
+            {{ form_row(form.horaire, {
+                    attr: {
+                        'data-annonce-form-target': 'limitField',
+                        'data-maxlength': '50'
+                    }
+                }) }}
+            {{ form_row(form.prix, {
+                    attr: {
+                        'data-annonce-form-target': 'limitField',
+                        'data-maxlength': '50'
+                    }
+                }) }}
+          </div>
+          {# =================================================
+            PRÉSENTATION / TINYMCE
+          ================================================= #}
+          <div class="form-block" data-controller="tinymce" data-tinymce-css-value="{{ absolute_url(asset('build/editable.css')) }}" data-tinymce-richtext-css-value="{{ absolute_url(asset('build/annonce_show.css')) }}" data-tinymce-body-class-value="richtext" data-tinymce-upload-url-value="{{ path('admin.tinymce.upload') }}">
+            {{ form_row(form.presentation) }}
+          </div>
+          {# =================================================
+            CONTACT
+          ================================================= #}
+          <div class="form-grid form-grid--1 form-block">
+            {{ form_row(form.contact, {
+                    attr: {
+                        'data-annonce-form-target': 'limitField',
+                        'data-maxlength': '100'
+                    }
+                }) }}
+          </div>
+          {# =================================================
+            CHAMPS RESTANTS
+            
+            thumbnailFile, valid si présent, CSRF, etc.
+          ================================================= #}
+          {{ form_rest(form) }}
+          {# =================================================
+            VALIDATION
+          ================================================= #}
+          <div class="annonce-form-actions">
+            <button type="submit">
+              Enregistrer
+            </button>
+          </div>
+          {{ form_end(form, {
+                render_rest: false
+            }) }}
         </div>
-      {% endif %}
-    </header>
-
-    <div class="annonce-form-body">
-      {{ form_start(form) }}
-
-      <div class="form-grid">
-        {{ form_row(form.titre, { attr: {'data-annonce-form-target':'limitField', 'data-maxlength':'100'} }) }}
-        {{ form_row(form.organisateur, { attr: {'data-annonce-form-target':'limitField', 'data-maxlength':'100'} }) }}
-
-        {# ✅ FIX : une seule clé data-annonce-form-target, avec les 2 targets #}
-        {{ form_row(form.type, {
-          attr: {
-            'data-action': 'change->annonce-form#toggleAutreType',
-            'data-annonce-form-target': 'typeSelect limitField',
-            'data-maxlength': '50'
-          }
-        }) }}
-
-        <div class="autre-type {% if form.autreType.vars.data %}is-visible{% endif %}"
-             data-annonce-form-target="autreTypeWrapper">
-          {{ form_row(form.autreType, { attr: {'data-annonce-form-target':'limitField', 'data-maxlength':'50'} }) }}
-        </div>
-      </div>
-
-      <div class="form-grid form-block">
-        {{ form_row(form.ville, { attr: {'data-annonce-form-target':'limitField', 'data-maxlength':'50'} }) }}
-        {{ form_row(form.departement, { attr: {'data-annonce-form-target':'limitField', 'data-maxlength':'50'} }) }}
-        {{ form_row(form.adresse, { attr: {'data-annonce-form-target':'limitField', 'data-maxlength':'50'} }) }}
-      </div>
-
-      <div class="form-grid form-grid--dates form-block">
-        {{ form_row(form.dateDebut, { attr: {'data-controller':'flatpickr'} }) }}
-        {{ form_row(form.dateFin,   { attr: {'data-controller':'flatpickr'} }) }}
-        {{ form_row(form.horaire,   { attr: {'data-annonce-form-target':'limitField', 'data-maxlength':'50'} }) }}
-        {{ form_row(form.prix,      { attr: {'data-annonce-form-target':'limitField', 'data-maxlength':'50'} }) }}
-      </div>
-
-      <div class="form-block"
-           data-controller="tinymce"
-           data-tinymce-css-value="{{ absolute_url(asset('build/editable.css')) }}"
-           data-tinymce-richtext-css-value="{{ absolute_url(asset('build/annonce_show.css')) }}"
-           data-tinymce-body-class-value="richtext"
-           data-tinymce-upload-url-value="{{ path('admin.tinymce.upload') }}">
-        {{ form_row(form.presentation) }}
-      </div>
-
-      <div class="form-grid form-grid--1 form-block">
-        {{ form_row(form.contact, { attr: {'data-annonce-form-target':'limitField', 'data-maxlength':'100'} }) }}
-      </div>
-
-      {# ✅ Comme côté public : on rend les champs cachés (CSRF, etc.) #}
-      {{ form_rest(form) }}
-
-      <div class="annonce-form-actions">
-        <button type="submit">Enregistrer</button>
-      </div>
-
-      {{ form_end(form, { render_rest: false }) }}
+      </article>
     </div>
-  </article>
-</div>
-{% endblock %}
+  {% endblock %}
+  

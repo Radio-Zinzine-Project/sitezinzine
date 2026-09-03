@@ -1,7 +1,5 @@
 {% extends 'admin/admin.html.twig' %}
-
 {% block title 'Créer une émission' %}
-
 {% block body %}
   <style>
     /* scope strict, MAIS on exclut TinyMCE */
@@ -161,6 +159,33 @@
       opacity: .75;
     }
 
+    /* émission en direct */
+.main-content .em-form .em-live-field{
+  margin-top: 10px;
+}
+
+.main-content .em-form .em-live-field > div{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.main-content .em-form .em-live-field label{
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.main-content .em-form .em-live-field input[type="checkbox"]{
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #E4013A;
+  cursor: pointer;
+}
+
     /* responsive */
     @media (max-width: 960px){
       .main-content .em-form{
@@ -212,85 +237,79 @@
       }
     }
   </style>
-
   <div class="em-form">
     <h1>
       Créer une nouvelle émission
     </h1>
-
     {{ form_start(form, {
       attr: {
         'data-turbo': 'false',
         'data-controller': 'emission-form'
       }
     }) }}
-
-      {# Ligne 1 : Catégorie / Thème / Durée / Éditeur #}
-      <div class="grid-4">
-        <div class="field">
-          {{ form_row(form.categorie) }}
-        </div>
-        <div class="field">
-          {{ form_row(form.theme) }}
-        </div>
-        <div class="field">
-          {{ form_row(form.duree) }}
-        </div>
-        <div class="field">
-          {{ form_row(form.editeur) }}
+    {# Ligne 1 : Catégorie / Thème / Durée / Éditeur #}
+    <div class="grid-4">
+      <div class="field">
+        {{ form_row(form.categorie) }}
+      </div>
+      <div class="field">
+        {{ form_row(form.theme) }}
+      </div>
+      <div class="field">
+        {{ form_row(form.duree) }}
+        <div class="em-live-field">
+          {{ form_row(form.isLive) }}
         </div>
       </div>
-
-      {# Ligne 2 : Titre / Keyword / Ref #}
-      <div class="grid-3">
-        <div class="field">
-          {{ form_row(form.titre) }}
-        </div>
-        <div class="field">
-          {{ form_row(form.keyword) }}
-        </div>
-        <div class="field">
-          {{ form_row(form.ref) }}
-        </div>
+      <div class="field">
+        {{ form_row(form.editeur) }}
       </div>
-
-      {# Ligne 3 : 3 listes sur une ligne #}
-      <div class="grid-3-lists">
-        <div class="field">
-          {{ form_row(form.users) }}
-        </div>
-        <div class="field">
-          {{ form_row(form.invites) }}
-        </div>
-        <div class="field">
-          {{ form_row(form.inviteOldAnimateurs) }}
-        </div>
+    </div>
+    {# Ligne 2 : Titre / Keyword / Ref #}
+    <div class="grid-3">
+      <div class="field">
+        {{ form_row(form.titre) }}
       </div>
-
-      <small style="opacity:.7; display:block; margin-top: -6px;">
-        Maintenez Ctrl (ou Cmd sur Mac) pour ajouter ou retirer une sélection
-      </small>
-
-      {# Descriptif TinyMCE #}
-      <div class="tinymce-wrap" data-controller="tinymce">
-        {{ form_row(form.descriptif) }}
+      <div class="field">
+        {{ form_row(form.keyword) }}
       </div>
-
-      {# Fichiers + URL #}
-      <div class="grid-3">
-        <div class="field">
-          {{ form_row(form.thumbnailFile) }}
-        </div>
-        <div class="field">
-          {% if form.thumbnailFileMp3 is defined %}
-            {{ form_row(form.thumbnailFileMp3) }}
-          {% endif %}
-        </div>
-        <div class="field">
-          {{ form_row(form.url) }}
-        </div>
+      <div class="field">
+        {{ form_row(form.ref) }}
       </div>
-
+    </div>
+    {# Ligne 3 : 3 listes sur une ligne #}
+    <div class="grid-3-lists">
+      <div class="field">
+        {{ form_row(form.users) }}
+      </div>
+      <div class="field">
+        {{ form_row(form.invites) }}
+      </div>
+      <div class="field">
+        {{ form_row(form.inviteOldAnimateurs) }}
+      </div>
+    </div>
+    <small style="opacity:.7; display:block; margin-top: -6px;">
+      Maintenez Ctrl (ou Cmd sur Mac) pour ajouter ou retirer une sélection
+    </small>
+    {# Descriptif TinyMCE #}
+    <div class="tinymce-wrap" data-controller="tinymce">
+      {{ form_row(form.descriptif) }}
+    </div>
+    {# Fichiers + URL #}
+    <div class="grid-3">
+      <div class="field">
+        {{ form_row(form.thumbnailFile) }}
+      </div>
+      <div class="field">
+        {% if form.thumbnailFileMp3 is defined %}
+          {{ form_row(form.thumbnailFileMp3) }}
+        {% endif %}
+      </div>
+      <div class="field">
+        {{ form_row(form.url) }}
+      </div>
+    </div>
     {{ form_end(form) }}
   </div>
 {% endblock %}
