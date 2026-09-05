@@ -1,153 +1,554 @@
 {% extends 'admin/admin.html.twig' %}
 
-{% block title %}Gestion des pages{% endblock %}
+{% block title %}
+  Gestion des pages
+{% endblock %}
 
 {% block body %}
 
 <style>
-  .container {
+  /* =========================================================
+     PAGE
+     ========================================================= */
+
+  .editable-pages-page,
+  .editable-pages-page * {
+    box-sizing: border-box;
+  }
+
+  .editable-pages-page {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+
+    font-family: "Montserrat Alternates", sans-serif;
+  }
+
+  .editable-pages-container {
     display: flex;
     flex-direction: column;
     align-items: center;
+
     width: 100%;
+    max-width: 1200px;
+
     margin: 0 auto;
+    padding: 24px 20px 50px;
   }
 
-  .table-responsive {
+  .editable-pages-container h1 {
+    margin: 0 0 25px;
+
+    color: #fff;
+
+    font-size: 34px;
+    font-weight: 900;
+    line-height: 1.15;
+    text-align: center;
+  }
+
+
+  /* =========================================================
+     TABLEAU
+     ========================================================= */
+
+  .pages-table-wrapper {
     width: 80%;
-    overflow-x: auto;
+
     margin: 1rem 0;
+
     background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+    border-radius: 10px;
+
+    box-shadow:
+      0 4px 10px
+      rgba(0, 0, 0, 0.1);
+
+    overflow: hidden;
   }
 
-  table {
+  .pages-table {
     width: 100%;
-    border-collapse: collapse;
+
     margin: 0;
     padding: 0;
+
+    border-collapse: collapse;
   }
 
-  th, td {
+  .pages-table th,
+  .pages-table td {
     padding: 1rem;
+
     text-align: left;
-    border-bottom: 1px solid #ddd;
     vertical-align: middle;
+
+    border-bottom: 1px solid #ddd;
   }
 
-  th {
-    background-color: black;
+  .pages-table th {
+    background-color: #1C1C1A;
     color: white;
-    font-weight: bold;
+
+    font-weight: 800;
   }
 
-  tr:nth-child(even) { background-color: #f9f9f9; }
-  tr:hover { background-color: #f5f5f5; }
+  .pages-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+
+  .pages-table tbody tr:hover {
+    background-color: #f5f5f5;
+  }
+
+  .pages-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .pages-table code {
+    white-space: normal;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+
+  /* =========================================================
+     BOUTONS
+     ========================================================= */
 
   .btn-create {
     align-self: flex-start;
-    margin: 1rem 0;
-    margin-left: 10%;
+
     display: inline-block;
+
+    margin: 1rem 0 1rem 10%;
     padding: 0.6rem 1.1rem;
+
     background-color: white;
     color: black;
-    text-decoration: none;
+
     border: 2px solid black;
     border-radius: 26px;
+
     font-size: 0.95rem;
+
+    text-decoration: none;
+
     transition: all 0.3s ease;
   }
 
   .btn-create:hover {
     background-color: #E40039;
     color: white;
+
     border-color: #E40039;
   }
 
   .btn-edit {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 38px;
+
     padding: 0.5rem 1rem;
+
     background-color: white;
     color: black;
-    text-decoration: none;
+
     border: 2px solid black;
     border-radius: 26px;
+
     font-size: 0.9rem;
-    transition: all 0.3s ease;
+    font-weight: 700;
+
+    text-decoration: none;
     white-space: nowrap;
+
+    transition: all 0.3s ease;
   }
 
   .btn-edit:hover {
     background-color: #E40039;
     color: white;
+
     border-color: #E40039;
   }
 
+
+  /* =========================================================
+     MESSAGE SUCCESS
+     ========================================================= */
+
   .alert-success {
     width: 80%;
+
     margin: 0.5rem 0;
     padding: 0.75rem 1rem;
-    border-radius: 8px;
+
     background: #e9f7ef;
     color: #1e6b3a;
+
     border: 1px solid #bfe8cf;
+    border-radius: 8px;
+
+    overflow-wrap: anywhere;
   }
 
-  @media (max-width: 768px) {
-    .container { width: 100%; padding: 0 0.5rem; }
-    .table-responsive { width: 100%; }
-    th, td { padding: 0.5rem; }
-    .btn-edit { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
-    .btn-create { margin-left: 0; }
-    .alert-success { width: 100%; }
+
+  /* =========================================================
+     TABLETTE
+     ========================================================= */
+
+  @media screen and (max-width: 900px) {
+
+    .editable-pages-container {
+      padding: 22px 16px 45px;
+    }
+
+    .editable-pages-container h1 {
+      font-size: 30px;
+    }
+
+    .pages-table-wrapper,
+    .alert-success {
+      width: 100%;
+    }
+
+    .pages-table th,
+    .pages-table td {
+      padding: 0.75rem;
+    }
+
+    .btn-create {
+      margin-left: 0;
+    }
+  }
+
+
+  /* =========================================================
+     MOBILE
+     Transformation du tableau en cartes
+     ========================================================= */
+
+  @media screen and (max-width: 650px) {
+
+    .editable-pages-container {
+      padding: 18px 10px 40px;
+    }
+
+    .editable-pages-container h1 {
+      margin-bottom: 18px;
+
+      font-size: 27px;
+    }
+
+    .pages-table-wrapper {
+      background: transparent;
+
+      border-radius: 0;
+
+      box-shadow: none;
+
+      overflow: visible;
+    }
+
+    .pages-table,
+    .pages-table thead,
+    .pages-table tbody,
+    .pages-table tr,
+    .pages-table th,
+    .pages-table td {
+      display: block;
+
+      width: 100%;
+    }
+
+    .pages-table thead {
+      display: none;
+    }
+
+    .pages-table tbody {
+      display: flex;
+      flex-direction: column;
+
+      gap: 14px;
+    }
+
+    .pages-table tbody tr {
+      padding: 16px;
+
+      background: white !important;
+
+      border: 1px solid #e6e6e6;
+      border-radius: 12px;
+
+      box-shadow:
+        0 3px 10px
+        rgba(0, 0, 0, 0.08);
+    }
+
+    .pages-table tbody tr:hover {
+      background: white;
+    }
+
+    .pages-table td {
+      display: grid;
+
+      grid-template-columns:
+        minmax(95px, 120px)
+        minmax(0, 1fr);
+
+      gap: 10px;
+
+      padding: 8px 0;
+
+      border-bottom: 1px solid #eeeeee;
+
+      font-size: 14px;
+      line-height: 1.4;
+
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .pages-table td::before {
+      content: attr(data-label);
+
+      color: #555;
+
+      font-weight: 800;
+    }
+
+    .pages-table td:last-child {
+      border-bottom: none;
+
+      padding-top: 12px;
+      padding-bottom: 0;
+    }
+
+    .pages-table td.pages-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .pages-table td.pages-actions::before {
+      display: none;
+    }
+
+    .btn-edit {
+      min-width: 110px;
+
+      padding: 0.45rem 0.9rem;
+    }
+  }
+
+
+  /* =========================================================
+     PETIT MOBILE
+     ========================================================= */
+
+  @media screen and (max-width: 420px) {
+
+    .editable-pages-container {
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+
+    .editable-pages-container h1 {
+      font-size: 24px;
+    }
+
+    .pages-table tbody tr {
+      padding: 14px 12px;
+    }
+
+    .pages-table td {
+      grid-template-columns: 1fr;
+
+      gap: 3px;
+
+      padding: 7px 0;
+    }
+
+    .pages-table td::before {
+      font-size: 12px;
+    }
+
+    .pages-table td.pages-actions {
+      justify-content: stretch;
+    }
+
+    .btn-edit {
+      width: 100%;
+
+      min-width: 0;
+    }
+  }
+
+
+  /* =========================================================
+     TRÈS PETIT MOBILE
+     ========================================================= */
+
+  @media screen and (max-width: 350px) {
+
+    .editable-pages-container {
+      padding-left: 6px;
+      padding-right: 6px;
+    }
+
+    .pages-table tbody tr {
+      padding: 12px 10px;
+    }
+
+    .pages-table td {
+      font-size: 13px;
+    }
+  }
+
+
+  /* =========================================================
+     PAYSAGE
+     ========================================================= */
+
+  @media screen and (max-height: 500px) and (orientation: landscape) {
+
+    .editable-pages-container {
+      padding-top: 14px;
+    }
+
+    .editable-pages-container h1 {
+      margin-bottom: 14px;
+
+      font-size: 26px;
+    }
+
+    .pages-table tbody {
+      gap: 10px;
+    }
   }
 </style>
 
-<div class="container">
-  <h1>Pages éditables</h1>
 
- {#  <a href="{{ path('admin.page.create') }}" class="btn-create">
-    + Créer une nouvelle page
-  </a> #}
+<div class="editable-pages-page">
 
-  {% for message in app.flashes('success') %}
-    <div class="alert-success">{{ message }}</div>
-  {% endfor %}
+  <div class="editable-pages-container">
 
-  <div class="table-responsive">
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Slug</th>
-          <th>Titre</th>
-          <th>Dernière mise à jour</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for page in pages %}
+    <h1>
+      Pages éditables
+    </h1>
+
+
+    {#
+    <a
+      href="{{ path('admin.page.create') }}"
+      class="btn-create"
+    >
+      + Créer une nouvelle page
+    </a>
+    #}
+
+
+    {% for message in app.flashes('success') %}
+
+      <div class="alert-success">
+        {{ message }}
+      </div>
+
+    {% endfor %}
+
+
+    <div class="pages-table-wrapper">
+
+      <table class="pages-table">
+
+        <thead>
+
           <tr>
-            <td>{{ page.id }}</td>
-            <td><code>{{ page.slug }}</code></td>
-            <td>{{ page.title }}</td>
-            <td>{{ page.updatedAt ? page.updatedAt|date('d/m/Y H:i') : '—' }}</td>
-            <td>
-              <a href="{{ path('admin.page.edit', {id: page.id}) }}" class="btn-edit">
-                Éditer
-              </a>
-            </td>
+            <th>ID</th>
+            <th>Slug</th>
+            <th>Titre</th>
+            <th>Dernière mise à jour</th>
+            <th>Actions</th>
           </tr>
-        {% else %}
-          <tr>
-            <td colspan="5">Aucune page pour le moment.</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+        </thead>
+
+
+        <tbody>
+
+          {% for page in pages %}
+
+            <tr>
+
+              <td data-label="ID">
+                {{ page.id }}
+              </td>
+
+              <td data-label="Slug">
+                <code>
+                  {{ page.slug }}
+                </code>
+              </td>
+
+              <td data-label="Titre">
+                {{ page.title }}
+              </td>
+
+              <td data-label="Mise à jour">
+                {{ page.updatedAt
+                  ? page.updatedAt|date('d/m/Y H:i')
+                  : '—'
+                }}
+              </td>
+
+              <td
+                class="pages-actions"
+                data-label="Actions"
+              >
+
+                <a
+                  href="{{ path(
+                    'admin.page.edit',
+                    {
+                      id: page.id
+                    }
+                  ) }}"
+                  class="btn-edit"
+                >
+                  Éditer
+                </a>
+
+              </td>
+
+            </tr>
+
+          {% else %}
+
+            <tr>
+
+              <td
+                colspan="5"
+                data-label=""
+              >
+                Aucune page pour le moment.
+              </td>
+
+            </tr>
+
+          {% endfor %}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
   </div>
+
 </div>
 
 {% endblock %}

@@ -3,13 +3,14 @@
 {% block title %}Les infos Radio Zinzine{% endblock %}
 
 {% block body %}
+
 <style>
 .bodyinfos {
     background: linear-gradient(#E4013A, #B81C61);
     background-size: 100%;
     width: 100%;
     margin: 0;
-    padding: 0;
+    padding: 0 0 40px 0;
     display: flex;
     flex-direction: column;
     font-family: "Montserrat Alternates", sans-serif;
@@ -19,49 +20,91 @@
     position: relative;
     min-height: 100vh;
     color: white;
-    padding-bottom: 40px;
+}
+
+.bodyinfos,
+.bodyinfos * {
+    box-sizing: border-box;
 }
 
 .top img {
     width: 100%;
 }
-h1 {
+
+.bodyinfos h1 {
     text-align: center;
-    margin: 30px 20px 10px 20px;
+    margin: 30px 20px 10px;
     font-size: 36px;
     color: #ffffff;
 }
+
 .infos {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
     padding: 20px;
     text-align: center;
 }
 
 .infos h2 {
-    margin-top: 30px;
+    margin: 30px auto 10px;
     font-size: 28px;
+    line-height: 1.35;
     color: #fff;
     text-align: center;
+    max-width: 900px;
+}
+
+.infos-intro {
+    margin: 0 auto 30px;
+    line-height: 1.5;
+}
+
+.infos-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
 }
 
 .audio-player {
     background-color: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 10px;
-    padding: 15px;
-    margin: 15px auto;
+    padding: 18px;
+    margin: 0 auto;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-    width: 80%; /* Réduit la largeur */
-    max-width: 700px; /* Limite la largeur maximum */
-    text-align: center; /* Centre le contenu */
+    width: 80%;
+    max-width: 700px;
+    text-align: center;
 }
 
-audio {
+.audio-player-title {
+    margin: 0 0 8px;
+    font-size: 21px;
+    line-height: 1.35;
+}
+
+.audio-player-date {
+    margin: 0 0 12px;
+    font-size: 17px;
+    opacity: 0.9;
+}
+
+.audio-player-description {
+    margin: 0 0 15px;
+    font-size: 18px;
+    line-height: 1.45;
+}
+
+.audio-player audio {
     width: 100%;
-    max-width: 600px; /* Largeur optimale du lecteur */
+    max-width: 600px;
     outline: none;
     border-radius: 5px;
     display: block;
-    margin: 10px auto; /* Centrer le lecteur audio */
+    margin: 12px auto;
 }
 
 .download-button {
@@ -69,71 +112,219 @@ audio {
     background-color: #ffffff;
     color: #E4013A;
     text-decoration: none;
-    padding: 8px 12px;
+    padding: 8px 14px;
     border-radius: 5px;
     font-size: 16px;
     font-weight: bold;
-    transition: background 0.3s;
-    margin-top: 10px;
+    transition: background-color 0.3s;
+    margin-top: 8px;
 }
 
 .download-button:hover {
     background-color: #ffe6ec;
 }
 
+.infos-empty {
+    width: 80%;
+    max-width: 700px;
+    margin: 20px auto;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
 
-/* Responsive */
-@media (max-width: 600px) {
+.infos-footer {
+    margin: 30px auto 0;
+    line-height: 1.5;
+}
+
+/* Tablette */
+@media screen and (max-width: 900px) {
+    .bodyinfos h1 {
+        font-size: 32px;
+    }
+
+    .infos {
+        padding: 18px;
+    }
+
+    .infos h2 {
+        font-size: 25px;
+    }
+
+    .audio-player {
+        width: 90%;
+    }
+}
+
+/* Mobile */
+@media screen and (max-width: 600px) {
     .bodyinfos {
         font-size: 18px;
     }
 
+    .bodyinfos h1 {
+        margin: 22px 14px 8px;
+        font-size: 28px;
+    }
+
+    .infos {
+        padding: 14px;
+    }
+
     .infos h2 {
+        margin-top: 20px;
+        font-size: 22px;
+    }
+
+    .audio-player {
+        width: 100%;
+        padding: 14px;
+    }
+
+    .audio-player-title {
+        font-size: 19px;
+    }
+
+    .audio-player-date {
+        font-size: 15px;
+    }
+
+    .audio-player-description {
+        font-size: 16px;
+    }
+
+    .download-button {
+        width: 100%;
+        max-width: 260px;
+        padding: 10px 12px;
+    }
+
+    .infos-empty {
+        width: 100%;
+    }
+}
+
+/* Très petits écrans */
+@media screen and (max-width: 380px) {
+    .bodyinfos h1 {
         font-size: 24px;
     }
 
-    .audio-player p {
-        font-size: 18px;
+    .infos {
+        padding: 10px;
+    }
+
+    .infos h2 {
+        font-size: 20px;
+    }
+
+    .audio-player {
+        padding: 12px 10px;
+    }
+
+    .audio-player audio {
+        min-width: 0;
+    }
+}
+
+/* Mobile paysage */
+@media screen and (max-height: 520px) and (orientation: landscape) {
+    .bodyinfos h1 {
+        margin-top: 18px;
+        font-size: 26px;
+    }
+
+    .infos h2 {
+        margin-top: 15px;
+        font-size: 21px;
+    }
+
+    .audio-player {
+        width: 90%;
+        max-width: 760px;
     }
 }
 </style>
 
-
+<div class="bodyinfos">
 
     <h1>Les infos du soir</h1>
 
     <div class="infos">
-    <h2>Retrouvez les dernières infos du soir de Radio Zinzine, diffusées en direct à 19h00.</h2>
-        <p>Utilisez les lecteurs ci-dessous ou téléchargez les fichiers :</p>
 
-        <div class="audio-player">
-            <p><strong>Dimanche 06 juillet 2025 :</strong></p>
-            <audio controls>
-                <source src="https://radiozinzine.org/emissions/INS/2025/INSd25-07-06t19'30'00-SPX_IranHistoire.mp3" type="audio/mpeg">
-                Votre navigateur ne supporte pas la lecture audio.
-            </audio>
-            <a class="download-button" href="https://radiozinzine.org/emissions/INS/2025/INSd25-07-06t19'30'00-SPX_IranHistoire.mp3" download>⬇️ Télécharger</a>
+        <h2>
+            Retrouvez les dernières infos du soir de Radio Zinzine,
+            diffusées en direct à 19h00.
+        </h2>
+
+        <p class="infos-intro">
+            Utilisez les lecteurs ci-dessous ou téléchargez les fichiers :
+        </p>
+
+        <div class="infos-list">
+
+            {% for info in infos %}
+
+                <article class="audio-player">
+
+                    {% if info.title %}
+                        <p class="audio-player-title">
+                            <strong>{{ info.title }}</strong>
+                        </p>
+                    {% endif %}
+
+                    {% if info.publishedAt %}
+                        <p class="audio-player-date">
+                            {{ info.publishedAt|format_datetime(
+                                pattern="EEEE dd MMMM yyyy",
+                                locale="fr"
+                            )|capitalize }}
+                        </p>
+                    {% endif %}
+
+                    {% if info.description %}
+                        <p class="audio-player-description">
+                            {{ info.description|striptags }}
+                        </p>
+                    {% endif %}
+
+                    <audio controls preload="none">
+                        <source
+                            src="{{ info.audioUrl }}"
+                            type="audio/mpeg"
+                        >
+
+                        Votre navigateur ne supporte pas la lecture audio.
+                    </audio>
+
+                    <a
+                        class="download-button"
+                        href="{{ info.audioUrl }}"
+                        download
+                    >
+                        ⬇️ Télécharger
+                    </a>
+
+                </article>
+
+            {% else %}
+
+                <div class="infos-empty">
+                    Les dernières infos du soir sont momentanément indisponibles.
+                </div>
+
+            {% endfor %}
+
         </div>
 
-        <div class="audio-player">
-            <p><strong>Samedi 05 juillet 2025 :</strong></p>
-            <audio controls>
-                <source src="https://radiozinzine.org/emissions/INS/2025/INSd25-07-05t19'00'00-PetitAgendaCulturel-Juillet.mp3" type="audio/mpeg">
-                Votre navigateur ne supporte pas la lecture audio.
-            </audio>
-            <a class="download-button" href="https://radiozinzine.org/emissions/INS/2025/INSd25-07-05t19'00'00-PetitAgendaCulturel-Juillet.mp3" download>⬇️ Télécharger</a>
-        </div>
+        <p class="infos-footer">
+            Les infos sont mises à jour régulièrement pour vous tenir
+            informé·e des événements récents.
+        </p>
 
-        <div class="audio-player">
-            <p><strong>Vendredi 04 juillet 2025 :</strong></p>
-            <audio controls>
-                <source src="https://radiozinzine.org/emissions/INS/2025/INSd25-07-04t19'01'20-Genie.mp3" type="audio/mpeg">
-                Votre navigateur ne supporte pas la lecture audio.
-            </audio>
-            <a class="download-button" href="https://radiozinzine.org/emissions/INS/2025/INSd25-07-04t19'01'20-Genie.mp3" download>⬇️ Télécharger</a>
-        </div>
-
-        <p>Les infos sont mises à jour régulièrement pour vous tenir informé·e des événements récents.</p>
     </div>
+
+</div>
 
 {% endblock %}

@@ -3,356 +3,854 @@
   Administration - Radio Zinzine
 {% endblock %}
 {% block body %}
-  <style>
-/* ===== Admin Dashboard (scope) ===== */
+<style>
+/* =========================================================
+   TABLEAU DE BORD ADMIN
+   ========================================================= */
+
 .admin-dashboard {
-  color: white;
-  font-family: "Montserrat Alternates", sans-serif;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0 24px 40px;
+    box-sizing: border-box;
+
+    color: white;
+    font-family: "Montserrat Alternates", sans-serif;
 }
 
-/* ===== Bloc header user ===== */
-.admin-dashboard .alert.alert-info {
-  background: rgba(28, 28, 26, 0.55);
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 12px;
-  padding: 16px;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+/* Empêche les éléments flex de provoquer des débordements */
+.admin-dashboard *,
+.admin-dashboard *::before,
+.admin-dashboard *::after {
+    box-sizing: border-box;
 }
+
+
+/* =========================================================
+   EN-TÊTE UTILISATEUR
+   ========================================================= */
+
+.admin-dashboard .alert.alert-info {
+    width: 100%;
+    margin: 0 0 24px;
+
+    background: rgba(28, 28, 26, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+
+    padding: 16px;
+
+    color: #fff;
+
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 
 /* Boutons du header */
+
 .admin-dashboard .alert a.btn.btn-danger {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  padding: .6rem 1rem;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.18);
-  color: #fff;
-  text-decoration: none;
-  font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+
+    min-height: 42px;
+    padding: .6rem 1rem;
+
+    border-radius: 10px;
+
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+/* Le premier bouton pousse les actions vers la droite */
+.admin-dashboard .alert a.btn.btn-danger:first-of-type {
+    margin-left: auto;
 }
 
 .admin-dashboard .alert a.btn.btn-danger:hover {
-  background: rgba(255,255,255,0.14);
-  border-color: rgba(255,255,255,0.28);
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.28);
 }
+
+
+/* Ligne des rôles */
+
+.admin-dashboard .alert .mt-2 {
+    flex: 0 0 100%;
+    width: 100%;
+    margin-top: 4px !important;
+}
+
 
 /* Badges rôles */
+
 .admin-dashboard .badge.bg-primary {
-  display: inline-block;
-  padding: .25rem .6rem;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.18);
-  color: #fff;
-  font-weight: 700;
-  margin-right: 6px;
+    display: inline-block;
+
+    max-width: 100%;
+
+    padding: .25rem .6rem;
+    margin: 3px 6px 3px 0;
+
+    border-radius: 999px;
+
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+
+    color: #fff;
+    font-weight: 700;
+
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
-/* Intro */
-.admin-dashboard p {
-  max-width: 900px;
-  margin: 0 auto 10px auto;
-  line-height: 1.6;
+
+/* =========================================================
+   TITRE / INTRO
+   ========================================================= */
+
+.admin-dashboard > h1 {
+    margin: 20px auto;
+
+    color: #fff;
+
+    font-size: 2.4rem;
+    font-weight: 900;
+    line-height: 1.2;
+
+    text-align: center;
+}
+
+.admin-dashboard > p {
+    width: 100%;
+    max-width: 900px;
+
+    margin: 0 auto 10px;
+
+    line-height: 1.6;
+    overflow-wrap: anywhere;
 }
 
 .admin-dashboard p a {
-  color: #fff;
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 3px;
+    color: #fff;
+
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+
+    overflow-wrap: anywhere;
 }
 
 .admin-dashboard p a:hover {
-  color: #1C1C1A;
-  background: #fff;
-  text-decoration: none;
-  padding: 0 .2rem;
-  border-radius: 4px;
+    color: #1C1C1A;
+    background: #fff;
+
+    text-decoration: none;
+
+    padding: 0 .2rem;
+    border-radius: 4px;
 }
 
-/* ===== Layout général ===== */
+
+/* =========================================================
+   LAYOUT PRINCIPAL
+   ========================================================= */
+
+/*
+ * On neutralise les marges Bootstrap de .row
+ * car cette ligne utilise son propre layout flex.
+ */
 .admin-dashboard .row.mt-4 {
-  display: flex;
-  gap: 16px;
-  align-items: stretch;
-  flex-wrap: wrap;
+    width: 100%;
+
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+
+    display: flex;
+    align-items: stretch;
+    flex-wrap: wrap;
+
+    gap: 16px;
 }
+
 
 /* Colonne gauche */
+
 .admin-dashboard .dashboard-left-column {
-  flex: 1 1 260px;
-  min-width: 260px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+    flex: 1 1 340px;
+
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
+
 
 /* Colonne droite */
+
 .admin-dashboard .dashboard-right-column {
-  flex: 2 1 520px;
-  min-width: 320px;
+    flex: 2 1 600px;
+
+    min-width: 0;
 }
 
-/* Cartes */
+
+/* Bloc impersonation Bootstrap */
+
+.admin-dashboard .row.mt-4 > .col-12 {
+    flex: 0 0 100%;
+
+    width: 100%;
+    max-width: 100%;
+
+    padding-left: 0;
+    padding-right: 0;
+}
+
+
+/* =========================================================
+   CARTES
+   ========================================================= */
+
 .admin-dashboard .card {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 12px;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+    width: 100%;
+    min-width: 0;
+
+    background: rgba(255, 255, 255, 0.06);
+
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+
+    overflow: hidden;
 }
 
 .admin-dashboard .card .card-body {
-  padding: 16px;
-  color: white;
+    width: 100%;
+    min-width: 0;
+
+    padding: 16px;
+
+    color: white;
 }
 
+
 /* Titres / textes */
+
 .admin-dashboard .card-title {
-  color: #fff;
-  font-weight: 900;
-  margin: 0 0 6px 0;
+    margin: 0 0 6px;
+
+    color: #fff;
+
+    font-weight: 900;
+    line-height: 1.3;
 }
 
 .admin-dashboard .card-text {
-  margin: 0 0 12px 0;
-  color: rgba(255,255,255,0.92);
+    margin: 0 0 12px;
+
+    color: rgba(255, 255, 255, 0.92);
+
+    line-height: 1.5;
 }
 
-/* ===== Boutons dashboard ===== */
+
+/* =========================================================
+   BOUTONS DASHBOARD
+   ========================================================= */
+
 .admin-dashboard a.btn.btn-primary,
 .admin-dashboard button.btn.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: .65rem 1rem;
-  border-radius: 10px;
-  background: #fff;
-  color: #1C1C1A;
-  border: 1px solid rgba(0,0,0,0.15);
-  text-decoration: none;
-  font-weight: 800;
-  cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 42px;
+
+    padding: .65rem 1rem;
+
+    border-radius: 10px;
+
+    background: #fff;
+    color: #1C1C1A;
+
+    border: 1px solid rgba(0, 0, 0, 0.15);
+
+    text-decoration: none;
+    text-align: center;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-weight: 800;
+
+    cursor: pointer;
 }
 
 .admin-dashboard a.btn.btn-primary:hover,
 .admin-dashboard button.btn.btn-primary:hover {
-  background: rgba(255,255,255,0.92);
+    background: rgba(255, 255, 255, 0.92);
 }
 
-/* Bouton secondaire dans le même style visuel */
+
+/* Bouton secondaire */
+
 .admin-dashboard .btn.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: .65rem 1rem;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.08);
-  color: #fff;
-  border: 1px solid rgba(255,255,255,0.18);
-  text-decoration: none;
-  font-weight: 800;
-  cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 42px;
+
+    padding: .65rem 1rem;
+
+    border-radius: 10px;
+
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+
+    border: 1px solid rgba(255, 255, 255, 0.18);
+
+    text-decoration: none;
+    text-align: center;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-weight: 800;
+
+    cursor: pointer;
 }
 
 .admin-dashboard .btn.btn-secondary:hover {
-  background: rgba(255,255,255,0.14);
-  border-color: rgba(255,255,255,0.28);
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.28);
 }
 
-/* ===== Bloc changelog ===== */
+
+/* =========================================================
+   CHANGELOG
+   ========================================================= */
+
 .admin-dashboard .changelog-wrapper {
-  max-width: none;
-  margin: 0;
+    width: 100%;
+    max-width: none;
+
+    margin: 0;
 }
 
 .admin-dashboard #changelog {
-  max-height: 656px;
-  overflow-y: auto;
-  padding: 12px;
-  background: rgba(28, 28, 26, 0.85);
-  border: 1px solid rgba(255,255,255,0.16);
-  border-radius: 10px;
-  color: #fff;
-  font-size: 0.95rem;
-  line-height: 1.5;
+    width: 100%;
+
+    max-height: 656px;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    padding: 12px;
+
+    background: rgba(28, 28, 26, 0.85);
+
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 10px;
+
+    color: #fff;
+
+    font-size: .95rem;
+    line-height: 1.5;
+
+    overflow-wrap: anywhere;
 }
 
 .admin-dashboard #changelog h1,
 .admin-dashboard #changelog h2,
 .admin-dashboard #changelog h3 {
-  color: #fff;
-  font-size: 1.05rem;
-  margin: 12px 0 8px 0;
-  font-weight: 900;
+    margin: 12px 0 8px;
+
+    color: #fff;
+
+    font-size: 1.05rem;
+    font-weight: 900;
+
+    overflow-wrap: anywhere;
 }
 
 .admin-dashboard #changelog a {
-  color: #fff;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+    color: #fff;
+
+    text-decoration: underline;
+    text-underline-offset: 3px;
+
+    overflow-wrap: anywhere;
 }
 
 .admin-dashboard #changelog ul {
-  padding-left: 18px;
-  margin: 0 0 10px 0;
+    padding-left: 18px;
+    margin: 0 0 10px;
 }
 
 .admin-dashboard #changelog strong {
-  font-weight: 800;
+    font-weight: 800;
+}
+
+.admin-dashboard #changelog pre,
+.admin-dashboard #changelog code {
+    max-width: 100%;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.admin-dashboard #changelog img {
+    max-width: 100%;
+    height: auto;
 }
 
 .admin-dashboard #changelog::-webkit-scrollbar {
-  width: 8px;
+    width: 8px;
 }
 
 .admin-dashboard #changelog::-webkit-scrollbar-thumb {
-  background-color: rgba(255,255,255,0.35);
-  border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.35);
+    border-radius: 999px;
 }
 
 .admin-dashboard #changelog::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255,255,255,0.5);
+    background-color: rgba(255, 255, 255, 0.5);
 }
 
-/* ===== Bloc impersonation ===== */
+
+/* =========================================================
+   IMPERSONATION
+   ========================================================= */
+
 .admin-dashboard .admin-switch-user {
-  margin-top: 16px;
+    width: 100%;
+    margin-top: 0;
 }
 
 .admin-dashboard .switch-user-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .admin-dashboard .switch-user-form label {
-  color: white;
-  font-weight: 600;
+    color: white;
+    font-weight: 600;
 }
 
 .admin-dashboard .switch-user-select {
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 2px solid rgba(255,255,255,0.25);
-  background: rgba(255,255,255,0.95);
-  font-family: "Montserrat Alternates", sans-serif;
-  font-size: 1rem;
-  cursor: pointer;
+    width: 100%;
+    max-width: 600px;
+
+    padding: 10px 14px;
+
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+
+    background: rgba(255, 255, 255, 0.95);
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 1rem;
+
+    cursor: pointer;
 }
 
 .admin-dashboard .switch-user-select:focus {
-  outline: none;
-  border-color: #E40039;
+    outline: none;
+    border-color: #E40039;
 }
 
 .admin-dashboard .impersonation {
-  margin-top: 12px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: rgba(0,0,0,0.18);
-  border: 1px solid rgba(255,255,255,0.16);
-  color: white;
+    margin-top: 12px;
+
+    padding: 10px 12px;
+
+    border-radius: 10px;
+
+    background: rgba(0, 0, 0, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+
+    color: white;
+
+    overflow-wrap: anywhere;
 }
 
 .admin-dashboard .switch-user-exit {
-  margin-left: 10px;
-  color: #fff;
-  font-weight: 800;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+    display: inline-block;
+
+    margin-left: 10px;
+
+    color: #fff;
+
+    font-weight: 800;
+
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
-/* ===== Bloc émissions à finaliser ===== */
+
+/* =========================================================
+   ÉMISSIONS À FINALISER
+   ========================================================= */
+
 .admin-dashboard .pending-emissions-list {
-  list-style: none;
-  margin: 0 0 14px 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+    list-style: none;
+
+    margin: 0 0 14px;
+    padding: 0 8px 0 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    /* Environ 5 fiches visibles */
+    max-height: 560px;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    scrollbar-gutter: stable;
+}
+
+.admin-dashboard .pending-emissions-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.admin-dashboard .pending-emissions-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.admin-dashboard .pending-emissions-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 999px;
+}
+
+.admin-dashboard .pending-emissions-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
 }
 
 .admin-dashboard .pending-emission-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.18);
-  border: 1px solid rgba(255,255,255,0.14);
+    width: 100%;
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    padding: 10px 12px;
+
+    border-radius: 10px;
+
+    background: rgba(0, 0, 0, 0.18);
+
+    border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .admin-dashboard .pending-emission-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
+    flex: 1 1 auto;
+
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .admin-dashboard .pending-emission-content strong {
-  color: #fff;
-  font-weight: 800;
-  line-height: 1.3;
+    color: #fff;
+
+    font-weight: 800;
+    line-height: 1.3;
+
+    overflow-wrap: anywhere;
 }
 
 .admin-dashboard .pending-emission-meta {
-  color: rgba(255,255,255,0.82);
-  font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.82);
+
+    font-size: .92rem;
+
+    overflow-wrap: anywhere;
 }
 
 .admin-dashboard .pending-emission-badge {
-  display: inline-block;
-  width: fit-content;
-  padding: .22rem .55rem;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.18);
-  color: #fff;
-  font-size: 0.82rem;
-  font-weight: 700;
+    display: inline-block;
+
+    width: fit-content;
+    max-width: 100%;
+
+    padding: .22rem .55rem;
+
+    border-radius: 999px;
+
+    background: rgba(255, 255, 255, 0.12);
+
+    border: 1px solid rgba(255, 255, 255, 0.18);
+
+    color: #fff;
+
+    font-size: .82rem;
+    font-weight: 700;
 }
 
 .admin-dashboard .pending-emission-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex-shrink: 0;
+    flex: 0 0 auto;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 8px;
 }
 
 .admin-dashboard .pending-emission-actions form {
-  margin: 0;
+    margin: 0;
 }
 
-/* ===== Responsive ===== */
-@media (max-width: 900px) {
-  .admin-dashboard .alert a.btn.btn-danger {
-    margin-left: 0;
-  }
+
+/* =========================================================
+   RESPONSIVE — TABLETTE / PETIT DESKTOP
+   ========================================================= */
+
+@media screen and (max-width: 1100px) {
+
+    /*
+     * À cette largeur, on passe volontairement les deux grosses
+     * cartes l'une sous l'autre avant qu'elles deviennent étroites.
+     */
+
+    .admin-dashboard .dashboard-left-column,
+    .admin-dashboard .dashboard-right-column {
+        flex: 0 0 100%;
+
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .admin-dashboard #changelog {
+        max-height: 500px;
+    }
 }
 
-@media (max-width: 700px) {
-  .admin-dashboard .pending-emission-item {
-    flex-direction: column;
-    align-items: stretch;
-  }
 
-  .admin-dashboard .pending-emission-actions {
-    width: 100%;
-  }
+/* =========================================================
+   RESPONSIVE — TABLETTE
+   ========================================================= */
 
-  .admin-dashboard .pending-emission-actions .btn,
-  .admin-dashboard .pending-emission-actions form,
-  .admin-dashboard .pending-emission-actions button {
-    width: 100%;
-  }
+@media screen and (max-width: 768px) {
+
+    .admin-dashboard {
+        padding: 0 16px 30px;
+    }
+
+    .admin-dashboard > h1 {
+        font-size: 2rem;
+        margin: 18px auto;
+    }
+
+    .admin-dashboard .pending-emissions-list {
+    max-height: 720px;
+    }
+
+
+    /* Header */
+
+    .admin-dashboard .alert.alert-info {
+        align-items: stretch;
+
+        padding: 14px;
+
+        gap: 10px;
+    }
+
+    .admin-dashboard .alert a.btn.btn-danger:first-of-type {
+        margin-left: 0;
+    }
+
+    .admin-dashboard .alert a.btn.btn-danger {
+        flex: 1 1 calc(50% - 5px);
+    }
+
+
+    /* Émissions */
+
+    .admin-dashboard .pending-emission-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .admin-dashboard .pending-emission-actions {
+        width: 100%;
+
+        flex-direction: row;
+    }
+
+    .admin-dashboard .pending-emission-actions > .btn,
+    .admin-dashboard .pending-emission-actions form {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .admin-dashboard .pending-emission-actions form button {
+        width: 100%;
+        height: 100%;
+    }
+
+
+    /* Changelog */
+
+    .admin-dashboard #changelog {
+        max-height: 420px;
+    }
+}
+
+
+/* =========================================================
+   RESPONSIVE — MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 560px) {
+
+    .admin-dashboard {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .admin-dashboard > h1 {
+        font-size: 1.75rem;
+    }
+
+    .admin-dashboard > p {
+        font-size: .95rem;
+    }
+
+    .admin-dashboard .pending-emissions-list {
+    max-height: 760px;
+    }
+
+
+    /* Header */
+
+    .admin-dashboard .alert a.btn.btn-danger {
+        flex: 0 0 100%;
+        width: 100%;
+    }
+
+
+    /* Cartes */
+
+    .admin-dashboard .card .card-body {
+        padding: 14px;
+    }
+
+
+    /* Actions émissions */
+
+    .admin-dashboard .pending-emission-actions {
+        flex-direction: column;
+    }
+
+    .admin-dashboard .pending-emission-actions > .btn,
+    .admin-dashboard .pending-emission-actions form,
+    .admin-dashboard .pending-emission-actions button {
+        width: 100%;
+    }
+
+
+    /* Bouton "Voir toutes les émissions" */
+
+    .admin-dashboard .card-body > a.btn.btn-primary {
+        width: 100%;
+    }
+
+
+    /* Impersonation */
+
+    .admin-dashboard .switch-user-select {
+        max-width: 100%;
+    }
+
+    .admin-dashboard .switch-user-exit {
+        display: block;
+
+        margin: 8px 0 0;
+    }
+}
+
+
+/* =========================================================
+   TRÈS PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 380px) {
+
+    .admin-dashboard {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .admin-dashboard > h1 {
+        font-size: 1.55rem;
+    }
+
+    .admin-dashboard .alert.alert-info,
+    .admin-dashboard .card .card-body {
+        padding: 12px;
+    }
+
+    .admin-dashboard .pending-emission-item {
+        padding: 9px;
+    }
+
+    .admin-dashboard a.btn.btn-primary,
+    .admin-dashboard button.btn.btn-primary,
+    .admin-dashboard .btn.btn-secondary,
+    .admin-dashboard .alert a.btn.btn-danger {
+        padding-left: .7rem;
+        padding-right: .7rem;
+
+        font-size: .9rem;
+    }
+
+    .admin-dashboard #changelog {
+        padding: 10px;
+        font-size: .88rem;
+    }
+}
+
+
+/* =========================================================
+   MOBILE PAYSAGE
+   ========================================================= */
+
+@media screen and (max-height: 500px) and (orientation: landscape) {
+
+    .admin-dashboard {
+        padding-bottom: 20px;
+    }
+
+    .admin-dashboard > h1 {
+        margin: 12px auto;
+        font-size: 1.7rem;
+    }
+
+    .admin-dashboard .alert.alert-info {
+        padding: 10px 14px;
+    }
+
+    .admin-dashboard #changelog {
+        max-height: 300px;
+    }
 }
 </style>
   <div class="admin-dashboard container mt-4">

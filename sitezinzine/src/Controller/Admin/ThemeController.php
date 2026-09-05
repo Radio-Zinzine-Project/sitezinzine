@@ -2,6 +2,7 @@
 
 
 namespace App\Controller\Admin;
+
 use App\Entity\Theme;
 use App\Form\ThemeType;
 use App\Repository\ThemeRepository;
@@ -29,12 +30,28 @@ class ThemeController extends AbstractController
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => Requirement::DIGITS])]
-    public function show(Theme $theme, int $id, ThemeRepository $themeRepository)
-    {
-        $theme = $themeRepository->find($id);
+    public function show(
+        Theme $theme,
+        Request $request,
+        ThemeRepository $themeRepository
+    ): Response {
+        $page = $request->query->getInt('page', 1);
+
+        $initiale = strtoupper(
+            trim((string) $request->query->get('initiale', ''))
+        );
+
+        $emissions = $themeRepository->paginateEmissions(
+            theme: $theme,
+            page: $page,
+            initiale: $initiale
+        );
+
         return $this->render('admin/theme/show.html.twig', [
             'theme' => $theme,
-            
+            'emissions' => $emissions,
+            'initiale' => $initiale,
+            'alphabet' => range('A', 'Z'),
         ]);
     }
 

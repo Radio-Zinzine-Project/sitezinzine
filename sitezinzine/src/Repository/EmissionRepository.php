@@ -1072,7 +1072,7 @@ class EmissionRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
-    public function findAllPendingCompletion(int $limit = 5): array
+    public function findAllPendingCompletion(): array
     {
         return $this->createQueryBuilder('e')
             ->leftJoin('e.categorie', 'c')
@@ -1084,7 +1084,6 @@ class EmissionRepository extends ServiceEntityRepository
             ->setParameter('pending', true)
             ->orderBy('e.datepub', 'DESC')
             ->addOrderBy('e.id', 'DESC')
-            ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
     }
@@ -1367,17 +1366,17 @@ class EmissionRepository extends ServiceEntityRepository
     }
 
     public function findThemesForUser(User $user): array
-{
-    return $this->getEntityManager()
-        ->createQueryBuilder()
-        ->select('DISTINCT t')
-        ->from(\App\Entity\Theme::class, 't')
-        ->innerJoin(\App\Entity\Emission::class, 'e', 'WITH', 'e.theme = t')
-        ->innerJoin('e.users', 'u')
-        ->andWhere('u = :user')
-        ->setParameter('user', $user)
-        ->orderBy('t.name', 'ASC')
-        ->getQuery()
-        ->getResult();
-}
+    {
+        return $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('DISTINCT t')
+            ->from(\App\Entity\Theme::class, 't')
+            ->innerJoin(\App\Entity\Emission::class, 'e', 'WITH', 'e.theme = t')
+            ->innerJoin('e.users', 'u')
+            ->andWhere('u = :user')
+            ->setParameter('user', $user)
+            ->orderBy('t.name', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

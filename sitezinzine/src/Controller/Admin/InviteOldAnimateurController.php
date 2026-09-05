@@ -18,20 +18,54 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class InviteOldAnimateurController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(InviteOldAnimateurRepository $repo): Response
-    {
-        $inviteOldAnimateurs = $repo->findAll();
+    public function index(
+        Request $request,
+        InviteOldAnimateurRepository $repo
+    ): Response {
+        $initiale = strtoupper(
+            trim((string) $request->query->get('initiale', ''))
+        );
+
+        $type = trim(
+            (string) $request->query->get('type', '')
+        );
+
+        $inviteOldAnimateurs = $repo->findFiltered(
+            initiale: $initiale,
+            type: $type
+        );
 
         return $this->render('admin/InviteOldAnimateur/index.html.twig', [
             'InviteOldAnimateurs' => $inviteOldAnimateurs,
+            'initiale' => $initiale,
+            'type' => $type,
+            'alphabet' => range('A', 'Z'),
         ]);
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => Requirement::DIGITS])]
-    public function show(InviteOldAnimateur $inviteOldAnimateur): Response
-    {
+    public function show(
+        InviteOldAnimateur $inviteOldAnimateur,
+        Request $request,
+        InviteOldAnimateurRepository $inviteOldAnimateurRepository
+    ): Response {
+        $page = $request->query->getInt('page', 1);
+
+        $initiale = strtoupper(
+            trim((string) $request->query->get('initiale', ''))
+        );
+
+        $emissions = $inviteOldAnimateurRepository->paginateEmissions(
+            inviteOldAnimateur: $inviteOldAnimateur,
+            page: $page,
+            initiale: $initiale
+        );
+
         return $this->render('admin/InviteOldAnimateur/show.html.twig', [
             'InviteOldAnimateur' => $inviteOldAnimateur,
+            'emissions' => $emissions,
+            'initiale' => $initiale,
+            'alphabet' => range('A', 'Z'),
         ]);
     }
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.111] - 2026-09-05
+### Correction
+- Correction du responsive du tableau de bord.
+- Correction d ela liste à scroller des émissions à finaliser.
+- Correction du style et de la forme de la page invité·es, ancien·nes animateur·ices, create, edit et show.
+- Correction du responsive de la page catégories.
+- Correction du style et du responsive des pages thème, create, édit et show.
+- Correction du style et du responsive editeurs, create, edit et show.
+- Correction du style et de responsible des pages éditables, edit.
+- Correction du responsive de la page recherche admin.
+- Correction du responsive de la page users + tri par colonne.
+- Correction de la validation des drafts en cas de manipulation manuelle de la bdd.
+
+
 ## [1.0.110] - 2026-09-03
 ### Ajout
 - Ajout du numéro d'annonce sur les fiches côté public.

@@ -1,144 +1,351 @@
 {% extends 'admin/admin.html.twig' %}
-{% block title "Éditeur : " ~ editeur.name %}
-{% block body %}
-    <style>
 
-.titre {
-    text-align: center;
-    margin: 10px;
-}
-.bottom img {
+{% block title %}
+    Éditeur : {{ editeur.name }}
+{% endblock %}
+
+{% block body %}
+
+<style>
+/* =========================================================
+   PAGE
+   ========================================================= */
+
+.admin-editeur-show {
     width: 100%;
+    max-width: 100%;
+
+    overflow-x: hidden;
+
+    background: #fff;
+
+    font-family: "Montserrat Alternates", sans-serif;
+}
+
+.admin-editeur-show,
+.admin-editeur-show *,
+.admin-editeur-show *::before,
+.admin-editeur-show *::after {
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   BANDEAU
+   ========================================================= */
+
+.admin-editeur-show .editeur-show-hero {
+    width: 100%;
+
+    background: linear-gradient(
+        #E4013A,
+        #B81C61
+    );
+
+    color: white;
+}
+
+.admin-editeur-show .editeur-show-hero__content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    max-width: 1200px;
+
+    margin: 0 auto;
+    padding: 55px 20px 70px;
+
+    text-align: center;
+}
+
+.admin-editeur-show .editeur-show-hero h1 {
+    max-width: 100%;
+
+    margin: 0;
+
+    color: white;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 36pt;
+    font-weight: 900;
+    line-height: 1.15;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+
+/* =========================================================
+   DÉCHIRURE
+   ========================================================= */
+
+.admin-editeur-show .editeur-show-hero__bottom {
     display: block;
+
+    width: 100%;
+    height: auto;
+
     margin: 0;
     padding: 0;
 }
 
 
-.emissionsdelaediteur {
-    background-color: white;
-}
-article{
-    border: solid;
-    border-collapse: collapse;
-    display: grid;
-    grid-template-columns: 1fr 4fr 1fr;
-    margin: 0 80px;
-}
+/* =========================================================
+   PARTIE BLANCHE
+   ========================================================= */
 
-    
-    .col2 {
-       margin: 20px;
-    }
-    .col3 {
-        
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    grid-template-rows: 1fr; 
-    gap: 0px 0px; 
-    grid-template-areas: 
-      "ecoute dl"; 
-    align-items: center;
-    justify-self: center;
-    }
-
-.editdescriptif {
-    margin: 15px;
-}
-
-.bottom img{
+.admin-editeur-show .editeur-show-content {
     width: 100%;
-    margin-bottom: 0px;
-    padding-bottom: 0px;
-    
+
+    min-height: calc(100vh - 260px);
+
+    padding: 28px 20px 50px;
+
+    background: #fff;
 }
-.editemission img {
-    width: 150px;
+
+
+/* =========================================================
+   CONTENEUR DES ÉMISSIONS
+   ========================================================= */
+
+.admin-editeur-show .editeur-show-emissions {
+    width: 100%;
+    max-width: 1200px;
+
+    margin: 0 auto;
 }
-.editimg img {
-    float: left;
-    margin: 10px;
-    width: 250px;
+
+
+/* =========================================================
+   TITRE DE SECTION
+   ========================================================= */
+
+.admin-editeur-show .editeur-show-section-title {
+    margin: 0 0 24px;
+
+    color: #E4013A;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1.25;
+
+    text-align: center;
+
+    overflow-wrap: anywhere;
 }
-.ecoute img {
-        width: 40px;
-        height: 40px;
-        align-content: right;
-    }
-    
-    a {
-        padding: 14px 16px;
-        color: black;
-        text-decoration: none;
-        font-weight: 800;
+
+
+/* =========================================================
+   RESPONSIVE TABLETTE
+   ========================================================= */
+
+@media screen and (max-width: 900px) {
+
+    .admin-editeur-show .editeur-show-hero__content {
+        padding: 45px 20px 60px;
     }
 
-    a:hover {
-        padding: 14px 16px;
-        color: #E40039;
-        text-decoration: none;
-        font-weight: 800; 
+    .admin-editeur-show .editeur-show-hero h1 {
+        font-size: 32px;
     }
 
+    .admin-editeur-show .editeur-show-content {
+        padding: 24px 16px 45px;
+    }
+
+    .admin-editeur-show .editeur-show-section-title {
+        font-size: 22px;
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 600px) {
+
+    .admin-editeur-show .editeur-show-hero__content {
+        padding: 30px 14px 42px;
+    }
+
+    .admin-editeur-show .editeur-show-hero h1 {
+        font-size: 26px;
+    }
+
+    .admin-editeur-show .editeur-show-content {
+        padding: 20px 10px 40px;
+    }
+
+    .admin-editeur-show .editeur-show-section-title {
+        margin-bottom: 18px;
+
+        font-size: 20px;
+    }
+}
+
+
+/* =========================================================
+   PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 420px) {
+
+    .admin-editeur-show .editeur-show-hero__content {
+        padding: 24px 10px 36px;
+    }
+
+    .admin-editeur-show .editeur-show-hero h1 {
+        font-size: 23px;
+    }
+
+    .admin-editeur-show .editeur-show-content {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .admin-editeur-show .editeur-show-section-title {
+        font-size: 18px;
+    }
+}
+
+
+/* =========================================================
+   TRÈS PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 350px) {
+
+    .admin-editeur-show .editeur-show-content {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    .admin-editeur-show .editeur-show-hero h1 {
+        font-size: 21px;
+    }
+}
+
+
+/* =========================================================
+   MOBILE PAYSAGE
+   ========================================================= */
+
+@media screen and (max-height: 500px) and (orientation: landscape) {
+
+    .admin-editeur-show .editeur-show-hero__content {
+        padding-top: 20px;
+        padding-bottom: 32px;
+    }
+
+    .admin-editeur-show .editeur-show-hero h1 {
+        font-size: 24px;
+    }
+
+    .admin-editeur-show .editeur-show-content {
+        padding-top: 16px;
+    }
+}
 </style>
-    <div>
-        <div class="editblock">
-            <div class="titre">
-                <h1>
-                    {{ editeur.name }}
-                </h1>
-            </div>
+
+
+<div class="admin-editeur-show">
+
+    <header class="editeur-show-hero">
+
+        <div class="editeur-show-hero__content">
+
+            <h1>
+                {{ editeur.name }}
+            </h1>
+
         </div>
-        <div class="bottom">
-            <img src="/images/top-content-dechire-D.gif"></div>
-        </div>
-        <div class="emissionsdelaediteur">
-            <div class="titre">
-                <h2>
-                    Toutes les émissions de cet éditeur :
-                </h2>
-            </div>
-            <div class="editemission">
-                {% for emission in editeur.emissions | sort((a, b) => b.datepub <=> a.datepub) %}
-                    <article>
-                        <div class="col1">
-                            {% if emission.thumbnail %}
-                                <img src="{{ vich_uploader_asset(emission, 'thumbnailFile') }}" alt="Photo de {{ emission.titre }}">
-                                {% endif %}
-                            </div>
-                            <div class="col2">
-                                <h2>
-                                    {{ emission.titre }}
-                                </h2>
-                                <p>
-                                    {{ emission.datepub|date('d-m-Y') }}
-                                    {{ emission.descriptif | raw }}
-                                </p>
-                            </div>
-                            <div class="col3">
-                                {% if emission.url %}
-                                    <div class='ecoute'>
-                                        <a href="{{ emission.url }}">
-                                            <img src="/images/lecteur.png" alt="écoutez l'émission"></a>
-                                        </div>
-                                        <a class="btn btn-primary btn-sm" href="{{ path('admin.emission.edit', { id: emission.id }) }}" data-controller="return" data-return-url-value="{{ path('admin.emission.edit', { id: emission.id }) }}" data-action="click->return#redirectWithReturnTo">
-                                            Éditer
-                                        </a>
-                                    {% else %}
-                                        <p>
-                                            <div class='ecoute'>
-                                                Pas de fichier audio disponible
-                                            </div>
-                                            <a class="btn btn-primary btn-sm" href="{{ path('admin.emission.edit', { id: emission.id }) }}" data-controller="return" data-return-url-value="{{ path('admin.emission.edit', { id: emission.id }) }}" data-action="click->return#redirectWithReturnTo">
-                                                Éditer
-                                            </a>
-                                        </a>
-                                    </p>
-                                </div>
-                            {% endif %}
-                        </article>
-                    {% endfor %}
-                </div>
-            </div>
-        {% endblock %}
-        
+
+        <img
+            class="editeur-show-hero__bottom"
+            src="/images/top-content-dechire-D.gif"
+            alt=""
+        >
+
+    </header>
+
+
+<main class="editeur-show-content">
+
+    <div class="editeur-show-emissions">
+
+        {# =====================================================
+           PAGINATION ALPHABÉTIQUE SPÉCIFIQUE À L'ÉDITEUR
+           ===================================================== #}
+
+        <nav
+            class="alphabet-pagination"
+            aria-label="Navigation alphabétique"
+        >
+
+            <a
+                href="{{ path('admin.editeur.show', {
+                    id: editeur.id,
+                    initiale: '0-9',
+                    page: 1
+                }) }}#resultats"
+                class="{{ initiale == '0-9' ? 'active' : '' }}"
+            >
+                0-9
+            </a>
+
+            {% for lettre in alphabet %}
+
+                <a
+                    href="{{ path('admin.editeur.show', {
+                        id: editeur.id,
+                        initiale: lettre,
+                        page: 1
+                    }) }}#resultats"
+                    class="{{ initiale == lettre ? 'active' : '' }}"
+                >
+                    {{ lettre }}
+                </a>
+
+            {% endfor %}
+
+            <a
+                href="{{ path('admin.editeur.show', {
+                    id: editeur.id,
+                    page: 1
+                }) }}#resultats"
+                class="{{ initiale is empty ? 'active' : '' }}"
+            >
+                Toutes
+            </a>
+
+        </nav>
+
+
+        <div id="resultats" tabindex="-1"></div>
+
+        {% include 'partials/_emission_results.html.twig' with {
+            emissions: emissions,
+            showNoResults: true,
+            resultsTitle: 'Toutes les émissions de cet éditeur :',
+            noResultsText: 'Aucune émission associée à cet éditeur.',
+            showRoute: 'admin.emission.show',
+            isAdmin: true,
+            showAdminActions: true,
+            editRoute: 'admin.emission.edit',
+            deleteRoute: 'admin.emission.delete',
+            useKnpPagination: true,
+            useLivePagination: false,
+            useAlphabetPagination: false
+        } only %}
+
+    </div>
+
+</main>
+
+</div>
+
+{% endblock %}

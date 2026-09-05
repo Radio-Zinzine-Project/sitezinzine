@@ -1,73 +1,387 @@
 {% extends 'admin/admin.html.twig' %}
-{% block title "Thème : " ~ theme.name %}
-{% block stylesheets %}
-    {{ parent() }}
-    <style>
-   
- 
-    article{
-        border-color: black;
-        border: solid;
-    }
-    .themeemission {
-    background-color: white;
-        background-size: 100%;
-        min-height: 100vh;
-}
-.bottom img {
+
+{% block title %}
+    Thème : {{ theme.name }}
+{% endblock %}
+
+{% block body %}
+
+<style>
+.admin-theme-show {
     width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    background: #fff;
+    font-family: "Montserrat Alternates", sans-serif;
+}
+
+.admin-theme-show,
+.admin-theme-show *,
+.admin-theme-show *::before,
+.admin-theme-show *::after {
+    box-sizing: border-box;
+}
+
+.admin-theme-show .theme-show-hero {
+    width: 100%;
+    background: linear-gradient(#E4013A, #B81C61);
+    color: white;
+}
+
+.admin-theme-show .theme-show-hero__content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+
+    width: 100%;
+    max-width: 1200px;
+
+    margin: 0 auto;
+    padding: 45px 20px 60px;
+}
+
+.admin-theme-show .theme-show-hero__image {
+    flex: 0 0 auto;
+
+    width: 150px;
+    height: 150px;
+
+    border-radius: 12px;
+
+    object-fit: cover;
+
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .18);
+}
+
+.admin-theme-show .theme-show-hero h1 {
+    margin: 0;
+
+    color: white;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 36pt;
+    font-weight: 900;
+    line-height: 1.15;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.admin-theme-show .theme-show-hero__bottom {
     display: block;
+
+    width: 100%;
+    height: auto;
+
     margin: 0;
     padding: 0;
 }
-    </style>
-{% endblock %}
-{% block body %}
-    <div>
-        <h1>
-            {{ theme.name }}
-        </h1>
-        <p>
+
+.admin-theme-show .theme-show-content {
+    width: 100%;
+
+    min-height: calc(100vh - 260px);
+
+    padding: 28px 20px 50px;
+
+    background: #fff;
+}
+
+.admin-theme-show .theme-show-emissions {
+    width: 100%;
+    max-width: 1200px;
+
+    margin: 0 auto;
+}
+
+/* =========================================================
+   PAGINATION ALPHABÉTIQUE
+   ========================================================= */
+
+.admin-theme-show .alphabet-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+
+    gap: 5px;
+
+    width: 100%;
+
+    padding: 12px 0 18px;
+}
+
+.admin-theme-show .alphabet-pagination a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 34px;
+    height: 34px;
+
+    padding: 0 8px;
+
+    border: 2px solid #E4013A;
+    border-radius: 7px;
+
+    background: #fff;
+    color: #E4013A;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+
+    text-decoration: none;
+
+    transition: all .2s ease;
+}
+
+.admin-theme-show .alphabet-pagination a:hover,
+.admin-theme-show .alphabet-pagination a.active {
+    background: #E4013A;
+    color: #fff;
+}
+
+/* =========================================================
+   RESPONSIVE INTERMÉDIAIRE
+   ========================================================= */
+
+@media screen and (max-width: 900px) {
+
+    .admin-theme-show .theme-show-hero__content {
+        padding: 38px 18px 52px;
+    }
+
+    .admin-theme-show .theme-show-hero__image {
+        width: 130px;
+        height: 130px;
+    }
+
+    .admin-theme-show .theme-show-hero h1 {
+        font-size: 32px;
+    }
+
+    .admin-theme-show .theme-show-content {
+        padding: 24px 16px 45px;
+    }
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 600px) {
+
+    .admin-theme-show .theme-show-hero__content {
+        flex-direction: column;
+
+        gap: 16px;
+
+        padding: 28px 14px 42px;
+
+        text-align: center;
+    }
+
+    .admin-theme-show .theme-show-hero__image {
+        width: 110px;
+        height: 110px;
+    }
+
+    .admin-theme-show .theme-show-hero h1 {
+        font-size: 26px;
+    }
+
+    .admin-theme-show .theme-show-content {
+        padding: 20px 10px 40px;
+    }
+
+    .admin-theme-show .alphabet-pagination {
+        gap: 4px;
+    }
+
+    .admin-theme-show .alphabet-pagination a {
+        min-width: 30px;
+        height: 30px;
+
+        padding: 0 6px;
+
+        font-size: 12px;
+    }
+}
+
+/* =========================================================
+   PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 420px) {
+
+    .admin-theme-show .theme-show-hero__content {
+        padding: 24px 10px 36px;
+    }
+
+    .admin-theme-show .theme-show-hero__image {
+        width: 100px;
+        height: 100px;
+    }
+
+    .admin-theme-show .theme-show-hero h1 {
+        font-size: 23px;
+    }
+
+    .admin-theme-show .theme-show-content {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+}
+
+/* =========================================================
+   TRÈS PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 350px) {
+
+    .admin-theme-show .theme-show-hero__image {
+        width: 90px;
+        height: 90px;
+    }
+
+    .admin-theme-show .theme-show-hero h1 {
+        font-size: 21px;
+    }
+
+    .admin-theme-show .theme-show-content {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+}
+
+/* =========================================================
+   MOBILE PAYSAGE
+   ========================================================= */
+
+@media screen and (max-height: 500px) and (orientation: landscape) {
+
+    .admin-theme-show .theme-show-hero__content {
+        flex-direction: row;
+
+        padding-top: 18px;
+        padding-bottom: 30px;
+    }
+
+    .admin-theme-show .theme-show-hero__image {
+        width: 90px;
+        height: 90px;
+    }
+
+    .admin-theme-show .theme-show-hero h1 {
+        font-size: 24px;
+    }
+
+    .admin-theme-show .theme-show-content {
+        padding-top: 16px;
+    }
+}
+</style>
+
+
+<div class="admin-theme-show">
+
+    <header class="theme-show-hero">
+
+        <div class="theme-show-hero__content">
+
             {% if theme.thumbnail %}
-                <img src="{{ vich_uploader_asset(theme, 'thumbnailFile') }}" alt="Photo de {{ theme.name }}">
-                {% endif %}
-            </p>
-            <div class="bottom">
-                <img src="/images/top-content-dechire-D.gif"></div>
-            </div>
-            <div class="themeemission">
-                <h2>
-                    Toutes les émissions de ce thème :
-                </h2>
-                {% for emission in theme.emissions | sort((a, b) => b.datepub <=> a.datepub) %}
-                    {% if emission.url %}
-                        <article>
-                            <h3>
-                                {{ emission.titre }}
-                                -
-                                {% if emission.categorie %}
-                                    {{ emission.categorie.titre }}
-                                {% endif %}
-                            </h3>
-                            <p>
-                                {% if emission.thumbnail %}
-                                    <img src="{{ vich_uploader_asset(emission, 'thumbnailFile') }}" alt="Photo de {{ emission.titre }}">
-                                    {% endif %}
-                                </p>
-                                <p>
-                                    {{ emission.datepub|date('d-m-Y') }}
-                                    {{ emission.descriptif | raw }}
-                                </p>
-                                <p>
-                                    <a href="{{ emission.url }}">
-                                        Écoutez l'émission
-                                    </a>
-                                    <a class="btn btn-primary btn-sm" href="{{ path('admin.emission.edit', { id: emission.id }) }}" data-controller="return" data-return-url-value="{{ path('admin.emission.edit', { id: emission.id }) }}" data-action="click->return#redirectWithReturnTo">
-                                        Éditer
-                                    </a>
-                                </p>
-                            </article>
-                        {% endif %}
-                    {% endfor %}
-                {% endblock %}
-                
+                <img
+                    class="theme-show-hero__image"
+                    src="{{ vich_uploader_asset(theme, 'thumbnailFile') }}"
+                    alt="Photo de {{ theme.name }}"
+                >
+            {% endif %}
+
+            <h1>
+                {{ theme.name }}
+            </h1>
+
+        </div>
+
+        <img
+            class="theme-show-hero__bottom"
+            src="/images/top-content-dechire-D.gif"
+            alt=""
+        >
+
+    </header>
+
+
+    <main class="theme-show-content">
+
+        <div class="theme-show-emissions">
+
+            <nav
+                class="alphabet-pagination"
+                aria-label="Navigation alphabétique"
+            >
+
+                <a
+                    href="{{ path('admin.theme.show', {
+                        id: theme.id,
+                        initiale: '0-9',
+                        page: 1
+                    }) }}#resultats"
+                    class="{{ initiale == '0-9' ? 'active' : '' }}"
+                >
+                    0-9
+                </a>
+
+                {% for lettre in alphabet %}
+
+                    <a
+                        href="{{ path('admin.theme.show', {
+                            id: theme.id,
+                            initiale: lettre,
+                            page: 1
+                        }) }}#resultats"
+                        class="{{ initiale == lettre ? 'active' : '' }}"
+                    >
+                        {{ lettre }}
+                    </a>
+
+                {% endfor %}
+
+                <a
+                    href="{{ path('admin.theme.show', {
+                        id: theme.id,
+                        page: 1
+                    }) }}#resultats"
+                    class="{{ initiale is empty ? 'active' : '' }}"
+                >
+                    Toutes
+                </a>
+
+            </nav>
+
+            <div id="resultats" tabindex="-1"></div>
+
+            {% include 'partials/_emission_results.html.twig' with {
+                emissions: emissions,
+                showNoResults: true,
+                resultsTitle: 'Toutes les émissions de ce thème :',
+                noResultsText: 'Aucune émission associée à ce thème.',
+                showRoute: 'admin.emission.show',
+                isAdmin: true,
+                showAdminActions: true,
+                editRoute: 'admin.emission.edit',
+                deleteRoute: 'admin.emission.delete',
+                useKnpPagination: true,
+                useLivePagination: false,
+                useAlphabetPagination: false
+            } only %}
+
+        </div>
+
+    </main>
+
+</div>
+
+{% endblock %}

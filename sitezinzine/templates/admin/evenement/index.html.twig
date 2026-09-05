@@ -1,889 +1,1029 @@
 {% extends 'admin/admin.html.twig' %}
+
 {% block title %}
     Liste des événements
 {% endblock %}
+
 {% block body %}
-    <style>
-        /* =========================================================
-           PAGE
-           ========================================================= */
 
-        .evenement-page {
-            width: 100%;
-            font-family: "Montserrat Alternates", sans-serif;
-        }
+<style>
+/* =========================================================
+   PAGE
+   ========================================================= */
 
+.evenement-page {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
 
-        /* =========================================================
-           BANDEAU ROUGE
-           ========================================================= */
+    font-family: "Montserrat Alternates", sans-serif;
+}
 
-        .evenement-hero {
-            width: 100%;
+.evenement-page,
+.evenement-page *,
+.evenement-page *::before,
+.evenement-page *::after {
+    box-sizing: border-box;
+}
 
-            background: linear-gradient(
-                #E4013A,
-                #B81C61
-            );
 
-            color: white;
-        }
+/* =========================================================
+   BANDEAU ROUGE
+   ========================================================= */
 
-        .evenement-hero__content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+.evenement-hero {
+    width: 100%;
 
-            width: 100%;
-            max-width: 1200px;
+    background: linear-gradient(
+        #E4013A,
+        #B81C61
+    );
 
-            margin: 0 auto;
-            padding: 55px 20px 70px;
+    color: white;
+}
 
-            text-align: center;
-        }
+.evenement-hero__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 
-        .evenement-hero h1 {
-            margin: 0 0 35px;
+    width: 100%;
+    max-width: 1200px;
 
-            color: white;
+    margin: 0 auto;
+    padding: 55px 20px 70px;
 
-            font-family: "Montserrat Alternates", sans-serif;
-            font-size: 36pt;
-            font-weight: 900;
-            line-height: 1.1;
-        }
+    text-align: center;
+}
 
-        .evenement-hero .btn-create {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+.evenement-hero h1 {
+    margin: 0 0 35px;
 
-            width: auto;
-            min-width: 0;
-            min-height: 42px;
+    color: white;
 
-            padding: 10px 18px;
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 36pt;
+    font-weight: 900;
+    line-height: 1.1;
+}
 
-            background: white;
-            color: #E4013A;
+.evenement-hero .btn-create {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 
-            border: 2px solid white;
-            border-radius: 6px;
+    width: auto;
+    min-width: 0;
+    min-height: 42px;
 
-            font-family: "Montserrat Alternates", sans-serif;
-            font-size: 14px;
-            font-weight: 800;
+    padding: 10px 18px;
 
-            text-decoration: none;
+    background: white;
+    color: #E4013A;
 
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+    border: 2px solid white;
+    border-radius: 6px;
 
-            transition:
-                background-color 0.2s ease,
-                color 0.2s ease,
-                transform 0.2s ease;
-        }
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 14px;
+    font-weight: 800;
 
-        .evenement-hero .btn-create:hover {
-            background: transparent;
-            color: white;
+    text-decoration: none;
 
-            transform: translateY(-2px);
-        }
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
 
-        .evenement-hero__bottom {
-            display: block;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
 
-            width: 100%;
-            height: auto;
+.evenement-hero .btn-create:hover {
+    background: transparent;
+    color: white;
 
-            margin: 0;
-        }
+    transform: translateY(-2px);
+}
 
+.evenement-hero__bottom {
+    display: block;
 
-        /* =========================================================
-           CONTENU BLANC
-           ========================================================= */
+    width: 100%;
+    height: auto;
 
-        .evenement-content-wrapper {
-            width: 100%;
+    margin: 0;
+    padding: 0;
+}
 
-            padding: 30px 20px 50px;
 
-            background: white;
+/* =========================================================
+   CONTENU BLANC
+   ========================================================= */
 
-            box-sizing: border-box;
-        }
+.evenement-content-wrapper {
+    width: 100%;
 
+    padding: 30px 20px 50px;
 
-        /* =========================================================
-           LISTE
-           ========================================================= */
+    background: white;
+}
 
-        .evenement-list {
-            display: flex;
-            flex-direction: column;
 
-            gap: 20px;
+/* =========================================================
+   LISTE
+   ========================================================= */
 
-            width: 100%;
-            max-width: 1200px;
+.evenement-list {
+    display: flex;
+    flex-direction: column;
 
-            margin: 0 auto;
-            padding: 0;
-        }
+    gap: 20px;
 
+    width: 100%;
+    max-width: 1200px;
 
-        /* =========================================================
-           CARTE
-           ========================================================= */
+    margin: 0 auto;
+    padding: 0;
+}
 
-        .evenement-card {
-            display: grid;
 
-            grid-template-columns:
-                170px
-                minmax(0, 1fr)
-                140px;
+/* =========================================================
+   CARTE
+   ========================================================= */
 
-            gap: 20px;
-            align-items: center;
+.evenement-card {
+    display: grid;
 
-            width: 100%;
+    grid-template-columns:
+        170px
+        minmax(0, 1fr)
+        140px;
 
-            margin: 0;
-            padding: 20px;
+    gap: 20px;
+    align-items: center;
 
-            background: white;
-            color: #1C1C1A;
+    width: 100%;
 
-            border: 1px solid #eeeeee;
-            border-radius: 15px;
+    margin: 0;
+    padding: 20px;
 
-            box-sizing: border-box;
+    background: white;
+    color: #1C1C1A;
 
-            box-shadow:
-                0 4px 15px
-                rgba(0, 0, 0, 0.10);
+    border: 1px solid #eeeeee;
+    border-radius: 15px;
 
-            transition:
-                transform 0.3s ease,
-                box-shadow 0.3s ease,
-                border-color 0.3s ease;
-        }
+    box-shadow:
+        0 4px 15px
+        rgba(0, 0, 0, 0.10);
 
-        .evenement-card:hover {
-            transform: translateY(-5px);
+    transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease,
+        border-color 0.3s ease;
+}
 
-            border-color: #f3c2ce;
+.evenement-card:hover {
+    transform: translateY(-5px);
 
-            box-shadow:
-                0 10px 24px
-                rgba(0, 0, 0, 0.15);
-        }
+    border-color: #f3c2ce;
 
+    box-shadow:
+        0 10px 24px
+        rgba(0, 0, 0, 0.15);
+}
 
-        /* =========================================================
-           ÉVÉNEMENT NON VALIDÉ
-           ========================================================= */
 
-        .evenement-card--inactive {
-            background: #ededed;
+/* Carte sans image :
+   on supprime complètement la colonne image */
 
-            border: 2px dashed #888;
+.evenement-card--no-image {
+    grid-template-columns:
+        minmax(0, 1fr)
+        140px;
+}
 
-            box-shadow:
-                0 3px 10px
-                rgba(0, 0, 0, 0.06);
-        }
 
-        .evenement-card--inactive:hover {
-            border-color: #666;
+/* =========================================================
+   ÉVÉNEMENT NON VALIDÉ
+   ========================================================= */
 
-            box-shadow:
-                0 8px 20px
-                rgba(0, 0, 0, 0.12);
-        }
+.evenement-card--inactive {
+    background: #ededed;
 
-        .evenement-card--inactive .evenement-title a {
-            color: #666;
-        }
+    border: 2px dashed #888;
 
-        .evenement-card--inactive .evenement-presentation {
-            color: #666;
-        }
+    box-shadow:
+        0 3px 10px
+        rgba(0, 0, 0, 0.06);
+}
 
+.evenement-card--inactive:hover {
+    border-color: #666;
 
-        /* =========================================================
-           IMAGE
-           ========================================================= */
+    box-shadow:
+        0 8px 20px
+        rgba(0, 0, 0, 0.12);
+}
 
-        .evenement-image {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+.evenement-card--inactive .evenement-title a {
+    color: #666;
+}
 
-            width: 100%;
-            min-width: 0;
-        }
+.evenement-card--inactive .evenement-presentation {
+    color: #666;
+}
 
-        .evenement-image img {
-            display: block;
 
-            width: 150px;
-            height: 150px;
+/* =========================================================
+   IMAGE
+   ========================================================= */
 
-            object-fit: cover;
+.evenement-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-            border-radius: 10px;
+    width: 100%;
+    min-width: 0;
+}
 
-            box-shadow:
-                0 4px 8px
-                rgba(0, 0, 0, 0.1);
-        }
+.evenement-image img {
+    display: block;
 
-        .evenement-image__empty {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+    width: 150px;
+    height: 150px;
 
-            width: 150px;
-            height: 150px;
+    object-fit: cover;
 
-            padding: 15px;
+    border-radius: 10px;
 
-            box-sizing: border-box;
+    box-shadow:
+        0 4px 8px
+        rgba(0, 0, 0, 0.1);
+}
 
-            background: #f5f5f5;
-            color: #888;
 
-            border: 1px solid #e5e5e5;
-            border-radius: 10px;
+/* =========================================================
+   CONTENU
+   ========================================================= */
 
-            font-family: "Montserrat", sans-serif;
-            font-size: 12px;
-            font-weight: 600;
+.evenement-main {
+    min-width: 0;
+}
 
-            text-align: center;
-        }
+.evenement-badges {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
 
+    gap: 7px;
 
-        /* =========================================================
-           CONTENU
-           ========================================================= */
+    margin-bottom: 8px;
+}
 
-        .evenement-main {
-            min-width: 0;
-        }
+.evenement-type,
+.evenement-status {
+    display: inline-flex;
+    align-items: center;
 
-        .evenement-badges {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
+    padding: 4px 9px;
 
-            gap: 7px;
+    border-radius: 5px;
 
-            margin-bottom: 8px;
-        }
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.3px;
+}
 
-        .evenement-type,
-        .evenement-status {
-            display: inline-flex;
-            align-items: center;
+.evenement-type {
+    background: #E4013A;
+    color: white;
+}
 
-            padding: 4px 9px;
+.evenement-status {
+    background: #555;
+    color: white;
+}
 
-            border-radius: 5px;
+.evenement-title {
+    margin: 0 0 10px;
+}
 
-            font-family: "Montserrat Alternates", sans-serif;
-            font-size: 11px;
-            font-weight: 900;
-            letter-spacing: 0.3px;
-        }
+.evenement-title a {
+    display: block;
 
-        .evenement-type {
-            background: #E4013A;
-            color: white;
-        }
+    padding: 0;
 
-        .evenement-status {
-            background: #555;
-            color: white;
-        }
+    color: #E4013A;
 
-        .evenement-title {
-            margin: 0 0 10px;
-        }
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 20px;
+    font-weight: 700;
 
-        .evenement-title a {
-            display: block;
+    line-height: 1.3;
 
-            padding: 0;
+    text-decoration: none;
 
-            color: #E4013A;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 
-            font-family: "Montserrat Alternates", sans-serif;
-            font-size: 20px;
-            font-weight: 700;
+    transition: color 0.2s ease;
+}
 
-            line-height: 1.3;
+.evenement-title a:hover {
+    color: #B81C61;
+}
 
-            text-decoration: none;
 
-            overflow-wrap: anywhere;
-            word-break: break-word;
+/* =========================================================
+   INFORMATIONS
+   ========================================================= */
 
-            transition: color 0.2s ease;
-        }
+.evenement-infos {
+    display: flex;
+    flex-wrap: wrap;
 
-        .evenement-title a:hover {
-            color: #B81C61;
-        }
+    gap: 6px 18px;
 
+    margin-bottom: 12px;
 
-        /* =========================================================
-           INFORMATIONS
-           ========================================================= */
+    color: #555;
 
-        .evenement-infos {
-            display: flex;
-            flex-wrap: wrap;
+    font-family: "Montserrat", sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+}
 
-            gap: 6px 18px;
+.evenement-info {
+    min-width: 0;
 
-            margin-bottom: 12px;
+    overflow-wrap: anywhere;
+}
 
-            color: #555;
+.evenement-info strong {
+    color: #333;
+    font-weight: 700;
+}
 
-            font-family: "Montserrat", sans-serif;
-            font-size: 14px;
-            line-height: 1.4;
-        }
 
-        .evenement-info {
-            min-width: 0;
+/* =========================================================
+   PRÉSENTATION
+   ========================================================= */
 
-            overflow-wrap: anywhere;
-        }
+.evenement-presentation {
+    color: #333;
 
-        .evenement-info strong {
-            color: #333;
-            font-weight: 700;
-        }
+    font-family: "Montserrat", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
 
+    overflow-wrap: anywhere;
+    word-break: break-word;
 
-        /* =========================================================
-           PRÉSENTATION
-           ========================================================= */
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
 
-        .evenement-presentation {
-            color: #333;
+    overflow: hidden;
+}
 
-            font-family: "Montserrat", sans-serif;
-            font-size: 14px;
-            line-height: 1.5;
+.evenement-presentation p:first-child {
+    margin-top: 0;
+}
 
-            overflow-wrap: anywhere;
-            word-break: break-word;
+.evenement-presentation p:last-child {
+    margin-bottom: 0;
+}
 
-            display: -webkit-box;
-            -webkit-line-clamp: 6;
-            -webkit-box-orient: vertical;
 
-            overflow: hidden;
-        }
+/* =========================================================
+   ACTIONS
+   ========================================================= */
 
-        .evenement-presentation p:first-child {
-            margin-top: 0;
-        }
+.evenement-actions {
+    display: flex;
+    flex-direction: column;
 
-        .evenement-presentation p:last-child {
-            margin-bottom: 0;
-        }
+    gap: 12px;
 
+    width: 100%;
+    min-width: 0;
+}
 
-        /* =========================================================
-           ACTIONS
-           ========================================================= */
+.evenement-actions form {
+    display: block;
 
-        .evenement-actions {
-            display: flex;
-            flex-direction: column;
+    width: 100%;
 
-            gap: 12px;
+    margin: 0;
+    padding: 0;
+}
 
-            width: 100%;
-            min-width: 0;
-        }
+.evenement-actions > a,
+.evenement-actions > form > button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-        .evenement-actions form {
-            display: block;
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
 
-            width: 100%;
+    height: 44px;
 
-            margin: 0;
-            padding: 0;
-        }
+    margin: 0;
+    padding: 8px 12px;
 
-        .evenement-actions > a,
-        .evenement-actions > form > button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+    border: none;
+    border-radius: 8px;
 
-            width: 100%;
-            min-width: 100%;
-            max-width: 100%;
+    box-shadow:
+        0 4px 8px
+        rgba(0, 0, 0, 0.1);
 
-            height: 44px;
+    font-family: "Montserrat", sans-serif;
+    font-size: 14px;
+    font-weight: 600;
 
-            margin: 0;
-            padding: 8px 12px;
+    line-height: 1;
+    text-align: center;
+    text-decoration: none;
 
-            box-sizing: border-box;
+    cursor: pointer;
 
-            border: none;
-            border-radius: 8px;
+    transition:
+        transform 0.2s ease,
+        opacity 0.2s ease;
+}
 
-            box-shadow:
-                0 4px 8px
-                rgba(0, 0, 0, 0.1);
+.evenement-actions > a {
+    background: #666;
+    color: white;
+}
 
-            font-family: "Montserrat", sans-serif;
-            font-size: 14px;
-            font-weight: 600;
+.evenement-actions .btn-validation {
+    background: #E4013A;
+    color: white;
+}
 
-            line-height: 1;
-            text-align: center;
-            text-decoration: none;
+.evenement-actions .btn-delete {
+    background: #B81C61;
+    color: white;
+}
 
-            cursor: pointer;
+.evenement-actions > a:hover,
+.evenement-actions > form > button:hover {
+    transform: translateY(-2px);
 
-            transition:
-                transform 0.2s ease,
-                opacity 0.2s ease;
-        }
+    opacity: 0.95;
 
-        .evenement-actions > a {
-            background: #666;
-            color: white;
-        }
+    color: white;
+}
 
-        .evenement-actions .btn-validation {
-            background: #E4013A;
-            color: white;
-        }
 
-        .evenement-actions .btn-delete {
-            background: #B81C61;
-            color: white;
-        }
+/* =========================================================
+   LISTE VIDE
+   ========================================================= */
 
-        .evenement-actions > a:hover,
-        .evenement-actions > form > button:hover {
-            transform: translateY(-2px);
+.evenement-empty {
+    width: 100%;
 
-            opacity: 0.95;
+    margin: 0;
+    padding: 35px 20px;
 
-            color: white;
-        }
+    background: #f7f7f7;
+    color: #555;
 
+    border: 1px solid #eeeeee;
+    border-radius: 15px;
 
-        /* =========================================================
-           LISTE VIDE
-           ========================================================= */
+    font-family: "Montserrat", sans-serif;
+    font-size: 15px;
 
-        .evenement-empty {
-            width: 100%;
+    text-align: center;
+}
 
-            margin: 0;
-            padding: 35px 20px;
 
-            box-sizing: border-box;
+/* =========================================================
+   TABLETTE
+   ========================================================= */
 
-            background: #f7f7f7;
-            color: #555;
+@media screen and (max-width: 900px) {
 
-            border: 1px solid #eeeeee;
-            border-radius: 15px;
+    .evenement-hero__content {
+        padding:
+            45px
+            20px
+            60px;
+    }
 
-            font-family: "Montserrat", sans-serif;
-            font-size: 15px;
+    .evenement-hero h1 {
+        margin-bottom: 25px;
 
-            text-align: center;
-        }
+        font-size: 32px;
+    }
 
+    .evenement-card {
+        grid-template-columns:
+            140px
+            minmax(0, 1fr);
 
-        /* =========================================================
-           TABLETTE
-           ========================================================= */
+        align-items: start;
+    }
 
-        @media screen and (max-width: 900px) {
+    .evenement-card--no-image {
+        grid-template-columns: minmax(0, 1fr);
+    }
 
-            .evenement-hero__content {
-                padding:
-                    45px
-                    20px
-                    60px;
-            }
+    .evenement-image img {
+        width: 130px;
+        height: 130px;
+    }
 
-            .evenement-hero h1 {
-                margin-bottom: 25px;
+    .evenement-actions {
+        grid-column: 1 / -1;
 
-                font-size: 32px;
-            }
+        flex-direction: row;
+        justify-content: flex-end;
 
-            .evenement-card {
-                grid-template-columns:
-                    140px
-                    minmax(0, 1fr);
+        gap: 10px;
+    }
 
-                align-items: start;
-            }
+    .evenement-card--no-image .evenement-actions {
+        grid-column: 1;
+    }
 
-            .evenement-image img,
-            .evenement-image__empty {
-                width: 130px;
-                height: 130px;
-            }
+    .evenement-actions > a,
+    .evenement-actions > form {
+        width: 150px;
+    }
 
-            .evenement-actions {
-                grid-column: 1 / -1;
+    .evenement-actions > form > button {
+        width: 100%;
+    }
+}
 
-                flex-direction: row;
-                justify-content: flex-end;
 
-                gap: 10px;
-            }
+/* =========================================================
+   MOBILE
+   ========================================================= */
 
-            .evenement-actions > a,
-            .evenement-actions > form {
-                width: 150px;
-            }
+@media screen and (max-width: 600px) {
 
-            .evenement-actions > form > button {
-                width: 100%;
-            }
-        }
+    .evenement-content-wrapper {
+        padding:
+            22px
+            12px
+            40px;
+    }
 
+    .evenement-hero__content {
+        padding:
+            38px
+            15px
+            52px;
+    }
 
-        /* =========================================================
-           MOBILE
-           ========================================================= */
+    .evenement-hero h1 {
+        margin-bottom: 22px;
 
-        @media screen and (max-width: 600px) {
+        font-size: 28px;
+    }
 
-            .evenement-content-wrapper {
-                padding:
-                    22px
-                    12px
-                    40px;
-            }
+    .evenement-hero .btn-create {
+        max-width: 100%;
 
-            .evenement-hero__content {
-                padding:
-                    38px
-                    15px
-                    52px;
-            }
+        padding: 10px 14px;
 
-            .evenement-hero h1 {
-                margin-bottom: 22px;
+        font-size: 13px;
+    }
 
-                font-size: 28px;
-            }
+    .evenement-card,
+    .evenement-card--no-image {
+        grid-template-columns: 1fr;
 
-            .evenement-hero .btn-create {
-                max-width: 100%;
+        gap: 16px;
 
-                padding: 10px 14px;
+        padding: 16px;
+    }
 
-                font-size: 13px;
-            }
+    .evenement-image {
+        justify-content: flex-start;
+    }
 
-            .evenement-card {
-                grid-template-columns: 1fr;
+    .evenement-image img {
+        width: 120px;
+        height: 120px;
+    }
 
-                gap: 16px;
+    .evenement-actions,
+    .evenement-card--no-image .evenement-actions {
+        grid-column: auto;
 
-                padding: 16px;
-            }
+        display: grid;
+        grid-template-columns: 1fr 1fr;
 
-            .evenement-image {
-                justify-content: flex-start;
-            }
+        gap: 8px;
+    }
 
-            .evenement-image img,
-            .evenement-image__empty {
-                width: 120px;
-                height: 120px;
-            }
+    .evenement-actions > a,
+    .evenement-actions > form {
+        width: 100%;
+    }
 
-            .evenement-actions {
-                grid-column: auto;
+    .evenement-actions > form:last-child {
+        grid-column: 1 / -1;
+    }
 
-                display: grid;
-                grid-template-columns: 1fr 1fr;
+    .evenement-actions > a,
+    .evenement-actions > form > button {
+        min-width: 0;
 
-                gap: 8px;
-            }
+        height: 42px;
 
-            .evenement-actions > a,
-            .evenement-actions > form {
-                width: 100%;
-            }
+        padding: 7px 9px;
 
-            .evenement-actions > form:last-child {
-                grid-column: 1 / -1;
-            }
+        font-size: 13px;
+    }
+}
 
-            .evenement-actions > a,
-            .evenement-actions > form > button {
-                min-width: 0;
 
-                height: 42px;
+/* =========================================================
+   TRÈS PETIT ÉCRAN
+   ========================================================= */
 
-                padding: 7px 9px;
+@media screen and (max-width: 400px) {
 
-                font-size: 13px;
-            }
-        }
+    .evenement-hero h1 {
+        font-size: 25px;
+    }
 
+    .evenement-card,
+    .evenement-card--no-image {
+        padding: 14px;
+    }
 
-        /* =========================================================
-           TRÈS PETIT ÉCRAN
-           ========================================================= */
+    .evenement-title a {
+        font-size: 18px;
+    }
 
-        @media screen and (max-width: 400px) {
+    .evenement-infos {
+        flex-direction: column;
 
-            .evenement-hero h1 {
-                font-size: 25px;
-            }
+        gap: 4px;
+    }
 
-            .evenement-card {
-                padding: 14px;
-            }
+    .evenement-actions,
+    .evenement-card--no-image .evenement-actions {
+        display: flex;
+        flex-direction: column;
+    }
 
-            .evenement-title a {
-                font-size: 18px;
-            }
+    .evenement-actions > a,
+    .evenement-actions > form {
+        width: 100%;
+    }
+}
 
-            .evenement-infos {
-                flex-direction: column;
 
-                gap: 4px;
-            }
+/* =========================================================
+   PETITE HAUTEUR / PAYSAGE
+   ========================================================= */
 
-            .evenement-actions {
-                display: flex;
-                flex-direction: column;
-            }
+@media screen and (max-height: 500px) and (orientation: landscape) {
 
-            .evenement-actions > a,
-            .evenement-actions > form {
-                width: 100%;
-            }
-        }
+    .evenement-hero__content {
+        padding:
+            25px
+            20px
+            38px;
+    }
 
+    .evenement-hero h1 {
+        margin-bottom: 18px;
 
-        /* =========================================================
-           PETITE HAUTEUR / PAYSAGE
-           ========================================================= */
+        font-size: 28px;
+    }
+}
+</style>
 
-        @media screen and (max-height: 500px) and (orientation: landscape) {
 
-            .evenement-hero__content {
-                padding:
-                    25px
-                    20px
-                    38px;
-            }
+<div class="evenement-page">
 
-            .evenement-hero h1 {
-                margin-bottom: 18px;
+    {# =========================================================
+       BANDEAU ROUGE
+       ========================================================= #}
 
-                font-size: 28px;
-            }
-        }
-    </style>
-    <div class="evenement-page">
-        {# =========================================================
-            BANDEAU ROUGE
-        ========================================================= #}
-        <div class="evenement-hero">
-            <div class="evenement-hero__content">
-                <h1>
-                    Liste des événements
-                </h1>
-                <a class="btn-create" href="{{ path('admin.evenement.create') }}">
-                    Créer un nouvel événement
-                </a>
-            </div>
-            <img class="evenement-hero__bottom" src="/images/top-content-dechire-D.gif" alt=""></div>
-            {# =========================================================
-                ZONE BLANCHE
-            ========================================================= #}
-            <div class="evenement-content-wrapper">
-                <article class="evenement-list">
-                    {% for evenement in evenements %}
-                        <section class="
-                                evenement-card
-                                {{ not evenement.valid
-                                ? 'evenement-card--inactive'
-                                : '' }}
-                            ">
-                            {# =================================================
-                                IMAGE
-                            ================================================= #}
-                            <div class="evenement-image">
-                                {% if evenement.thumbnail %}
-                                    <img
-                                    src="{{ vich_uploader_asset(
-                                        evenement,
-                                        'thumbnailFile'
-                                    ) }}" alt="Photo de {{ evenement.titre }}">
-                                        {% else %}
-                                        <div class="evenement-image__empty">
-                                            Pas d'image
-                                        </div>
-                                    {% endif %}
-                                </div>
-                                {# =================================================
-                                    CONTENU
-                                ================================================= #}
-                                <div class="evenement-main">
-                                    <div class="evenement-badges">
-                                        {% if evenement.type %}
-                                            <span class="evenement-type">
-                                                {{ evenement.type }}
-                                            </span>
-                                        {% endif %}
-                                        {% if not evenement.valid %}
-                                            <span class="evenement-status">
-                                                NON VALIDÉ
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                    <h2 class="evenement-title">
-                                        <a href="{{ path(
+    <div class="evenement-hero">
+
+        <div class="evenement-hero__content">
+
+            <h1>
+                Liste des événements
+            </h1>
+
+            <a
+                class="btn-create"
+                href="{{ path('admin.evenement.create') }}"
+            >
+                Créer un nouvel événement
+            </a>
+
+        </div>
+
+        <img
+            class="evenement-hero__bottom"
+            src="/images/top-content-dechire-D.gif"
+            alt=""
+        >
+
+    </div>
+
+
+    {# =========================================================
+       ZONE BLANCHE
+       ========================================================= #}
+
+    <div class="evenement-content-wrapper">
+
+        <article class="evenement-list">
+
+            {% for evenement in evenements %}
+
+                <section class="
+                    evenement-card
+                    {{ not evenement.thumbnail ? 'evenement-card--no-image' : '' }}
+                    {{ not evenement.valid ? 'evenement-card--inactive' : '' }}
+                ">
+
+                    {# =================================================
+                       IMAGE
+                       ================================================= #}
+
+                    {% if evenement.thumbnail %}
+
+                        <div class="evenement-image">
+
+                            <img
+                                src="{{ vich_uploader_asset(
+                                    evenement,
+                                    'thumbnailFile'
+                                ) }}"
+                                alt="Photo de {{ evenement.titre }}"
+                            >
+
+                        </div>
+
+                    {% endif %}
+
+
+                    {# =================================================
+                       CONTENU
+                       ================================================= #}
+
+                    <div class="evenement-main">
+
+                        <div class="evenement-badges">
+
+                            {% if evenement.type %}
+
+                                <span class="evenement-type">
+                                    {{ evenement.type }}
+                                </span>
+
+                            {% endif %}
+
+                            {% if not evenement.valid %}
+
+                                <span class="evenement-status">
+                                    NON VALIDÉ
+                                </span>
+
+                            {% endif %}
+
+                        </div>
+
+
+                        <h2 class="evenement-title">
+
+                            <a
+                                href="{{ path(
                                     'admin.evenement.show',
                                     {
                                         id: evenement.id
                                     }
-                                ) }}">
-                                            {{ evenement.titre }}
-                                        </a>
-                                    </h2>
-                                    <div class="evenement-infos">
-                                        {% if evenement.organisateur %}
-                                            <div class="evenement-info">
-                                                <strong>
-                                                    Organisateur :
-                                                </strong>
-                                                {{ evenement.organisateur }}
-                                            </div>
-                                        {% endif %}
-                                        {% if evenement.ville or evenement.departement %}
-                                            <div class="evenement-info">
-                                                <strong>
-                                                    Lieu :
-                                                </strong>
-                                                {% if evenement.ville %}
-                                                    {{ evenement.ville }}
-                                                {% endif %}
-                                                {% if evenement.departement %}
-                                                    {% if evenement.ville %}
-                                                        —
-                                                    {% endif %}
-                                                    {{ evenement.departement }}
-                                                {% endif %}
-                                            </div>
-                                        {% endif %}
-                                        <div class="evenement-info">
-                                            <strong>
-                                                Date :
-                                            </strong>
-                                            {{ evenement.dateDebut|date('d/m/Y') }}
-                                            {% if evenement.dateFin %}
-                                                {% if evenement.dateFin|date('Y-m-d')
-                                            != evenement.dateDebut|date('Y-m-d') %}
-                                                    au
-                                                    {{ evenement.dateFin|date('d/m/Y') }}
-                                                {% endif %}
-                                            {% endif %}
-                                        </div>
-                                        {% if evenement.horaire %}
-                                            <div class="evenement-info">
-                                                <strong>
-                                                    Horaire :
-                                                </strong>
-                                                {{ evenement.horaire }}
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                    {% if evenement.presentation %}
-                                        <div class="evenement-presentation">
-                                            {{ evenement.presentation|raw }}
-                                        </div>
-                                    {% endif %}
+                                ) }}"
+                            >
+                                {{ evenement.titre }}
+                            </a>
+
+                        </h2>
+
+
+                        <div class="evenement-infos">
+
+                            {% if evenement.organisateur %}
+
+                                <div class="evenement-info">
+
+                                    <strong>
+                                        Organisateur :
+                                    </strong>
+
+                                    {{ evenement.organisateur }}
+
                                 </div>
-                                {# =================================================
-                                    ACTIONS
-                                ================================================= #}
-                                <div class="evenement-actions">
-                                    <a href="#" data-controller="return" data-return-url-value="{{ path(
-                                    'admin.evenement.edit',
-                                    {
-                                        id: evenement.id
-                                    }
-                                ) }}" data-action="click->return#redirectWithReturnTo">
-                                        Éditer
-                                    </a>
-                                    {% if evenement.valid %}
-                                        <form action="{{ path(
-                                        'admin.evenement.unvalid',
-                                        {
-                                            id: evenement.id
-                                        }
-                                    ) }}" method="post">
-                                            <button type="submit" class="btn-validation">
-                                                Dévalider
-                                            </button>
-                                        </form>
-                                    {% else %}
-                                        <form action="{{ path(
-                                        'admin.evenement.valid',
-                                        {
-                                            id: evenement.id
-                                        }
-                                    ) }}" method="post">
-                                            <button type="submit" class="btn-validation">
-                                                Valider
-                                            </button>
-                                        </form>
+
+                            {% endif %}
+
+
+                            {% if evenement.ville or evenement.departement %}
+
+                                <div class="evenement-info">
+
+                                    <strong>
+                                        Lieu :
+                                    </strong>
+
+                                    {% if evenement.ville %}
+                                        {{ evenement.ville }}
                                     {% endif %}
-                                    <form action="{{ path(
-                                    'admin.evenement.softDelete',
-                                    {
-                                        id: evenement.id
-                                    }
-                                ) }}" method="post">
-                                        <input type="hidden" name="_method" value="DELETE">
-                                            <button type="submit" class="btn-delete">
-                                                Supprimer
-                                            </button>
-                                        </form>
-                                    </div>
-                                </section>
-                            {% else %}
-                                <div class="evenement-empty">
-                                    Aucun événement à afficher.
+
+                                    {% if evenement.departement %}
+
+                                        {% if evenement.ville %}
+                                            —
+                                        {% endif %}
+
+                                        {{ evenement.departement }}
+
+                                    {% endif %}
+
                                 </div>
-                            {% endfor %}
-                        </article>
+
+                            {% endif %}
+
+
+                            <div class="evenement-info">
+
+                                <strong>
+                                    Date :
+                                </strong>
+
+                                {{ evenement.dateDebut|date('d/m/Y') }}
+
+                                {% if evenement.dateFin %}
+
+                                    {% if evenement.dateFin|date('Y-m-d') != evenement.dateDebut|date('Y-m-d') %}
+
+                                        au
+                                        {{ evenement.dateFin|date('d/m/Y') }}
+
+                                    {% endif %}
+
+                                {% endif %}
+
+                            </div>
+
+
+                            {% if evenement.horaire %}
+
+                                <div class="evenement-info">
+
+                                    <strong>
+                                        Horaire :
+                                    </strong>
+
+                                    {{ evenement.horaire }}
+
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+
+                        {% if evenement.presentation %}
+
+                            <div class="evenement-presentation">
+                                {{ evenement.presentation|raw }}
+                            </div>
+
+                        {% endif %}
+
                     </div>
+
+
+                    {# =================================================
+                       ACTIONS
+                       ================================================= #}
+
+                    <div class="evenement-actions">
+
+                        <a
+                            href="#"
+                            data-controller="return"
+                            data-return-url-value="{{ path(
+                                'admin.evenement.edit',
+                                {
+                                    id: evenement.id
+                                }
+                            ) }}"
+                            data-action="click->return#redirectWithReturnTo"
+                        >
+                            Éditer
+                        </a>
+
+
+                        {% if evenement.valid %}
+
+                            <form
+                                action="{{ path(
+                                    'admin.evenement.unvalid',
+                                    {
+                                        id: evenement.id
+                                    }
+                                ) }}"
+                                method="post"
+                            >
+
+                                <button
+                                    type="submit"
+                                    class="btn-validation"
+                                >
+                                    Dévalider
+                                </button>
+
+                            </form>
+
+                        {% else %}
+
+                            <form
+                                action="{{ path(
+                                    'admin.evenement.valid',
+                                    {
+                                        id: evenement.id
+                                    }
+                                ) }}"
+                                method="post"
+                            >
+
+                                <button
+                                    type="submit"
+                                    class="btn-validation"
+                                >
+                                    Valider
+                                </button>
+
+                            </form>
+
+                        {% endif %}
+
+
+                        <form
+                            action="{{ path(
+                                'admin.evenement.softDelete',
+                                {
+                                    id: evenement.id
+                                }
+                            ) }}"
+                            method="post"
+                        >
+
+                            <input
+                                type="hidden"
+                                name="_method"
+                                value="DELETE"
+                            >
+
+                            <button
+                                type="submit"
+                                class="btn-delete"
+                            >
+                                Supprimer
+                            </button>
+
+                        </form>
+
+                    </div>
+
+                </section>
+
+            {% else %}
+
+                <div class="evenement-empty">
+                    Aucun événement à afficher.
                 </div>
-            {% endblock %}
-            
+
+            {% endfor %}
+
+        </article>
+
+    </div>
+
+</div>
+
+{% endblock %}

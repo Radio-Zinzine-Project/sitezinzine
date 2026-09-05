@@ -21,6 +21,15 @@ final class GridPublicationService
     /**
      * Prépare la validation d’une semaine sans effectuer aucune écriture.
      *
+     * Après une dévalidation, DiffusionDraft est la source de vérité.
+     *
+     * - Un Draft ayant encore une publishedDiffusion met à jour cette Diffusion.
+     * - Un Draft sans publishedDiffusion peut réutiliser une ancienne Diffusion
+     *   non revendiquée située au même horaire.
+     * - S'il n'existe aucune Diffusion réutilisable, une nouvelle sera créée.
+     * - Une ancienne Diffusion non utilisée ne bloque pas la validation :
+     *   elle reste simplement non publiée.
+     *
      * @return array{
      *     weekStart: \DateTimeImmutable,
      *     weekEnd: \DateTimeImmutable,
@@ -36,9 +45,12 @@ final class GridPublicationService
      *     canPublish: bool
      * }
      */
-    public function previewWeekPublication(\DateTimeImmutable $weekStart): array
-    {
-        [$weekStart, $weekEnd] = $this->resolveRadioWeekBounds($weekStart);
+    public function previewWeekPublication(
+        \DateTimeImmutable $weekStart
+    ): array {
+        [$weekStart, $weekEnd] = $this->resolveRadioWeekBounds(
+            $weekStart
+        );
 
         $drafts = $this->draftRepository->findPublishableByWeek(
             $weekStart,
@@ -46,8 +58,11 @@ final class GridPublicationService
         );
 
         /*
-         * Les Diffusion présentes dans la semaine sont chargées une seule fois.
-         * On les indexe ensuite par horaire pour éviter une requête par draft.
+         * Toutes les Diffusion encore présentes dans la semaine sont chargées.
+         *
+         * Après dévalidation, certaines représentent l'ancienne version
+         * validée de la grille. Elles ne doivent donc pas être considérées
+         * automatiquement comme des conflits.
          */
         $existingDiffusions = $this->diffusionRepository->findByWeek(
             $weekStart,
@@ -58,6 +73,37 @@ final class GridPublicationService
             $existingDiffusions
         );
 
+        /*
+         * Une Diffusion déjà liée à un Draft publiable est réservée à ce Draft.
+         *
+         * Cela évite qu'un autre Draft sans publishedDiffusion récupère
+         * accidentellement cette même Diffusion.
+         *
+         * Structure :
+         * diffusionId => draftId
+         */
+        $reservedDiffusionIds = [];
+
+        foreach ($drafts as $draft) {
+            if (!$draft instanceof DiffusionDraft) {
+                continue;
+            }
+
+            $publishedDiffusion = $draft->getPublishedDiffusion();
+
+            if (!$publishedDiffusion instanceof Diffusion) {
+                continue;
+            }
+
+            $diffusionId = $publishedDiffusion->getId();
+
+            if (null === $diffusionId) {
+                continue;
+            }
+
+            $reservedDiffusionIds[$diffusionId] = $draft->getId();
+        }
+
         $items = [];
         $conflicts = [];
         $assignmentGroupKeys = [];
@@ -66,6 +112,10 @@ final class GridPublicationService
         $updateCount = 0;
 
         foreach ($drafts as $draft) {
+            if (!$draft instanceof DiffusionDraft) {
+                continue;
+            }
+
             $startsAt = $draft->getHoraireDiffusion();
 
             if (!$startsAt instanceof \DateTimeInterface) {
@@ -90,58 +140,179 @@ final class GridPublicationService
                 continue;
             }
 
-            $publishedDiffusion = $draft->getPublishedDiffusion();
-
-            /*
-             * Un draft dévalidé conserve publishedDiffusion :
-             * sa prochaine validation fera donc un UPDATE.
-             *
-             * Un draft jamais publié n’a pas de Diffusion liée :
-             * sa validation fera un CREATE.
-             */
-            $action = $publishedDiffusion instanceof Diffusion
-                ? 'update'
-                : 'create';
-
-            if ('update' === $action) {
-                $updateCount++;
-            } else {
-                $createCount++;
-            }
-
             $horaireKey = $this->buildHoraireKey($startsAt);
 
             $diffusionsAtSameTime = $diffusionsByHoraire[$horaireKey] ?? [];
 
-            /*
-             * La Diffusion déjà liée au draft n’est pas un conflit :
-             * elle constitue précisément la ligne que l’on mettra à jour.
-             *
-             * Toute autre Diffusion au même horaire est bloquante.
-             */
-            $foreignDiffusions = array_values(array_filter(
-                $diffusionsAtSameTime,
-                static function (Diffusion $existing) use ($publishedDiffusion): bool {
-                    if (!$publishedDiffusion instanceof Diffusion) {
-                        return true;
-                    }
+            $publishedDiffusion = $draft->getPublishedDiffusion();
 
-                    return $existing->getId() !== $publishedDiffusion->getId();
-                }
-            ));
-
+            $targetDiffusion = null;
+            $action = null;
             $itemConflicts = [];
 
-            if ([] !== $foreignDiffusions) {
-                $itemConflicts[] = [
-                    'type' => 'existing_diffusion_at_same_time',
-                    'message' => sprintf(
-                        'Une autre diffusion existe déjà le %s.',
-                        $startsAt->format('d/m/Y à H:i')
-                    ),
-                    'draft' => $draft,
-                    'existingDiffusions' => $foreignDiffusions,
-                ];
+            /*
+             * CAS 1
+             * -----
+             * Le Draft possède encore la Diffusion à laquelle il était lié
+             * avant la dévalidation.
+             *
+             * On conserve cette même Diffusion et on la mettra à jour.
+             */
+            if ($publishedDiffusion instanceof Diffusion) {
+                $targetDiffusion = $publishedDiffusion;
+                $action = 'update';
+
+                $targetDiffusionId = $publishedDiffusion->getId();
+
+                /*
+                 * On vérifie uniquement qu'aucune AUTRE Diffusion déjà
+                 * réservée à un autre Draft actif ne revendique exactement
+                 * le même horaire.
+                 *
+                 * Les anciennes Diffusion non revendiquées sont ignorées :
+                 * elles appartiennent à une ancienne version de la semaine
+                 * et restent non publiées.
+                 */
+                foreach ($diffusionsAtSameTime as $existing) {
+                    if (!$existing instanceof Diffusion) {
+                        continue;
+                    }
+
+                    $existingId = $existing->getId();
+
+                    if (null === $existingId) {
+                        continue;
+                    }
+
+                    if (
+                        null !== $targetDiffusionId
+                        && $existingId === $targetDiffusionId
+                    ) {
+                        continue;
+                    }
+
+                    if (!isset($reservedDiffusionIds[$existingId])) {
+                        continue;
+                    }
+
+                    $ownerDraftId = $reservedDiffusionIds[$existingId];
+
+                    if ($ownerDraftId === $draft->getId()) {
+                        continue;
+                    }
+
+                    $itemConflicts[] = [
+                        'type' => 'diffusion_reserved_by_other_draft',
+                        'message' => sprintf(
+                            'Une autre émission du brouillon utilise déjà le créneau du %s.',
+                            $startsAt->format('d/m/Y à H:i')
+                        ),
+                        'draft' => $draft,
+                        'existingDiffusions' => [$existing],
+                    ];
+                }
+            } else {
+                /*
+                 * CAS 2
+                 * -----
+                 * Draft sans publishedDiffusion.
+                 *
+                 * Cela peut arriver :
+                 * - pour un nouveau créneau ajouté après dévalidation ;
+                 * - pour un Draft dont l'ancien lien a disparu ;
+                 * - pour une nouvelle série générée dans la semaine brouillon.
+                 *
+                 * DiffusionDraft reste la source de vérité.
+                 */
+
+                $diffusionsReservedByOtherDraft = [];
+                $reusableDiffusions = [];
+
+                foreach ($diffusionsAtSameTime as $existing) {
+                    if (!$existing instanceof Diffusion) {
+                        continue;
+                    }
+
+                    $existingId = $existing->getId();
+
+                    if (null === $existingId) {
+                        continue;
+                    }
+
+                    if (isset($reservedDiffusionIds[$existingId])) {
+                        $diffusionsReservedByOtherDraft[] = $existing;
+
+                        continue;
+                    }
+
+                    /*
+                     * Cette Diffusion n'est utilisée par aucun autre Draft
+                     * publiable de la semaine.
+                     *
+                     * Elle appartient donc potentiellement à l'ancienne
+                     * version dévalidée et peut être réutilisée.
+                     */
+                    $reusableDiffusions[] = $existing;
+                }
+
+                /*
+                 * Si une Diffusion au même horaire est déjà réservée à
+                 * un autre Draft actif, on ne peut pas la voler.
+                 *
+                 * C'est un vrai conflit de brouillon.
+                 */
+                if ([] !== $diffusionsReservedByOtherDraft) {
+                    $itemConflicts[] = [
+                        'type' => 'diffusion_reserved_by_other_draft',
+                        'message' => sprintf(
+                            'Une autre émission du brouillon utilise déjà le créneau du %s.',
+                            $startsAt->format('d/m/Y à H:i')
+                        ),
+                        'draft' => $draft,
+                        'existingDiffusions' => $diffusionsReservedByOtherDraft,
+                    ];
+                } elseif (1 === count($reusableDiffusions)) {
+                    /*
+                     * Une seule ancienne Diffusion libre existe au même
+                     * horaire : on la réutilise.
+                     *
+                     * Exemple :
+                     *
+                     * ancienne Diffusion :
+                     * 06/09 19h -> émission 11931
+                     *
+                     * nouveau Draft :
+                     * 06/09 19h -> émission 11945
+                     *
+                     * => UPDATE de l'ancienne Diffusion.
+                     */
+                    $targetDiffusion = $reusableDiffusions[0];
+                    $action = 'update';
+
+                    $targetId = $targetDiffusion->getId();
+
+                    if (null !== $targetId) {
+                        $reservedDiffusionIds[$targetId] = $draft->getId();
+                    }
+                } else {
+                    /*
+                     * Aucune ancienne Diffusion réutilisable.
+                     *
+                     * C'est donc un véritable nouveau créneau.
+                     *
+                     * Si plusieurs anciennes Diffusion non revendiquées
+                     * existent au même horaire, on ne choisit pas arbitrairement
+                     * laquelle réutiliser : on crée une nouvelle ligne propre.
+                     * Les anciennes restent non publiées.
+                     */
+                    $action = 'create';
+                }
+            }
+
+            if ('update' === $action) {
+                $updateCount++;
+            } elseif ('create' === $action) {
+                $createCount++;
             }
 
             foreach ($itemConflicts as $conflict) {
@@ -151,18 +322,27 @@ final class GridPublicationService
             $items[] = [
                 'draft' => $draft,
                 'action' => $action,
-                'targetDiffusion' => $publishedDiffusion,
-                'startsAt' => \DateTimeImmutable::createFromInterface($startsAt),
+                'targetDiffusion' => $targetDiffusion,
+                'startsAt' => \DateTimeImmutable::createFromInterface(
+                    $startsAt
+                ),
                 'hasConflict' => [] !== $itemConflicts,
                 'conflicts' => $itemConflicts,
             ];
 
             $assignmentGroupKey = $draft->getAssignmentGroupKey();
 
-            if (\is_string($assignmentGroupKey) && '' !== trim($assignmentGroupKey)) {
+            if (
+                \is_string($assignmentGroupKey)
+                && '' !== trim($assignmentGroupKey)
+            ) {
                 $assignmentGroupKeys[] = $assignmentGroupKey;
             }
         }
+
+        $assignmentGroupKeys = array_values(
+            array_unique($assignmentGroupKeys)
+        );
 
         $futureDraftsLeft = $this->draftRepository
             ->findFutureDraftsByAssignmentGroupKeys(
@@ -201,6 +381,7 @@ final class GridPublicationService
         \DateTimeImmutable $date
     ): array {
         $date = $date->setTime(0, 0, 0);
+
         $dayOfWeek = (int) $date->format('N');
 
         $daysSinceTuesday = match ($dayOfWeek) {
@@ -216,7 +397,9 @@ final class GridPublicationService
 
         $weekStart = 0 === $daysSinceTuesday
             ? $date
-            : $date->modify(sprintf('-%d days', $daysSinceTuesday));
+            : $date->modify(
+                sprintf('-%d days', $daysSinceTuesday)
+            );
 
         return [
             $weekStart,
@@ -229,8 +412,9 @@ final class GridPublicationService
      *
      * @return array<string, Diffusion[]>
      */
-    private function indexDiffusionsByHoraire(array $diffusions): array
-    {
+    private function indexDiffusionsByHoraire(
+        array $diffusions
+    ): array {
         $index = [];
 
         foreach ($diffusions as $diffusion) {
@@ -245,30 +429,38 @@ final class GridPublicationService
             }
 
             $key = $this->buildHoraireKey($horaire);
+
             $index[$key][] = $diffusion;
         }
 
         return $index;
     }
 
-    private function buildHoraireKey(\DateTimeInterface $horaire): string
-    {
+    private function buildHoraireKey(
+        \DateTimeInterface $horaire
+    ): string {
         return $horaire->format('Y-m-d H:i:s');
     }
 
     /**
      * Valide intégralement une semaine radio.
      *
-     * La preview est recalculée dans la transaction afin d’éviter de publier
-     * des données qui auraient changé entre l’affichage et la confirmation.
+     * La preview est recalculée dans la transaction afin d’éviter
+     * de publier des données qui auraient changé entre l’affichage
+     * et la confirmation.
+     *
+     * DiffusionDraft constitue la source de vérité de la semaine.
      *
      * @return array<string, mixed>
      */
-    public function publishWeek(\DateTimeImmutable $weekStart): array
-    {
+    public function publishWeek(
+        \DateTimeImmutable $weekStart
+    ): array {
         return $this->entityManager->wrapInTransaction(
             function () use ($weekStart): array {
-                $preview = $this->previewWeekPublication($weekStart);
+                $preview = $this->previewWeekPublication(
+                    $weekStart
+                );
 
                 if ($preview['hasBlockingConflicts']) {
                     throw new \DomainException(
@@ -283,17 +475,16 @@ final class GridPublicationService
                 }
 
                 /*
-             * La preview fournit déjà les éléments dans l’ordre chronologique
-             * puisque findPublishableByWeek() trie par horaire.
-             *
-             * On trie néanmoins explicitement ici pour conserver
-             * un ordre de traitement stable.
-             */
+                 * On conserve un ordre de traitement stable.
+                 */
                 $items = $preview['items'];
 
                 usort(
                     $items,
-                    static function (array $a, array $b): int {
+                    static function (
+                        array $a,
+                        array $b
+                    ): int {
                         $startsAtA = $a['startsAt'] ?? null;
                         $startsAtB = $b['startsAt'] ?? null;
 
@@ -310,11 +501,13 @@ final class GridPublicationService
                             return $comparison;
                         }
 
-                        $draftIdA = $a['draft'] instanceof DiffusionDraft
+                        $draftIdA = $a['draft']
+                            instanceof DiffusionDraft
                             ? ($a['draft']->getId() ?? 0)
                             : 0;
 
-                        $draftIdB = $b['draft'] instanceof DiffusionDraft
+                        $draftIdB = $b['draft']
+                            instanceof DiffusionDraft
                             ? ($b['draft']->getId() ?? 0)
                             : 0;
 
@@ -347,7 +540,10 @@ final class GridPublicationService
                     $emission = $draft->getEmission();
                     $startsAt = $draft->getHoraireDiffusion();
 
-                    if (null === $emission || null === $emission->getId()) {
+                    if (
+                        null === $emission
+                        || null === $emission->getId()
+                    ) {
                         throw new \LogicException(
                             sprintf(
                                 'Le draft #%d ne possède pas d’émission valide.',
@@ -366,13 +562,15 @@ final class GridPublicationService
                     }
 
                     /*
-                 * Le rang est déjà déterminé dans DiffusionDraft.
-                 * On ne le recalcule pas à partir de l'historique
-                 * des diffusions de l'émission.
-                 */
+                     * Le rang est déjà déterminé dans DiffusionDraft.
+                     * On ne le recalcule pas depuis l'historique.
+                     */
                     $nombreDiffusion = $draft->getNombreDiffusion();
 
-                    if (null === $nombreDiffusion || $nombreDiffusion < 1) {
+                    if (
+                        null === $nombreDiffusion
+                        || $nombreDiffusion < 1
+                    ) {
                         throw new \LogicException(
                             sprintf(
                                 'Le draft #%d possède un nombreDiffusion invalide.',
@@ -381,19 +579,36 @@ final class GridPublicationService
                         );
                     }
 
-                    $diffusion = $draft->getPublishedDiffusion();
+                    /*
+                     * IMPORTANT :
+                     *
+                     * On utilise la targetDiffusion déterminée pendant
+                     * la preview.
+                     *
+                     * Elle peut être :
+                     * - la publishedDiffusion historique du Draft ;
+                     * - une ancienne Diffusion réutilisée au même horaire ;
+                     * - null pour un nouveau créneau.
+                     */
+                    $diffusion = $item['targetDiffusion'] ?? null;
 
                     if ($diffusion instanceof Diffusion) {
                         $updated[] = $diffusion;
                     } else {
                         $diffusion = new Diffusion();
+
                         $this->entityManager->persist($diffusion);
+
                         $created[] = $diffusion;
                     }
 
-                    $durationMinutes = $draft->getEffectiveDurationMinutes();
+                    $durationMinutes = $draft
+                        ->getEffectiveDurationMinutes();
 
-                    if (null !== $durationMinutes && $durationMinutes < 1) {
+                    if (
+                        null !== $durationMinutes
+                        && $durationMinutes < 1
+                    ) {
                         $durationMinutes = null;
                     }
 
@@ -403,27 +618,51 @@ final class GridPublicationService
                         null === $endsAt
                         && null !== $durationMinutes
                     ) {
-                        $endsAt = \DateTimeImmutable::createFromInterface($startsAt)
-                            ->modify(sprintf('+%d minutes', $durationMinutes));
+                        $endsAt = \DateTimeImmutable
+                            ::createFromInterface($startsAt)
+                            ->modify(
+                                sprintf(
+                                    '+%d minutes',
+                                    $durationMinutes
+                                )
+                            );
                     }
 
-                    $mutableStartsAt = \DateTime::createFromInterface($startsAt);
+                    $mutableStartsAt = \DateTime::createFromInterface(
+                        $startsAt
+                    );
 
                     $mutableEndsAt = null;
 
                     if ($endsAt instanceof \DateTimeInterface) {
-                        $mutableEndsAt = \DateTime::createFromInterface($endsAt);
+                        $mutableEndsAt = \DateTime::createFromInterface(
+                            $endsAt
+                        );
                     }
 
+                    /*
+                     * Le Draft est la source de vérité :
+                     * toutes les valeurs publiées proviennent de lui.
+                     */
                     $diffusion
                         ->setEmission($emission)
                         ->setHoraireDiffusion($mutableStartsAt)
                         ->setNombreDiffusion($nombreDiffusion)
                         ->setDurationMinutes($durationMinutes)
                         ->setEndsAt($mutableEndsAt)
-                        ->setAssignmentGroupKey($draft->getAssignmentGroupKey())
+                        ->setAssignmentGroupKey(
+                            $draft->getAssignmentGroupKey()
+                        )
                         ->markAsPublished();
 
+                    /*
+                     * markAsPublished() rattache également le Draft
+                     * à la Diffusion réellement utilisée.
+                     *
+                     * C'est particulièrement important lorsqu'on vient
+                     * de récupérer une ancienne Diffusion qui n'était
+                     * plus liée au Draft.
+                     */
                     $draft->markAsPublished(
                         $diffusion,
                         new \DateTimeImmutable()
@@ -438,13 +677,19 @@ final class GridPublicationService
                     'published' => true,
                     'weekStart' => $preview['weekStart'],
                     'weekEnd' => $preview['weekEnd'],
+
                     'createdCount' => count($created),
                     'updatedCount' => count($updated),
-                    'publishedDraftCount' => count($publishedDrafts),
+                    'publishedDraftCount' => count(
+                        $publishedDrafts
+                    ),
+
                     'created' => $created,
                     'updated' => $updated,
                     'publishedDrafts' => $publishedDrafts,
+
                     'futureDraftsLeft' => $preview['futureDraftsLeft'],
+
                     'futureDraftCount' => $preview['futureDraftCount'],
                 ];
             }

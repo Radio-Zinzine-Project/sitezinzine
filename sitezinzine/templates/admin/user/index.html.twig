@@ -1,134 +1,587 @@
 {% extends 'admin/admin.html.twig' %}
-
-{% block title %}Gestion des utilisateurs·rices{% endblock %}
-
+{% block title %}
+    Gestion des utilisateurs·rices
+{% endblock %}
 {% block body %}
+    <style>
+/* =========================================================
+   PAGE
+   ========================================================= */
 
-<style>
+.users-page,
+.users-page * {
+    box-sizing: border-box;
+}
 
-    .container {
+.users-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    width: 100%;
+
+    margin: 0 auto;
+    padding: 24px 20px 50px;
+
+    font-family: "Montserrat Alternates", sans-serif;
+}
+
+.users-page h1 {
+    margin: 0 0 20px;
+
+    color: #fff;
+
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1.2;
+
+    text-align: center;
+
+    overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   CONTENEUR TABLE
+   ========================================================= */
+
+.users-table-wrapper {
+    width: 90%;
+    max-width: 1300px;
+
+    margin: 1rem auto;
+
+    background-color: white;
+
+    border-radius: 10px;
+
+    box-shadow:
+        0 4px 10px
+        rgba(0, 0, 0, 0.1);
+
+    overflow: hidden;
+}
+
+.users-table .sort-link {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 6px;
+
+    color: white;
+
+    font: inherit;
+    font-weight: 800;
+
+    text-decoration: none;
+
+    cursor: pointer;
+}
+
+.users-table .sort-link:hover {
+    color: #E4013A;
+}
+
+
+/* =========================================================
+   TABLE DESKTOP
+   ========================================================= */
+
+.users-table {
+    width: 100%;
+
+    margin: 0;
+    padding: 0;
+
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+.users-table th,
+.users-table td {
+    padding: 1rem;
+
+    text-align: left;
+    vertical-align: middle;
+
+    border-bottom: 1px solid #ddd;
+}
+
+.users-table th {
+    background-color: #1C1C1A;
+    color: white;
+
+    font-weight: 800;
+}
+
+.users-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.users-table tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+.users-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+
+/* =========================================================
+   CONTENU
+   ========================================================= */
+
+.user-email {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.user-roles {
+    line-height: 1.4;
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.user-actions {
+    white-space: nowrap;
+}
+
+.user-actions form {
+    margin: 0;
+}
+
+.btn-edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 38px;
+
+    padding: 0.5rem 1rem;
+
+    background-color: white;
+    color: black;
+
+    border: 2px solid black;
+    border-radius: 26px;
+
+    font-size: 0.9rem;
+    font-weight: 700;
+
+    text-decoration: none;
+
+    cursor: pointer;
+
+    transition:
+        background-color .3s ease,
+        color .3s ease,
+        border-color .3s ease;
+}
+
+.btn-edit:hover {
+    background-color: #E40039;
+    color: white;
+
+    border-color: #E40039;
+}
+
+.btn-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 40px;
+    min-height: 38px;
+
+    padding: 0.45rem 0.65rem;
+
+    background-color: #E4013A;
+    color: white;
+
+    border: none;
+    border-radius: 26px;
+
+    font-size: 1rem;
+
+    cursor: pointer;
+
+    transition:
+        background-color .2s ease,
+        transform .2s ease;
+}
+
+.btn-delete:hover {
+    background-color: #b30021;
+}
+
+
+/* =========================================================
+   TABLETTE
+   ========================================================= */
+
+@media screen and (max-width: 950px) {
+
+    .users-page {
+        padding:
+            20px
+            14px
+            40px;
+    }
+
+    .users-table-wrapper {
+        width: 100%;
+    }
+
+    .users-table th,
+    .users-table td {
+        padding:
+            0.8rem
+            0.7rem;
+
+        font-size: 14px;
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+   TABLE -> CARTES
+   ========================================================= */
+
+@media screen and (max-width: 700px) {
+
+    .users-page {
+        padding:
+            18px
+            10px
+            32px;
+    }
+
+    .users-page h1 {
+        margin-bottom: 14px;
+
+        font-size: 23px;
+    }
+
+    .users-table-wrapper {
+        width: 100%;
+
+        margin: 0;
+
+        background: transparent;
+
+        border-radius: 0;
+
+        box-shadow: none;
+
+        overflow: visible;
+    }
+
+    .users-table,
+    .users-table tbody,
+    .users-table tr,
+    .users-table td {
+        display: block;
+
+        width: 100%;
+    }
+
+    .users-table thead {
+        display: none;
+    }
+
+    .users-table tbody {
         display: flex;
         flex-direction: column;
+
+        gap: 14px;
+    }
+
+    .users-table tbody tr {
+        padding: 8px 12px;
+
+        background: white !important;
+
+        border-radius: 10px;
+
+        box-shadow:
+            0 4px 10px
+            rgba(0, 0, 0, 0.09);
+    }
+
+    .users-table tbody tr:hover {
+        background: white;
+    }
+
+    .users-table td {
+        display: grid;
+
+        grid-template-columns:
+            minmax(110px, 38%)
+            minmax(0, 1fr);
+
+        gap: 10px;
+
         align-items: center;
-        width: 100%;
-        margin: 0 auto;
-      
-    }
 
+        padding:
+            10px
+            4px;
 
-    .table-responsive {
-        width: 80%;
-        overflow-x: auto;
-        margin: 1rem 0;
-        background-color: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
+        border-bottom: 1px solid #eee;
 
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 0;
-        padding: 0;
-    }
+        font-size: 14px;
 
-    th, td {
-        padding: 1rem;
         text-align: left;
-        border-bottom: 1px solid #ddd;
     }
 
-    th {
-        background-color: black;
-        color: white;
-        font-weight: bold;
+    .users-table td::before {
+        content: attr(data-label);
+
+        color: #333;
+
+        font-weight: 800;
+
+        overflow-wrap: anywhere;
     }
 
-    tr:nth-child(even) {
-        background-color: #f9f9f9;
+    .users-table td:last-child {
+        border-bottom: none;
     }
 
-    tr:hover {
-        background-color: #f5f5f5;
+    .user-email,
+    .user-roles {
+        min-width: 0;
+
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
-    .btn-edit {
-        display: inline-block;
-        padding: 0.5rem 1rem;
-        background-color: white;
-        color: black;
-        text-decoration: none;
-        border: 2px solid black;
-        border-radius: 26px;
-        font-size: 0.9rem;
-        transition: all 0.3s ease;
+    .user-actions {
+        white-space: normal;
     }
 
-    .btn-edit:hover {
-        background-color: #E40039;
-        color: white;
-        border-color: #E40039;
+    .btn-edit,
+    .btn-delete {
+        width: 100%;
     }
 
-    @media (max-width: 768px) {
-        .container {
-            width: 100%;
-            padding: 0 0.5rem;
-        }
-
-        th, td {
-            padding: 0.5rem;
-        }
-
-        .btn-edit {
-            padding: 0.3rem 0.6rem;
-            font-size: 0.8rem;
-        }
+    .btn-delete {
+        min-height: 40px;
     }
+}
+
+
+/* =========================================================
+   PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 450px) {
+
+    .users-page {
+        padding:
+            14px
+            8px
+            28px;
+    }
+
+    .users-page h1 {
+        font-size: 20px;
+    }
+
+    .users-table tbody tr {
+        padding:
+            6px
+            10px;
+    }
+
+    .users-table td {
+        grid-template-columns: 1fr;
+
+        gap: 5px;
+
+        padding:
+            9px
+            2px;
+    }
+
+    .users-table td::before {
+        font-size: 13px;
+    }
+
+    .btn-edit,
+    .btn-delete {
+        min-height: 42px;
+    }
+}
+
+
+/* =========================================================
+   TRÈS PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 350px) {
+
+    .users-page {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    .users-page h1 {
+        font-size: 18px;
+    }
+
+    .users-table td {
+        font-size: 13px;
+    }
+}
+
+
+/* =========================================================
+   PAYSAGE
+   ========================================================= */
+
+@media screen and (max-height: 520px) and (orientation: landscape) {
+
+    .users-page {
+        padding-top: 12px;
+    }
+
+    .users-page h1 {
+        margin-bottom: 10px;
+
+        font-size: 20px;
+    }
+
+    .users-table tbody {
+        gap: 10px;
+    }
+
+    .users-table tbody tr {
+        padding:
+            5px
+            10px;
+    }
+
+    .users-table td {
+        padding:
+            7px
+            3px;
+    }
+}
+
 </style>
-<div class="container">
-    <h1>Gestion des utilisateurices</h1>
+    <div class="users-page">
+        <h1>
+            Gestion des utilisateurices
+        </h1>
+        <div class="users-table-wrapper">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>
+                            <a href="{{ path('admin.user.index', {
+                    sort: 'id',
+                    direction: sort == 'id' and direction == 'ASC'
+                        ? 'DESC'
+                        : 'ASC'
+                }) }}" class="sort-link">
+                                ID
+                                {% if sort == 'id' %}
+                                    {{ direction == 'ASC' ? '▲' : '▼' }}
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ path('admin.user.index', {
+                    sort: 'name',
+                    direction: sort == 'name' and direction == 'ASC'
+                        ? 'DESC'
+                        : 'ASC'
+                }) }}" class="sort-link">
+                                Nom d'utilisateurice
+                                {% if sort == 'username' %}
+                                    {{ direction == 'ASC' ? '▲' : '▼' }}
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ path('admin.user.index', {
+                    sort: 'email',
+                    direction: sort == 'email' and direction == 'ASC'
+                        ? 'DESC'
+                        : 'ASC'
+                }) }}" class="sort-link">
+                                Email
+                                {% if sort == 'email' %}
+                                    {{ direction == 'ASC' ? '▲' : '▼' }}
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th>
+                            Rôles
+                        </th>
+                        <th>
+                            Actions
+                        </th>
+                        <th>
+                            Supprimer
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                        <tr>
+                            <td data-label="ID">
+                                {{ user.id }}
+                            </td>
+                            <td data-label="Nom d'utilisateurice">
+                                {{ user.username }}
+                            </td>
+                            <td data-label="Email" class="user-email">
+                                {{ user.email }}
+                            </td>
+                            <td data-label="Rôles" class="user-roles">
+                                {% for role in user.roles %}
+                                    {{ available_roles[role]|default(role) }}
+                                    {% if not loop.last %}
+                                        ,
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td data-label="Actions" class="user-actions">
+                                <a href="{{ path('admin.user.edit', {
+                                    id: user.id
+                                }) }}" class="btn-edit">
+                                    Éditer
+                                </a>
+                            </td>
+                            <td data-label="Supprimer" class="user-actions">
+                                <form method="post" action="{{ path('admin.user.delete', {
+                                    id: user.id
+                                }) }}" onsubmit="return confirm('Confirmer la suppression de ce compte ?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token(
+                                        'delete-user-' ~ user.id
+                                    ) }}">
+                                        <button type="submit" class="btn-delete" aria-label="Supprimer {{ user.username }}" title="Supprimer">
+                                            🗑️
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="6" data-label="" style="text-align:center;">
+                                    Aucun·e utilisateur·rice.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endblock %}
     
-    <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Nom d'utilisateurice</th>
-                    <th>Email</th>
-                    <th>Rôles</th>
-                    <th>Actions</th>
-                    <th>Supprimer</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for user in users %}
-                <tr>
-                    <td>{{ user.id }}</td>
-                    <td>{{ user.displayName }}</td>
-                    <td>{{ user.email }}</td>
-                        <td>
-                            {% for role in user.roles %}
-                                {{ available_roles[role]|default(role) }}
-                                {% if not loop.last %}, {% endif %}
-                            {% endfor %}
-                        </td>
-                    <td>
-                        <a href="{{ path('admin.user.edit', {id: user.id}) }}" 
-                           class="btn-edit">
-                            Éditer
-                        </a>
-                    </td>
-                    <td>
-                            <form method="post" action="{{ path('admin.user.delete', {id: user.id}) }}" onsubmit="return confirm('Confirmer la suppression de ce compte ?');">
-                                <input type="hidden" name="_token" value="{{ csrf_token('delete-user-' ~ user.id) }}">
-                                <button class="btn-delete">🗑️</button>
-                            </form>
-                        </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-{% endblock %}

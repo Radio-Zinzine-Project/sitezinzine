@@ -1,199 +1,874 @@
 {% extends 'admin/admin.html.twig' %}
-{% block stylesheets %}
-  <style>
-  /* ===== Admin Page Edit (style proche Emission edit) ===== */
-.admin-edit-page {
-  background: linear-gradient(#E4013A, #B81C61);
-  padding: 50px;
-  color: white;
-  font-family: "Montserrat Alternates", sans-serif;
-}
 
-.admin-edit-page h1 {
-    margin: 0 0 20px 0;
-    text-align: center;
-}
+{% form_theme form 'form_div_layout.html.twig' %}
 
-.admin-edit-page form {
-  padding: 0; /* on gère le padding via le wrapper */
-}
-
-/* Layout "lignes" comme émission */
-.admin-edit-page .ligne2,
-.admin-edit-page .ligne4 {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.admin-edit-page .ligne3 {
-  width: 100%;
-  margin-top: 10px;
-}
-
-/* Symfony form rows */
-.admin-edit-page .mb-3 {
-  margin: 15px 0;
-  flex: 1 1 260px;
-  min-width: 260px;
-}
-
-/* Labels */
-.admin-edit-page label,
-.admin-edit-page .form-label {
-  color: white;
-  font-family: "Montserrat Alternates", sans-serif;
-  font-weight: normal;
-  font-size: 16pt;
-  margin-bottom: 10px;
-  display: inline-block;
-}
-
-/* Inputs texte / select / textarea (PAS checkbox, PAS file) */
-.admin-edit-page input:not([type="checkbox"]):not([type="file"]),
-.admin-edit-page select,
-.admin-edit-page textarea {
-  width: 100%;
-  padding: 12px 20px;
-  margin: 8px 0;
-  display: inline-block;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
-}
-
-/* File input : on évite le padding énorme */
-.admin-edit-page input[type="file"]{
-  width: 100%;
-  margin: 8px 0;
-}
-
-/* Checkbox : style minimal, fiable */
-.admin-edit-page input[type="checkbox"]{
-  width: auto;
-  margin: 0 8px 0 0;
-  padding: 0;
-}
-
-
-/* Bloc image actuelle */
-.admin-edit-page .current-image {
-  flex: 1 1 260px;
-  min-width: 260px;
-  margin-top: 10px;
-}
-
-.admin-edit-page .current-image img {
-  max-width: 300px;
-  height: auto;
-  display: block;
-  margin-top: 8px;
-  border-radius: 6px;
-}
-
-/* TinyMCE : donner de l'air */
-.admin-edit-page .tox-tinymce {
-  margin: 10px 0 0 0;
-}
-
-/* Boutons */
-.admin-edit-page .btn {
-  margin-top: 10px;
-}
-
-/* Boutons admin */
-.admin-edit-page .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  padding: .65rem 1rem;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  text-decoration: none;
-  font-family: "Montserrat Alternates", sans-serif;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform .08s ease, background-color .15s ease, border-color .15s ease;
-}
-
-/* Bouton secondaire (retour) */
-.admin-edit-page .btn-secondary {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.18);
-  color: #fff;
-}
-
-.admin-edit-page .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.28);
-  transform: translateY(-1px);
-}
-
-.admin-edit-page .btn-secondary:active {
-  transform: translateY(0);
-}
-
-/* Petit spacing utilitaire si tu n'as pas Bootstrap */
-.admin-edit-page .mb-3 { margin-bottom: 1rem; }
-
-input[readonly] {
-  background-color: #f3f3f3;
-  color: #666;
-  cursor: not-allowed;
-}
-
-</style>
-{% endblock %}
 {% block title %}
-  Édition de la page
-  {{ page.title }}
+    Éditer la page {{ page.title }}
 {% endblock %}
+
 {% block body %}
 
-  <div class="admin-edit-page">
-    <h1>Éditer la page : {{ page.title }}</h1>
+<style>
+/* =========================================================
+   SCOPE
+   Même principe que le formulaire catégorie :
+   on protège TinyMCE des styles généraux.
+   ========================================================= */
 
-    <a href="{{ path('admin.page.index') }}"
-       class="btn btn-secondary mb-3"
-       aria-label="Retour à la liste des pages">
-      ← Retour à la liste des pages
-    </a>
+.main-content .page-form,
+.main-content .page-form *:not(.tox):not(.tox *) {
+    box-sizing: border-box;
+}
 
-    {{ form_start(form) }}
 
-      <div class="ligne2">
-        {{ form_row(form.slug) }}
-        {{ form_row(form.title) }}
-      </div>
+/* =========================================================
+   TINYMCE
+   Neutralisation des styles globaux sur ses boutons
+   ========================================================= */
 
-      <div class="ligne3"
-           data-controller="tinymce"
-           data-tinymce-css-value="{{ asset((encore_entry_css_files('app')|last)) }}">
+.main-content .page-form .tox button,
+.main-content .page-form .tox .tox-tbtn,
+.main-content .page-form .tox .tox-mbtn {
+    background: initial !important;
+    color: inherit !important;
+
+    border-radius: 0 !important;
+
+    box-shadow: none !important;
+
+    padding: initial !important;
+    margin: initial !important;
+
+    width: auto !important;
+    height: auto !important;
+}
+
+
+/* =========================================================
+   CARTE FORMULAIRE
+   ========================================================= */
+
+.main-content .page-form {
+    /*
+     * Desktop :
+     * on exploite presque toute la largeur disponible,
+     * tout en conservant une limite confortable pour
+     * les très grands écrans.
+     */
+    width: calc(100% - 36px);
+    max-width: 1280px;
+
+    margin: 18px auto 28px;
+    padding: 20px 24px;
+
+    background: #fff;
+    color: #1C1C1A;
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 6px 18px
+        rgba(0, 0, 0, 0.08);
+
+    font-family: "Montserrat Alternates", sans-serif;
+}
+
+
+/* =========================================================
+   TITRE
+   ========================================================= */
+
+.main-content .page-form h1 {
+    margin: 0 0 16px;
+
+    color: #E4013A;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1.2;
+
+    text-align: center;
+
+    overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   RETOUR
+   ========================================================= */
+
+.main-content .page-form .back-row {
+    display: flex;
+
+    width: 100%;
+
+    margin-bottom: 16px;
+}
+
+.main-content .page-form .btn-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 8px 14px;
+
+    background: #fff;
+    color: #333;
+
+    border: 2px solid #333;
+    border-radius: 26px;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+
+    text-decoration: none;
+
+    transition:
+        background-color .2s ease,
+        color .2s ease,
+        border-color .2s ease;
+}
+
+.main-content .page-form .btn-back:hover {
+    background: #E4013A;
+    color: #fff;
+
+    border-color: #E4013A;
+}
+
+
+/* =========================================================
+   FORM
+   ========================================================= */
+
+.main-content .page-form form {
+    display: flex;
+    flex-direction: column;
+
+    gap: 12px;
+
+    width: 100%;
+
+    margin: 0;
+    padding: 0;
+}
+
+
+/* =========================================================
+   GRILLES
+   ========================================================= */
+
+.main-content .page-form .grid-2 {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 12px;
+
+    width: 100%;
+}
+
+.main-content .page-form .field {
+    display: flex;
+    flex-direction: column;
+
+    width: 100%;
+    min-width: 0;
+}
+
+
+/* =========================================================
+   LABELS
+   ========================================================= */
+
+.main-content .page-form label {
+    display: block;
+
+    margin: 0 0 6px;
+
+    color: #333;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+
+/* =========================================================
+   INPUTS
+   ========================================================= */
+
+.main-content .page-form input[type="text"],
+.main-content .page-form input[type="number"],
+.main-content .page-form input[type="email"],
+.main-content .page-form input[type="url"],
+.main-content .page-form input[type="file"],
+.main-content .page-form select,
+.main-content .page-form textarea {
+    width: 100%;
+    max-width: 100%;
+
+    padding: 10px 12px;
+
+    background: #fff;
+    color: #1C1C1A;
+
+    border: 1px solid #ddd;
+    border-radius: 8px;
+
+    font-family: "Montserrat", sans-serif;
+    font-size: 15px;
+}
+
+.main-content .page-form input[type="file"] {
+    padding: 8px 10px;
+}
+
+.main-content .page-form textarea {
+    min-height: 180px;
+}
+
+.main-content .page-form input:focus,
+.main-content .page-form select:focus,
+.main-content .page-form textarea:focus {
+    outline: none;
+
+    border-color: #E4013A;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(228, 1, 58, 0.15);
+}
+
+
+/* =========================================================
+   SLUG READONLY
+   ========================================================= */
+
+.main-content .page-form input[readonly] {
+    background: #f3f3f3;
+    color: #666;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   TINYMCE
+   ========================================================= */
+
+.main-content .page-form .tinymce-wrap {
+    width: 100%;
+    min-width: 0;
+}
+
+.main-content .page-form .tinymce-wrap > div {
+    width: 100%;
+    min-width: 0;
+}
+
+.main-content .page-form .tinymce-wrap .tox {
+    width: 100% !important;
+    max-width: 100% !important;
+
+    border-radius: 10px;
+
+    overflow: hidden;
+}
+
+.main-content .page-form .tinymce-wrap .tox-tinymce {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+
+/* =========================================================
+   IMAGE
+   ========================================================= */
+
+.main-content .page-form .image-row {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto;
+
+    gap: 16px;
+
+    align-items: center;
+
+    width: 100%;
+}
+
+.main-content .page-form .current-image-block {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    min-width: 0;
+
+    padding: 10px 12px;
+
+    background: #fafafa;
+
+    border: 1px solid #ddd;
+    border-radius: 10px;
+}
+
+.main-content .page-form .current-image-block img {
+    display: block;
+
+    width: 70px;
+    height: 70px;
+
+    object-fit: cover;
+
+    flex-shrink: 0;
+
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+
+/* =========================================================
+   CHECKBOX SUPPRESSION IMAGE
+   ========================================================= */
+
+.main-content .page-form .checkline {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    width: 100%;
+
+    padding: 10px 12px;
+
+    background: #fafafa;
+
+    border: 1px solid #ddd;
+    border-radius: 10px;
+}
+
+.main-content .page-form .checkline input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+
+    margin: 0;
+
+    flex-shrink: 0;
+
+    accent-color: #E4013A;
+}
+
+.main-content .page-form .checkline label {
+    margin: 0;
+}
+
+
+/* =========================================================
+   IMAGE ACTUELLE
+   ========================================================= */
+
+.main-content .page-form .image-preview {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    min-width: 0;
+}
+
+.main-content .page-form .image-preview__text {
+    min-width: 0;
+}
+
+.main-content .page-form .image-preview__text strong {
+    display: block;
+
+    margin-bottom: 3px;
+
+    color: #333;
+
+    font-size: 13px;
+}
+
+.main-content .page-form .image-preview__text span {
+    color: #777;
+
+    font-family: "Montserrat", sans-serif;
+    font-size: 12px;
+
+    overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   ERREURS
+   ========================================================= */
+
+.main-content .page-form .form-errors {
+    padding: 10px 12px;
+
+    background:
+        rgba(225, 29, 72, 0.08);
+
+    color: #9f1239;
+
+    border: 1px solid #e11d48;
+    border-radius: 10px;
+
+    font-weight: 700;
+}
+
+.main-content .page-form .form-errors ul {
+    margin: 0;
+
+    padding-left: 18px;
+}
+
+.main-content .page-form .field-error {
+    margin-top: 6px;
+    padding: 8px 10px;
+
+    background:
+        rgba(225, 29, 72, 0.08);
+
+    color: #9f1239;
+
+    border: 1px solid #e11d48;
+    border-radius: 10px;
+
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   BOUTON ENREGISTRER
+   ========================================================= */
+
+.main-content .page-form .btn-save {
+    width: 100%;
+
+    padding: 12px 14px;
+
+    background: #E4013A;
+    color: #fff;
+
+    border: 0;
+    border-radius: 26px;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 14px;
+    font-weight: 900;
+
+    cursor: pointer;
+
+    transition:
+        background-color .2s ease;
+}
+
+.main-content .page-form .btn-save:hover {
+    background: #b30021;
+}
+
+
+/* =========================================================
+   TINYMCE RESPONSIVE
+   ========================================================= */
+
+@media screen and (max-width: 600px) {
+
+    .main-content .page-form .tinymce-wrap .tox-tinymce {
+        height: 55vh !important;
+        min-height: 360px !important;
+        max-height: 70vh !important;
+    }
+
+    .main-content .page-form .tinymce-wrap .tox-editor-container {
+        height: 100% !important;
+    }
+
+    .main-content .page-form .tinymce-wrap .tox-sidebar-wrap {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+    }
+
+    .main-content .page-form .tinymce-wrap iframe {
+        height: 100% !important;
+    }
+}
+
+@media screen and (max-width: 420px) {
+
+    .main-content .page-form .tinymce-wrap .tox-tinymce {
+        height: 60vh !important;
+        min-height: 330px !important;
+        max-height: 75vh !important;
+    }
+}
+
+@media screen and (max-height: 500px) and (orientation: landscape) {
+
+    .main-content .page-form .tinymce-wrap .tox-tinymce {
+        height: 70vh !important;
+        min-height: 260px !important;
+        max-height: none !important;
+    }
+}
+
+
+/* =========================================================
+   TABLETTE
+   ========================================================= */
+
+@media screen and (max-width: 960px) {
+
+    /*
+     * Important :
+     * on annule explicitement la largeur desktop afin
+     * de conserver exactement le comportement responsive
+     * déjà validé.
+     */
+    .main-content .page-form {
+        width: auto;
+        max-width: none;
+
+        margin: 14px 12px 22px;
+        padding: 14px 12px;
+    }
+
+    .main-content .page-form .grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .main-content .page-form .image-row {
+        grid-template-columns: 1fr;
+
+        align-items: stretch;
+    }
+
+    .main-content .page-form .current-image-block {
+        width: 100%;
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 600px) {
+
+    .main-content .page-form {
+        margin: 12px 10px 18px;
+
+        padding: 13px 11px;
+    }
+
+    .main-content .page-form h1 {
+        font-size: 20px;
+    }
+
+    .main-content .page-form .btn-back {
+        width: 100%;
+    }
+
+    .main-content .page-form label {
+        font-size: 13px;
+    }
+
+    .main-content .page-form input[type="text"],
+    .main-content .page-form input[type="number"],
+    .main-content .page-form input[type="email"],
+    .main-content .page-form input[type="url"],
+    .main-content .page-form input[type="file"],
+    .main-content .page-form select,
+    .main-content .page-form textarea {
+        padding: 9px 10px;
+
+        font-size: 14px;
+    }
+
+    .main-content .page-form .current-image-block {
+        align-items: flex-start;
+    }
+
+    .main-content .page-form .current-image-block img {
+        width: 60px;
+        height: 60px;
+    }
+
+    .main-content .page-form .tox,
+    .main-content .page-form .tox-tinymce,
+    .main-content .page-form .tox-editor-container {
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+}
+
+
+/* =========================================================
+   PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 420px) {
+
+    .main-content .page-form {
+        margin: 10px 8px 16px;
+
+        padding: 12px 10px;
+
+        border-radius: 10px;
+    }
+
+    .main-content .page-form h1 {
+        font-size: 18px;
+    }
+
+    .main-content .page-form .checkline {
+        padding: 9px 10px;
+    }
+
+    .main-content .page-form .current-image-block {
+        flex-direction: column;
+    }
+
+    .main-content .page-form .current-image-block img {
+        width: 70px;
+        height: 70px;
+    }
+}
+
+
+/* =========================================================
+   TRÈS PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 350px) {
+
+    .main-content .page-form {
+        margin-left: 6px;
+        margin-right: 6px;
+
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .main-content .page-form input[type="file"] {
+        font-size: 12px;
+    }
+}
+
+
+/* =========================================================
+   PAYSAGE
+   ========================================================= */
+
+@media screen and (max-height: 520px) and (orientation: landscape) {
+
+    .main-content .page-form {
+        margin: 10px 12px 14px;
+
+        padding: 12px;
+    }
+
+    .main-content .page-form textarea {
+        min-height: 110px;
+    }
+
+    .main-content .page-form .btn-save {
+        padding: 10px 12px;
+
+        border-radius: 22px;
+    }
+}
+</style>
+
+
+<div class="page-form">
+
+    <h1>
+        Modifier {{ page.title }}
+    </h1>
+
+
+    <div class="back-row">
+
+        <a
+            href="{{ path('admin.page.index') }}"
+            class="btn-back"
+        >
+            ← Retour à la liste des pages
+        </a>
+
+    </div>
+
+
+    {{ form_start(form, {
+        attr: {
+            'data-turbo': 'false'
+        }
+    }) }}
+
+
+    {# ======================================================
+       ERREURS GLOBALES
+       ====================================================== #}
+
+    {% if form.vars.submitted and not form.vars.valid %}
+
+        <div
+            class="form-errors"
+            role="alert"
+        >
+            {{ form_errors(form) }}
+        </div>
+
+    {% endif %}
+
+
+    {# ======================================================
+       SLUG + TITRE
+       ====================================================== #}
+
+    <div class="grid-2">
+
+        <div class="field">
+
+            {{ form_label(form.slug) }}
+
+            {{ form_widget(form.slug) }}
+
+            {{ form_errors(form.slug) }}
+
+        </div>
+
+
+        <div class="field">
+
+            {{ form_label(form.title) }}
+
+            {{ form_widget(form.title) }}
+
+            {{ form_errors(form.title) }}
+
+        </div>
+
+    </div>
+
+
+    {# ======================================================
+       CONTENU / TINYMCE
+       ====================================================== #}
+
+    <div
+        class="tinymce-wrap"
+        data-controller="tinymce"
+    >
+
         {{ form_row(form.content) }}
-      </div>
 
-      <div class="ligne4">
-        {% if form.mainImageFile is defined %}
-          {{ form_row(form.mainImageFile) }}
+    </div>
 
-          {% if page.mainImageName is not empty %}
-            <div class="current-image">
-              <p>Image actuelle :</p>
-              <img src="{{ asset('uploads/pages/' ~ page.mainImageName) }}" alt="{{ page.title }}">
+
+    {# ======================================================
+       IMAGE
+       ====================================================== #}
+
+    {% if form.mainImageFile is defined %}
+
+        <div class="image-row">
+
+            <div class="field">
+
+                {{ form_label(form.mainImageFile) }}
+
+                {{ form_widget(form.mainImageFile) }}
+
+                {{ form_errors(form.mainImageFile) }}
+
             </div>
 
-            {{ form_row(form.deleteMainImage) }}
-          {% endif %}
-        {% endif %}
-      </div>
 
-      <button type="submit" class="btn btn-primary mt-3">
+            {% if page.mainImageName is not empty %}
+
+                <div class="current-image-block">
+
+                    <div class="image-preview">
+
+                        <img
+                            src="{{ asset(
+                                'uploads/pages/' ~
+                                page.mainImageName
+                            ) }}"
+                            alt="Image actuelle de {{ page.title }}"
+                            loading="lazy"
+                        >
+
+                        <div class="image-preview__text">
+
+                            <strong>
+                                Image actuelle
+                            </strong>
+
+                            <span>
+                                {{ page.mainImageName }}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        {% if
+            page.mainImageName is not empty
+            and form.deleteMainImage is defined
+        %}
+
+            <div class="field">
+
+                <div class="checkline">
+
+                    {{ form_widget(form.deleteMainImage) }}
+
+                    {{ form_label(form.deleteMainImage) }}
+
+                </div>
+
+                {{ form_errors(form.deleteMainImage) }}
+
+            </div>
+
+        {% endif %}
+
+    {% endif %}
+
+
+    {# ======================================================
+       ENREGISTRER
+       ====================================================== #}
+
+    <button
+        type="submit"
+        class="btn-save"
+    >
         Enregistrer
-      </button>
+    </button>
+
 
     {{ form_end(form) }}
-  </div>
 
+</div>
 
-    {% endblock %}
-    
+{% endblock %}

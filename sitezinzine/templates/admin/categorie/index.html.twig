@@ -10,7 +10,16 @@
 
         .categorie-page {
             width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
             font-family: "Montserrat Alternates", sans-serif;
+        }
+
+        .categorie-page,
+        .categorie-page *,
+        .categorie-page *::before,
+        .categorie-page *::after {
+            box-sizing: border-box;
         }
 
 
@@ -574,105 +583,468 @@
             color: white;
         }
 
+    /* =========================================================
+    TABLETTE
+    ========================================================= */
 
-        /* =========================================================
-           TABLETTE
-           ========================================================= */
+    @media screen and (max-width: 900px) {
 
-        @media screen and (max-width: 900px) {
+        .categorie-hero__content {
+            padding: 42px 20px 55px;
+        }
 
-            .categorie-hero__content {
-                padding:
-                    45px
-                    20px
-                    60px;
-            }
+        .categorie-hero h1 {
+            margin-bottom: 25px;
+            font-size: 32px;
+        }
 
-            .categorie-hero h1 {
-                margin-bottom: 25px;
+        .categorie-content-wrapper {
+            padding-left: 16px;
+            padding-right: 16px;
+        }
 
-                font-size: 32px;
-            }
+        .categorie-list {
+            gap: 16px;
+        }
 
-            .categorie-card {
-                grid-template-columns:
-                    140px
-                    minmax(0, 1fr);
-            }
+        .categorie-card {
+            grid-template-columns:
+                140px
+                minmax(0, 1fr);
 
-            .categorie-image img {
-                width: 130px;
-                height: 130px;
-            }
+            gap: 16px;
 
-            .categorie-count {
-                grid-column: 2;
+            padding: 16px;
+        }
 
-                justify-content: flex-start;
+        .categorie-image {
+            grid-column: 1;
+            grid-row: 1 / span 2;
+        }
 
-                text-align: left;
-            }
+        .categorie-image img {
+            width: 130px;
+            height: 130px;
+        }
 
-            .categorie-actions {
-                grid-column: 1 / -1;
+        .categorie-main {
+            grid-column: 2;
+            grid-row: 1;
+        }
 
-                flex-direction: row;
-                justify-content: flex-end;
-            }
+        .categorie-count {
+            grid-column: 2;
+            grid-row: 2;
 
-            .categorie-actions > a,
-            .categorie-actions > form {
-                width: 150px;
-            }
+            justify-content: flex-start;
 
-            .categorie-actions > form > button {
-                width: 100%;
-            }
+            text-align: left;
+        }
+
+        .categorie-actions {
+            grid-column: 1 / -1;
+
+            flex-direction: row;
+            justify-content: flex-end;
+
+            gap: 10px;
+        }
+
+        .categorie-actions > a,
+        .categorie-actions > form {
+            width: 150px;
+        }
+
+        .categorie-actions > form > button {
+            width: 100%;
+        }
+    }
+
+
+    /* =========================================================
+    MOBILE
+    ========================================================= */
+
+    @media screen and (max-width: 600px) {
+
+        /* ---------------------------------------------------------
+        Bandeau
+        --------------------------------------------------------- */
+
+        .categorie-hero__content {
+            padding: 30px 14px 42px;
+        }
+
+        .categorie-hero h1 {
+            margin-bottom: 20px;
+
+            font-size: 26px;
+            line-height: 1.15;
+        }
+
+        .categorie-hero .btn-create {
+            max-width: 100%;
+
+            padding: 9px 14px;
+
+            font-size: 13px;
+
+            text-align: center;
         }
 
 
-        /* =========================================================
-           MOBILE
-           ========================================================= */
+        /* ---------------------------------------------------------
+        Zone blanche
+        --------------------------------------------------------- */
 
-        @media screen and (max-width: 600px) {
-
-            .alphabet-pagination {
-                gap: 3px;
-            }
-
-            .alphabet-pagination a {
-                width: 28px;
-                min-width: 28px;
-                height: 28px;
-
-                font-size: 11px;
-            }
-
-            .alphabet-pagination a:first-child {
-                width: auto;
-                min-width: 40px;
-            }
-
-            .alphabet-pagination a:last-child {
-                width: auto;
-                min-width: 54px;
-            }
-
-            .knp-pagination .pagination {
-                gap: 4px;
-            }
-
-            .knp-pagination .pagination a,
-            .knp-pagination .pagination .current {
-                min-width: 30px;
-                height: 30px;
-
-                padding: 0 6px;
-
-                font-size: 11px;
-            }
+        .categorie-content-wrapper {
+            padding: 18px 10px 40px;
         }
+
+
+        /* ---------------------------------------------------------
+        Pagination alphabétique
+        --------------------------------------------------------- */
+
+        .alphabet-pagination {
+            gap: 4px;
+
+            margin-bottom: 16px;
+        }
+
+        .alphabet-pagination a {
+            width: 30px;
+            min-width: 30px;
+            height: 30px;
+
+            padding: 0;
+
+            font-size: 12px;
+        }
+
+        .alphabet-pagination a:first-child {
+            width: auto;
+            min-width: 42px;
+
+            padding: 0 7px;
+        }
+
+        .alphabet-pagination a:last-child {
+            width: auto;
+            min-width: 56px;
+
+            padding: 0 8px;
+        }
+
+
+        /* ---------------------------------------------------------
+        Pagination KNP
+        --------------------------------------------------------- */
+
+        .knp-pagination {
+            margin: 14px auto 20px;
+        }
+
+        .knp-pagination .pagination {
+            gap: 4px;
+
+            max-width: 100%;
+        }
+
+        .knp-pagination .pagination a,
+        .knp-pagination .pagination .current {
+            min-width: 30px;
+            height: 30px;
+
+            padding: 0 6px;
+
+            font-size: 11px;
+        }
+
+
+        /* ---------------------------------------------------------
+        Liste
+        --------------------------------------------------------- */
+
+        .categorie-list {
+            gap: 12px;
+        }
+
+
+        /* ---------------------------------------------------------
+        Carte
+        --------------------------------------------------------- */
+
+        .categorie-card {
+            grid-template-columns:
+                100px
+                minmax(0, 1fr);
+
+            gap: 10px 14px;
+
+            padding: 12px;
+
+            border-radius: 12px;
+        }
+
+        .categorie-card:hover {
+            transform: none;
+        }
+
+
+        /* Image */
+
+        .categorie-image {
+            grid-column: 1;
+            grid-row: 1 / span 2;
+
+            align-self: start;
+        }
+
+        .categorie-image img {
+            width: 90px;
+            height: 90px;
+
+            border-radius: 8px;
+        }
+
+
+        /* Contenu */
+
+        .categorie-main {
+            grid-column: 2;
+            grid-row: 1;
+
+            min-width: 0;
+        }
+
+        .categorie-title {
+            margin-bottom: 6px;
+        }
+
+        .categorie-title a {
+            font-size: 17px;
+            line-height: 1.25;
+        }
+
+        .categorie-status {
+            margin-bottom: 6px;
+
+            padding: 3px 7px;
+
+            font-size: 10px;
+        }
+
+        .categorie-description {
+            font-size: 13px;
+            line-height: 1.4;
+
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .categorie-description img,
+        .categorie-description iframe,
+        .categorie-description video,
+        .categorie-description table {
+            max-width: 100%;
+        }
+
+
+        /* Compteur */
+
+        .categorie-count {
+            grid-column: 2;
+            grid-row: 2;
+
+            align-self: end;
+
+            justify-content: flex-start;
+
+            font-size: 12px;
+            text-align: left;
+        }
+
+
+        /* Actions */
+
+        .categorie-actions {
+            grid-column: 1 / -1;
+            grid-row: 3;
+
+            display: flex;
+            flex-direction: row;
+
+            gap: 8px;
+
+            width: 100%;
+        }
+
+        .categorie-actions > a,
+        .categorie-actions > form {
+            flex: 1 1 0;
+
+            width: auto;
+            min-width: 0;
+        }
+
+        .categorie-actions > a,
+        .categorie-actions > form > button {
+            width: 100%;
+            min-width: 0;
+            height: 40px;
+
+            padding: 7px 8px;
+
+            font-size: 13px;
+        }
+    }
+
+
+    /* =========================================================
+    PETIT MOBILE
+    ========================================================= */
+
+    @media screen and (max-width: 420px) {
+
+        .categorie-hero__content {
+            padding: 24px 10px 36px;
+        }
+
+        .categorie-hero h1 {
+            font-size: 23px;
+        }
+
+        .categorie-hero .btn-create {
+            width: 100%;
+        }
+
+        .categorie-content-wrapper {
+            padding-left: 8px;
+            padding-right: 8px;
+        }
+
+        .categorie-card {
+            grid-template-columns:
+                88px
+                minmax(0, 1fr);
+
+            gap: 8px 10px;
+
+            padding: 10px;
+        }
+
+        .categorie-image img {
+            width: 80px;
+            height: 80px;
+        }
+
+        .categorie-title a {
+            font-size: 16px;
+        }
+
+        .categorie-description {
+            font-size: 12px;
+        }
+
+        .categorie-count {
+            font-size: 11px;
+        }
+
+        .categorie-actions {
+            gap: 6px;
+        }
+
+        .categorie-actions > a,
+        .categorie-actions > form > button {
+            height: 38px;
+
+            padding: 6px;
+
+            font-size: 12px;
+        }
+
+        .alphabet-pagination {
+            gap: 3px;
+        }
+
+        .alphabet-pagination a {
+            width: 28px;
+            min-width: 28px;
+            height: 28px;
+
+            font-size: 11px;
+        }
+
+        .alphabet-pagination a:first-child {
+            width: auto;
+            min-width: 40px;
+        }
+
+        .alphabet-pagination a:last-child {
+            width: auto;
+            min-width: 52px;
+        }
+    }
+
+
+    /* =========================================================
+    TRÈS PETIT MOBILE
+    ========================================================= */
+
+    @media screen and (max-width: 350px) {
+
+        .categorie-card {
+            grid-template-columns:
+                78px
+                minmax(0, 1fr);
+
+            gap: 7px 8px;
+
+            padding: 8px;
+        }
+
+        .categorie-image img {
+            width: 70px;
+            height: 70px;
+        }
+
+        .categorie-title a {
+            font-size: 15px;
+        }
+
+        .categorie-description {
+            font-size: 11.5px;
+        }
+
+        .categorie-actions > a,
+        .categorie-actions > form > button {
+            font-size: 11px;
+        }
+    }
+
+
+    /* =========================================================
+    MOBILE PAYSAGE
+    ========================================================= */
+
+    @media screen and (max-height: 500px) and (orientation: landscape) {
+
+        .categorie-hero__content {
+            padding-top: 20px;
+            padding-bottom: 32px;
+        }
+
+        .categorie-hero h1 {
+            margin-bottom: 14px;
+
+            font-size: 24px;
+        }
+
+        .categorie-content-wrapper {
+            padding-top: 14px;
+        }
+    }
     </style>
     <div class="categorie-page">
         {# =========================================================

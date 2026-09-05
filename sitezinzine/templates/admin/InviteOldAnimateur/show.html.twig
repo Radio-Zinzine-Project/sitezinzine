@@ -1,145 +1,409 @@
 {% extends 'admin/admin.html.twig' %}
-{% block title "Invité·e ou animateur·rice : " ~ InviteOldAnimateur.Lastname %}
+
+{% block title %}
+    Invité·e ou animateur·rice :
+    {{ InviteOldAnimateur.lastName }}
+    {{ InviteOldAnimateur.firstName }}
+{% endblock %}
+
 {% block body %}
-    <style>
 
-.titre {
-    text-align: center;
-    margin: 10px;
-}
-
-article{
-    border: solid;
-    border-collapse: collapse;
-    display: grid;
-    grid-template-columns: 1fr 4fr 1fr;
-    margin: 0 80px;
-}
-
-    
-    .col2 {
-       margin: 20px;
-    }
-    .col3 {
-        
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    grid-template-rows: 1fr; 
-    gap: 0px 0px; 
-    grid-template-areas: 
-      "ecoute dl"; 
-    align-items: center;
-    justify-self: center;
-    }
-
-.InviteOldAnimateurdescriptif {
-    margin: 15px;
-}
-
-
-.InviteOldAnimateuremission img {
-    width: 150px;
-}
-.InviteOldAnimateurimg img {
-    float: left;
-    margin: 10px;
-    width: 250px;
-}
-.ecoute img {
-        width: 40px;
-        height: 40px;
-        align-content: right;
-    }
-    
-    a {
-        padding: 14px 16px;
-        color: black;
-        text-decoration: none;
-        font-weight: 800;
-    }
-
-    a:hover {
-        padding: 14px 16px;
-        color: #E40039;
-        text-decoration: none;
-        font-weight: 800; 
-    }
-    .bottom img {
+<style>
+.admin-invite-show {
     width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+
+    background: #fff;
+
+    font-family: "Montserrat Alternates", sans-serif;
+}
+
+.admin-invite-show,
+.admin-invite-show *,
+.admin-invite-show *::before,
+.admin-invite-show *::after {
+    box-sizing: border-box;
+}
+
+/* =========================================================
+   HERO
+   ========================================================= */
+
+.admin-invite-show .invite-show-hero {
+    width: 100%;
+
+    background: linear-gradient(#E4013A, #B81C61);
+
+    color: #fff;
+}
+
+.admin-invite-show .invite-show-hero__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 12px;
+
+    width: 100%;
+    max-width: 1200px;
+
+    margin: 0 auto;
+    padding: 50px 20px 65px;
+
+    text-align: center;
+}
+
+.admin-invite-show .invite-show-hero h1 {
+    max-width: 100%;
+
+    margin: 0;
+
+    color: #fff;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 36pt;
+    font-weight: 900;
+    line-height: 1.15;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.admin-invite-show .invite-show-type {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    margin: 0;
+    padding: 7px 14px;
+
+    border: 2px solid rgba(255, 255, 255, .85);
+    border-radius: 999px;
+
+    color: #fff;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.admin-invite-show .invite-show-hero__bottom {
     display: block;
+
+    width: 100%;
+    height: auto;
+
     margin: 0;
     padding: 0;
 }
-.emissionsdelaInviteOldAnimateur {
-    background-color: white;
-        background-size: 100%;
-        min-height: 100vh;
+
+/* =========================================================
+   CONTENU
+   ========================================================= */
+
+.admin-invite-show .invite-show-content {
+    width: 100%;
+
+    min-height: calc(100vh - 260px);
+
+    padding: 28px 20px 50px;
+
+    background: #fff;
 }
 
+.admin-invite-show .invite-show-emissions {
+    width: 100%;
+    max-width: 1200px;
 
+    margin: 0 auto;
+}
 
+/* =========================================================
+   PAGINATION ALPHABÉTIQUE
+   ========================================================= */
 
+.admin-invite-show .alphabet-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
 
+    gap: 5px;
+
+    width: 100%;
+
+    padding: 12px 0 18px;
+}
+
+.admin-invite-show .alphabet-pagination a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 34px;
+    height: 34px;
+
+    padding: 0 8px;
+
+    border: 2px solid #E4013A;
+    border-radius: 7px;
+
+    background: #fff;
+    color: #E4013A;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+
+    text-decoration: none;
+
+    transition:
+        background .2s ease,
+        color .2s ease;
+}
+
+.admin-invite-show .alphabet-pagination a:hover,
+.admin-invite-show .alphabet-pagination a.active {
+    background: #E4013A;
+    color: #fff;
+}
+
+/* =========================================================
+   TABLETTE / INTERMÉDIAIRE
+   ========================================================= */
+
+@media screen and (max-width: 900px) {
+
+    .admin-invite-show .invite-show-hero__content {
+        padding: 42px 18px 56px;
+    }
+
+    .admin-invite-show .invite-show-hero h1 {
+        font-size: 32px;
+    }
+
+    .admin-invite-show .invite-show-content {
+        padding: 24px 16px 45px;
+    }
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 600px) {
+
+    .admin-invite-show .invite-show-hero__content {
+        gap: 10px;
+
+        padding: 30px 14px 42px;
+    }
+
+    .admin-invite-show .invite-show-hero h1 {
+        font-size: 26px;
+    }
+
+    .admin-invite-show .invite-show-type {
+        padding: 6px 11px;
+
+        font-size: 12px;
+    }
+
+    .admin-invite-show .invite-show-content {
+        padding: 20px 10px 40px;
+    }
+
+    .admin-invite-show .alphabet-pagination {
+        gap: 4px;
+    }
+
+    .admin-invite-show .alphabet-pagination a {
+        min-width: 30px;
+        height: 30px;
+
+        padding: 0 6px;
+
+        font-size: 12px;
+    }
+}
+
+/* =========================================================
+   PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 420px) {
+
+    .admin-invite-show .invite-show-hero__content {
+        padding: 24px 10px 36px;
+    }
+
+    .admin-invite-show .invite-show-hero h1 {
+        font-size: 23px;
+    }
+
+    .admin-invite-show .invite-show-content {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+}
+
+/* =========================================================
+   TRÈS PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 350px) {
+
+    .admin-invite-show .invite-show-hero__content {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .admin-invite-show .invite-show-hero h1 {
+        font-size: 21px;
+    }
+
+    .admin-invite-show .invite-show-type {
+        max-width: 100%;
+
+        padding-left: 9px;
+        padding-right: 9px;
+
+        font-size: 11px;
+
+        text-align: center;
+    }
+
+    .admin-invite-show .invite-show-content {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+}
+
+/* =========================================================
+   MOBILE PAYSAGE
+   ========================================================= */
+
+@media screen and (max-height: 500px) and (orientation: landscape) {
+
+    .admin-invite-show .invite-show-hero__content {
+        gap: 8px;
+
+        padding-top: 20px;
+        padding-bottom: 32px;
+    }
+
+    .admin-invite-show .invite-show-hero h1 {
+        font-size: 24px;
+    }
+
+    .admin-invite-show .invite-show-content {
+        padding-top: 16px;
+    }
+}
 </style>
-    <div>
-        <div class="InviteOldAnimateurblock">
-            <div class="titre">
-                <h1>
-                    {{ InviteOldAnimateur.Lastname }}
-                    {{ InviteOldAnimateur.Firstname }}
-                </h1>
-            </div>
+
+
+<div class="admin-invite-show">
+
+    <header class="invite-show-hero">
+
+        <div class="invite-show-hero__content">
+
+            <h1>
+                {{ InviteOldAnimateur.lastName }}
+                {{ InviteOldAnimateur.firstName }}
+            </h1>
+
+            <p class="invite-show-type">
+                {% if InviteOldAnimateur.ancienanimateur %}
+                    Ancien·ne animateur·rice
+                {% else %}
+                    Invité·e
+                {% endif %}
+            </p>
+
         </div>
-        <div class="bottom">
-            <img src="/images/top-content-dechire-D.gif"></div>
+
+        <img
+            class="invite-show-hero__bottom"
+            src="/images/top-content-dechire-D.gif"
+            alt=""
+        >
+
+    </header>
+
+
+    <main class="invite-show-content">
+
+        <div class="invite-show-emissions">
+
+            <nav
+                class="alphabet-pagination"
+                aria-label="Navigation alphabétique"
+            >
+
+                <a
+                    href="{{ path('admin.InviteOldAnimateur.show', {
+                        id: InviteOldAnimateur.id,
+                        initiale: '0-9',
+                        page: 1
+                    }) }}#resultats"
+                    class="{{ initiale == '0-9' ? 'active' : '' }}"
+                >
+                    0-9
+                </a>
+
+                {% for lettre in alphabet %}
+
+                    <a
+                        href="{{ path('admin.InviteOldAnimateur.show', {
+                            id: InviteOldAnimateur.id,
+                            initiale: lettre,
+                            page: 1
+                        }) }}#resultats"
+                        class="{{ initiale == lettre ? 'active' : '' }}"
+                    >
+                        {{ lettre }}
+                    </a>
+
+                {% endfor %}
+
+                <a
+                    href="{{ path('admin.InviteOldAnimateur.show', {
+                        id: InviteOldAnimateur.id,
+                        page: 1
+                    }) }}#resultats"
+                    class="{{ initiale is empty ? 'active' : '' }}"
+                >
+                    Toutes
+                </a>
+
+            </nav>
+
+            <div id="resultats" tabindex="-1"></div>
+
+            {% include 'partials/_emission_results.html.twig' with {
+                emissions: emissions,
+                showNoResults: true,
+                resultsTitle: 'Toutes les émissions de cet·te invité·e ou animateur·rice :',
+                noResultsText: 'Aucune émission associée.',
+                showRoute: 'admin.emission.show',
+                isAdmin: true,
+                showAdminActions: true,
+                editRoute: 'admin.emission.edit',
+                deleteRoute: 'admin.emission.delete',
+                useKnpPagination: true,
+                useLivePagination: false,
+                useAlphabetPagination: false
+            } only %}
+
         </div>
-        <div class="emissionsdelaInviteOldAnimateur">
-            <div class="titre">
-                <h2>
-                    Toutes les émissions de cet éditeur :
-                </h2>
-            </div>
-            <div class="InviteOldAnimateuremission">
-                {% for emission in InviteOldAnimateur.emissions | sort((a, b) => b.datepub <=> a.datepub) %}
-                    <article>
-                        <div class="col1">
-                            {% if emission.thumbnail %}
-                                <img src="{{ vich_uploader_asset(emission, 'thumbnailFile') }}" alt="Photo de {{ emission.titre }}">
-                                {% endif %}
-                            </div>
-                            <div class="col2">
-                                <h3>
-                                    {{ emission.titre }}
-                                </h3>
-                                <p>
-                                    {{ emission.datepub|date('d-m-Y') }}
-                                    {{ emission.descriptif | raw }}
-                                </p>
-                            </div>
-                            <div class="col3">
-                                {% if emission.url %}
-                                    <div class='ecoute'>
-                                        <a href="{{ emission.url }}">
-                                            <img src="/images/lecteur.png" alt="écoutez l'émission"></a>
-                                        </div>
-                                        <a class="btn btn-primary btn-sm" href="{{ path('admin.emission.edit', { id: emission.id }) }}" data-controller="return" data-return-url-value="{{ path('admin.emission.edit', { id: emission.id }) }}" data-action="click->return#redirectWithReturnTo">
-                                            Éditer
-                                        </a>
-                                    {% else %}
-                                        <p>
-                                            <div class='ecoute'>
-                                                Pas de fichier audio disponible
-                                            </div>
-                                            <a class="btn btn-primary btn-sm" href="{{ path('admin.emission.edit', { id: emission.id }) }}" data-controller="return" data-return-url-value="{{ path('admin.emission.edit', { id: emission.id }) }}" data-action="click->return#redirectWithReturnTo">
-                                                Éditer
-                                            </a>
-                                        </a>
-                                    </p>
-                                </div>
-                            {% endif %}
-                        </article>
-                    {% endfor %}
-                </div>
-            </div>
-        {% endblock %}
-        
+
+    </main>
+
+</div>
+
+{% endblock %}

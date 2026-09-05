@@ -1,107 +1,773 @@
 {% extends 'admin/admin.html.twig' %}
+
 {% block title %}
     Liste des thèmes !
 {% endblock %}
+
 {% block body %}
-    <style>
-    .example-wrapper { margin: 1em auto; max-width: 800px; width: 95%; font: 18px/1.5 sans-serif; }
-    .example-wrapper code { background: #F5F5F5; padding: 2px 6px; }
-   
 
-  
-    a {
-        padding: 14px 16px;
-        color: white;
-        text-decoration: none;
-        font-weight: 800;
-    }
+<style>
+/* =========================================================
+   PAGE
+   ========================================================= */
 
-    a:hover {
-        padding: 14px 16px;
-        color: #E40039;
-        text-decoration: none;
-        font-weight: 800; 
-    }
-    .create {
-        margin: auto;
-        padding: 20px;
-    }
+.admin-theme-page {
+    width: 100%;
+    max-width: 100%;
 
-    .theme {
-        background-color: black;
-        color: white;
-        display: grid;
-        grid-template-columns: 0.5fr 4fr 0.5fr;
-        margin: 70px;
-        grid-column-gap: 0px;
-        grid-row-gap: 0px ;
-        align-items: center; 
-        }
+    overflow-x: hidden;
 
-    .col1 {
-        background-color: black;
-        
-    }
-    .col1 img {
-        width: 150px;
-        padding: 10px;
-    }
-    .col2 {
-        background-color: black;
-        border-bottom: solid;
-    }
-    .col3 {
-        background-color: black;
+    background: white;
+
+    font-family: "Montserrat Alternates", sans-serif;
+}
+
+.admin-theme-page,
+.admin-theme-page *,
+.admin-theme-page *::before,
+.admin-theme-page *::after {
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   BANDEAU ROUGE
+   ========================================================= */
+
+.admin-theme-page .theme-hero {
+    width: 100%;
+
+    background: linear-gradient(
+        #E4013A,
+        #B81C61
+    );
+
+    color: white;
+}
+
+.admin-theme-page .theme-hero__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    max-width: 1200px;
+
+    margin: 0 auto;
+    padding: 55px 20px 70px;
+
+    text-align: center;
+}
+
+.admin-theme-page .theme-hero h1 {
+    margin: 0 0 30px;
+
+    color: white;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 36pt;
+    font-weight: 900;
+    line-height: 1.1;
+}
+
+
+/* =========================================================
+   BOUTON CRÉATION
+   ========================================================= */
+
+.admin-theme-page .btn-create {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 42px;
+
+    padding: 10px 18px;
+
+    background: white;
+    color: #E4013A;
+
+    border: 2px solid white;
+    border-radius: 6px;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+
+    text-decoration: none;
+
+    box-shadow: 0 4px 8px rgba(0, 0, 0, .12);
+
+    transition:
+        background-color .2s ease,
+        color .2s ease,
+        transform .2s ease;
+}
+
+.admin-theme-page .btn-create:hover {
+    background: transparent;
+    color: white;
+
+    transform: translateY(-2px);
+}
+
+
+/* =========================================================
+   DÉCHIRURE
+   ========================================================= */
+
+.admin-theme-page .theme-hero__bottom {
+    display: block;
+
+    width: 100%;
+    height: auto;
+
+    margin: 0;
+}
+
+
+/* =========================================================
+   PARTIE BLANCHE
+   ========================================================= */
+
+.admin-theme-page .theme-content {
+    width: 100%;
+
+    min-height: calc(100vh - 300px);
+
+    padding: 30px 20px 50px;
+
+    background: white;
+}
+
+
+/* =========================================================
+   LISTE — 2 COLONNES DESKTOP
+   ========================================================= */
+
+.admin-theme-page .theme-list {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 18px;
+
+    width: 100%;
+    max-width: 1200px;
+
+    margin: 0 auto;
+    padding: 0;
+}
+
+
+/* =========================================================
+   CARTE
+   ========================================================= */
+
+.admin-theme-page .theme-card {
+    display: grid;
+
+    grid-template-columns:
+        120px
+        minmax(0, 1fr);
+
+    grid-template-rows:
+        1fr
+        auto;
+
+    align-items: center;
+
+    gap: 10px 16px;
+
+    width: 100%;
+    min-width: 0;
+
+    padding: 16px;
+
+    background: white;
+    color: #1C1C1A;
+
+    border: 1px solid #eeeeee;
+    border-radius: 15px;
+
+    box-shadow:
+        0 4px 15px
+        rgba(0, 0, 0, .10);
+
+    transition:
+        transform .3s ease,
+        box-shadow .3s ease,
+        border-color .3s ease;
+}
+
+.admin-theme-page .theme-card:hover {
+    transform: translateY(-4px);
+
+    border-color: #f3c2ce;
+
+    box-shadow:
+        0 10px 24px
+        rgba(0, 0, 0, .15);
+}
+
+
+/* =========================================================
+   IMAGE
+   ========================================================= */
+
+.admin-theme-page .theme-card__image {
+    grid-column: 1;
+    grid-row: 1 / 3;
+
     display: flex;
     align-items: center;
     justify-content: center;
-    }
+
+    width: 110px;
+    height: 110px;
+
+    overflow: hidden;
+
+    background: #f2f2f2;
+
+    border-radius: 10px;
+
+    box-shadow:
+        0 4px 8px
+        rgba(0, 0, 0, .10);
+}
+
+.admin-theme-page .theme-card__image img {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
 
 
-.imagetheme{
-    width: 300px;
-    margin: auto;
+/* =========================================================
+   PAS D'IMAGE
+   ========================================================= */
+
+.admin-theme-page .theme-card__no-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    height: 100%;
+
+    padding: 10px;
+
+    color: #888;
+
+    font-family: "Montserrat", sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+
+    text-align: center;
+}
+
+
+/* =========================================================
+   TITRE
+   ========================================================= */
+
+.admin-theme-page .theme-card__content {
+    grid-column: 2;
+    grid-row: 1;
+
+    display: flex;
+    align-items: flex-end;
+
+    min-width: 0;
+}
+
+.admin-theme-page .theme-card__title {
+    width: 100%;
+
+    margin: 0;
+}
+
+.admin-theme-page .theme-card__title a {
+    display: block;
+
+    color: #E4013A;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 19px;
+    font-weight: 800;
+    line-height: 1.3;
+
+    text-decoration: none;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+
+    transition: color .2s ease;
+}
+
+.admin-theme-page .theme-card__title a:hover {
+    color: #B81C61;
+}
+
+
+/* =========================================================
+   ACTION
+   ========================================================= */
+
+.admin-theme-page .theme-card__actions {
+    grid-column: 2;
+    grid-row: 2;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    width: 100%;
+    min-width: 0;
+}
+
+.admin-theme-page .btn-edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: auto;
+    min-width: 110px;
+    min-height: 38px;
+
+    padding: 7px 14px;
+
+    background: #666;
+    color: white;
+
+    border: none;
+    border-radius: 8px;
+
+    box-shadow:
+        0 4px 8px
+        rgba(0, 0, 0, .10);
+
+    font-family: "Montserrat", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+
+    line-height: 1;
+
+    text-align: center;
+    text-decoration: none;
+
+    transition:
+        transform .2s ease,
+        background-color .2s ease;
+}
+
+.admin-theme-page .btn-edit:hover {
+    background: #E4013A;
+    color: white;
+
+    transform: translateY(-2px);
+}
+
+
+/* =========================================================
+   LISTE VIDE
+   ========================================================= */
+
+.admin-theme-page .theme-empty {
+    grid-column: 1 / -1;
+
+    width: 100%;
+
+    margin: 20px 0;
+    padding: 30px 20px;
+
+    color: #666;
+
+    background: #f7f7f7;
+
+    border-radius: 12px;
+
+    font-family: "Montserrat", sans-serif;
+
+    text-align: center;
+}
+
+
+/* =========================================================
+   TABLETTE / PETIT DESKTOP
+   ========================================================= */
+
+@media screen and (max-width: 900px) {
+
+    .admin-theme-page .theme-hero__content {
+        padding: 45px 20px 60px;
     }
-      
+
+    .admin-theme-page .theme-hero h1 {
+        margin-bottom: 25px;
+
+        font-size: 32px;
+    }
+
+    .admin-theme-page .theme-list {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-theme-page .theme-card {
+        grid-template-columns:
+            120px
+            minmax(0, 1fr);
+
+        gap: 10px 16px;
+    }
+
+    .admin-theme-page .theme-card__image {
+        width: 110px;
+        height: 110px;
+    }
+
+    .admin-theme-page .theme-card__actions {
+        justify-content: flex-end;
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 600px) {
+
+    .admin-theme-page .theme-hero__content {
+        padding: 30px 14px 42px;
+    }
+
+    .admin-theme-page .theme-hero h1 {
+        margin-bottom: 20px;
+
+        font-size: 26px;
+        line-height: 1.15;
+    }
+
+    .admin-theme-page .btn-create {
+        max-width: 100%;
+
+        padding: 9px 14px;
+
+        font-size: 13px;
+
+        text-align: center;
+    }
+
+    .admin-theme-page .theme-content {
+        padding: 20px 10px 40px;
+    }
+
+    .admin-theme-page .theme-list {
+        grid-template-columns: 1fr;
+
+        gap: 12px;
+    }
+
+    .admin-theme-page .theme-card {
+        grid-template-columns:
+            90px
+            minmax(0, 1fr);
+
+        grid-template-rows:
+            1fr
+            auto;
+
+        gap: 7px 12px;
+
+        padding: 12px;
+
+        border-radius: 12px;
+    }
+
+    .admin-theme-page .theme-card:hover {
+        transform: none;
+    }
+
+    .admin-theme-page .theme-card__image {
+        grid-column: 1;
+        grid-row: 1 / 3;
+
+        width: 84px;
+        height: 84px;
+
+        border-radius: 8px;
+    }
+
+    .admin-theme-page .theme-card__content {
+        grid-column: 2;
+        grid-row: 1;
+
+        align-items: flex-end;
+    }
+
+    .admin-theme-page .theme-card__title a {
+        font-size: 17px;
+        line-height: 1.25;
+    }
+
+    .admin-theme-page .theme-card__actions {
+        grid-column: 2;
+        grid-row: 2;
+
+        justify-content: flex-end;
+    }
+
+    .admin-theme-page .btn-edit {
+        min-width: 100px;
+        min-height: 36px;
+
+        padding: 6px 12px;
+
+        font-size: 12px;
+    }
+}
+
+
+/* =========================================================
+   PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 420px) {
+
+    .admin-theme-page .theme-hero__content {
+        padding: 24px 10px 36px;
+    }
+
+    .admin-theme-page .theme-hero h1 {
+        font-size: 23px;
+    }
+
+    .admin-theme-page .btn-create {
+        width: 100%;
+    }
+
+    .admin-theme-page .theme-content {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .admin-theme-page .theme-card {
+        grid-template-columns:
+            78px
+            minmax(0, 1fr);
+
+        gap: 6px 10px;
+
+        padding: 10px;
+    }
+
+    .admin-theme-page .theme-card__image {
+        width: 72px;
+        height: 72px;
+    }
+
+    .admin-theme-page .theme-card__title a {
+        font-size: 16px;
+    }
+
+    .admin-theme-page .theme-card__actions {
+        justify-content: flex-end;
+    }
+
+    .admin-theme-page .btn-edit {
+        min-width: 90px;
+        min-height: 34px;
+
+        padding: 5px 10px;
+
+        font-size: 11.5px;
+    }
+}
+
+
+/* =========================================================
+   TRÈS PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 350px) {
+
+    .admin-theme-page .theme-content {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    .admin-theme-page .theme-card {
+        grid-template-columns:
+            70px
+            minmax(0, 1fr);
+
+        gap: 6px 8px;
+
+        padding: 8px;
+    }
+
+    .admin-theme-page .theme-card__image {
+        width: 64px;
+        height: 64px;
+    }
+
+    .admin-theme-page .theme-card__title a {
+        font-size: 15px;
+    }
+
+    .admin-theme-page .theme-card__actions {
+        justify-content: flex-end;
+    }
+
+    .admin-theme-page .btn-edit {
+        min-width: 82px;
+
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+}
+
+
+/* =========================================================
+   MOBILE PAYSAGE
+   ========================================================= */
+
+@media screen and (max-height: 500px) and (orientation: landscape) {
+
+    .admin-theme-page .theme-hero__content {
+        padding-top: 20px;
+        padding-bottom: 32px;
+    }
+
+    .admin-theme-page .theme-hero h1 {
+        margin-bottom: 14px;
+
+        font-size: 24px;
+    }
+
+    .admin-theme-page .theme-content {
+        padding-top: 14px;
+    }
+}
 </style>
-    <div>
-        <p class="create">
-            <a class="btn-create" href="{{ path('admin.theme.create') }}">
+
+
+<div class="admin-theme-page">
+
+    <header class="theme-hero">
+
+        <div class="theme-hero__content">
+
+            <h1>
+                Liste des thèmes
+            </h1>
+
+            <a
+                class="btn-create"
+                href="{{ path('admin.theme.create') }}"
+            >
                 Créer un nouveau thème
             </a>
-        </p>
-        <h1>
-            Liste des thèmes
-        </h1>
-        <article>
-            <div class="theme">
-                {% for theme in themes %}
-                    <div class="col1">
-                        <p>
-                            {% if theme.thumbnail %}
-                                <img class="imagetheme" src="{{ vich_uploader_asset(theme, 'thumbnailFile') }}" alt="Photo de {{ theme.name }}">
-                                {% endif %}
-                            </p>
-                        </div>
-                        <div class="col2">
-                            <a href="{{ path('admin.theme.show', {id: theme.id }) }}">
+
+        </div>
+
+        <img
+            class="theme-hero__bottom"
+            src="/images/top-content-dechire-D.gif"
+            alt=""
+        >
+
+    </header>
+
+
+    <main class="theme-content">
+
+        <article class="theme-list">
+
+            {% for theme in themes %}
+
+                <section class="theme-card">
+
+                    <div class="theme-card__image">
+
+                        {% if theme.thumbnail %}
+
+                            <img
+                                src="{{ vich_uploader_asset(
+                                    theme,
+                                    'thumbnailFile'
+                                ) }}"
+                                alt="Photo de {{ theme.name }}"
+                            >
+
+                        {% else %}
+
+                            <div class="theme-card__no-image">
+                                Aucune image
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <div class="theme-card__content">
+
+                        <h2 class="theme-card__title">
+
+                            <a
+                                href="{{ path(
+                                    'admin.theme.show',
+                                    {
+                                        id: theme.id
+                                    }
+                                ) }}"
+                            >
                                 {{ theme.name }}
                             </a>
-                        </div>
-                        <div class="col3">
-                            <a class="btn btn-primary btn-sm" href="{{ path('admin.theme.edit', {id: theme.id}) }}">
-                                Éditer
-                            </a>
-                        {#  <form action="{{ path('admin.theme.delete', { id: theme.id }) }}" method="post" data-controller="return" data-action="submit->return#confirmBeforeSubmit submit->return#redirectWithReturnTo">
-                            <input type="hidden" name="_method" value="DELETE">
-                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ theme.id) }}">
-                            <button type="submit" class="btn-action btn-delete">
-                            Supprimer
-                            </button>
-                        </form> #}
-                        </div>
-                    {% endfor %}
-                </div>
-            </article>
-        {% endblock %}
-        
+
+                        </h2>
+
+                    </div>
+
+
+                    <div class="theme-card__actions">
+
+                        <a
+                            class="btn-edit"
+                            href="{{ path(
+                                'admin.theme.edit',
+                                {
+                                    id: theme.id
+                                }
+                            ) }}"
+                        >
+                            Éditer
+                        </a>
+
+                    </div>
+
+                </section>
+
+            {% else %}
+
+                <p class="theme-empty">
+                    Aucun thème disponible.
+                </p>
+
+            {% endfor %}
+
+        </article>
+
+    </main>
+
+</div>
+
+{% endblock %}

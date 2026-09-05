@@ -33,7 +33,7 @@ class AdminController extends AbstractController
         $pendingEmissionsCount = 0;
 
         if ($this->isGranted('ROLE_SUPER_ADMIN')) {
-            $pendingEmissions = $emissionRepository->findAllPendingCompletion(5);
+            $pendingEmissions = $emissionRepository->findAllPendingCompletion();
             $pendingEmissionsCount = $emissionRepository->countAllPendingCompletion();
         } elseif ($user instanceof User) {
             $pendingEmissions = $emissionRepository->findPendingCompletionForUser($user, 5);

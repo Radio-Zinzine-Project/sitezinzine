@@ -1,111 +1,828 @@
 {% extends 'admin/admin.html.twig' %}
-
 {% block title %}
-    Tous les invités !
+    Invité·es et ancien·nes animateurices
 {% endblock %}
-
 {% block body %}
     <style>
-        .admin-invite-page {
-            padding: 0 20px;
-        }
+/* =========================================================
+   PAGE
+   ========================================================= */
 
-        .admin-invite-page .create {
-            text-align: left;
-            margin: 0 0 20px;
-        }
+.admin-invite-page {
+    width: 100%;
+    padding: 0 24px 40px;
+    box-sizing: border-box;
 
-        .admin-invite-page .btn-create {
-            display: inline-block;
-            padding: 12px 18px;
-            border-radius: 8px;
-            background: #E4013A;
-            color: #fff;
-            text-decoration: none;
-            font-weight: 800;
-        }
+    font-family: "Montserrat Alternates", sans-serif;
+}
 
-        .admin-invite-page .btn-create:hover {
-            background: #b8002f;
-            color: #fff;
-            text-decoration: none;
-        }
+.admin-invite-page *,
+.admin-invite-page *::before,
+.admin-invite-page *::after {
+    box-sizing: border-box;
+}
 
-        .admin-invite-page h1 {
-            margin-bottom: 20px;
-        }
+.admin-invite-page h1 {
+    margin: 20px 0 24px;
 
-        @media (max-width: 768px) {
-            .admin-invite-page {
-                padding: 0 12px;
-            }
+    text-align: center;
 
-            .admin-invite-page .create {
-                text-align: center;
-            }
+    font-size: 2.2rem;
+    font-weight: 900;
+}
 
-            .admin-invite-page .btn-create {
-                display: block;
-                width: 100%;
-                max-width: 280px;
-                margin: 0 auto;
-                padding: 10px 12px;
-                font-size: 14px;
-                border-radius: 10px;
-            }
-        }
-    </style>
 
+/* =========================================================
+   CRÉATION
+   ========================================================= */
+
+.admin-invite-page .create {
+    width: 100%;
+    margin: 0 0 20px;
+}
+
+.admin-invite-page .btn-create {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 12px 18px;
+
+    border-radius: 8px;
+
+    background: #E4013A;
+    color: #fff;
+
+    text-decoration: none;
+    font-weight: 800;
+
+    transition: all .3s ease;
+}
+
+.admin-invite-page .btn-create:hover {
+    background: #b8002f;
+    color: #fff;
+    text-decoration: none;
+}
+
+
+/* =========================================================
+   FILTRES
+   ========================================================= */
+
+.admin-invite-page .invite-filters {
+    width: 100%;
+    max-width: 1200px;
+
+    margin: 0 auto 18px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+/* =========================================================
+   FILTRE ALPHANUMÉRIQUE
+   même style que les émissions
+   ========================================================= */
+
+.admin-invite-page .alphabet-filter {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+
+    gap: 5px;
+
+    width: 100%;
+    padding: 12px 0 6px;
+}
+
+.admin-invite-page .alphabet-filter a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 34px;
+    height: 34px;
+    padding: 0 8px;
+
+    border: 2px solid #E4013A;
+    border-radius: 7px;
+
+    background: #fff;
+    color: #E4013A;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+
+    text-decoration: none;
+
+    transition: all .2s ease;
+}
+
+.admin-invite-page .alphabet-filter a:hover,
+.admin-invite-page .alphabet-filter a.active {
+    background: #E4013A;
+    color: #fff;
+}
+
+
+/* =========================================================
+   FILTRE TYPE
+   ========================================================= */
+
+.admin-invite-page .type-filter {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+
+    gap: 8px;
+
+    padding: 0 0 10px;
+}
+
+.admin-invite-page .type-filter a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 36px;
+    padding: 7px 16px;
+
+    border: 2px solid #E4013A;
+    border-radius: 7px;
+
+    background: #fff;
+    color: #E4013A;
+
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+
+    text-align: center;
+    text-decoration: none;
+
+    transition: all .2s ease;
+}
+
+.admin-invite-page .type-filter a:hover,
+.admin-invite-page .type-filter a.active {
+    background: #E4013A;
+    color: #fff;
+}
+
+
+/* =========================================================
+   TABLEAU
+   ========================================================= */
+
+.admin-invite-page .table-responsive {
+    width: 100%;
+    max-width: 1200px;
+
+    margin: 0 auto;
+
+    overflow: hidden;
+
+    background: white;
+
+    border-radius: 8px;
+
+    box-shadow: 0 4px 6px rgba(0, 0, 0, .1);
+}
+
+.admin-invite-page table {
+    width: 100%;
+
+    margin: 0;
+
+    border-collapse: collapse;
+
+    color: #1C1C1A;
+}
+
+.admin-invite-page th,
+.admin-invite-page td {
+    padding: 14px 16px;
+
+    text-align: left;
+    vertical-align: middle;
+
+    border-bottom: 1px solid #ddd;
+}
+
+.admin-invite-page th {
+    background: #1C1C1A;
+    color: white;
+
+    font-weight: 800;
+
+    white-space: nowrap;
+}
+
+.admin-invite-page tbody tr:nth-child(even) {
+    background: #f9f9f9;
+}
+
+.admin-invite-page tbody tr:hover {
+    background: #f3f3f3;
+}
+
+.admin-invite-page tbody tr:last-child td {
+    border-bottom: none;
+}
+
+
+/* =========================================================
+   NOM
+   ========================================================= */
+
+.admin-invite-page .invite-name {
+    font-weight: 800;
+
+    color: #1C1C1A;
+
+    text-decoration: none;
+}
+
+.admin-invite-page .invite-name:hover {
+    color: #E4013A;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+
+/* =========================================================
+   TYPE
+   ========================================================= */
+
+.admin-invite-page .invite-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 5px 10px;
+
+    border-radius: 999px;
+
+    font-size: .82rem;
+    font-weight: 800;
+
+    white-space: nowrap;
+}
+
+.admin-invite-page .invite-badge--animateur {
+    background: #1C1C1A;
+    color: white;
+}
+
+.admin-invite-page .invite-badge--invite {
+    background: #eee;
+    color: #1C1C1A;
+
+    border: 1px solid #ccc;
+}
+
+
+/* =========================================================
+   ACTION
+   ========================================================= */
+
+.admin-invite-page .btn-edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: .5rem 1rem;
+
+    background: white;
+    color: black;
+
+    border: 2px solid black;
+    border-radius: 26px;
+
+    text-decoration: none;
+
+    font-size: .9rem;
+    font-weight: 700;
+
+    transition: all .3s ease;
+
+    white-space: nowrap;
+}
+
+.admin-invite-page .btn-edit:hover {
+    background: #E40039;
+    color: white;
+
+    border-color: #E40039;
+}
+
+
+/* =========================================================
+   VALEUR VIDE
+   ========================================================= */
+
+.admin-invite-page .empty-value {
+    color: #888;
+}
+
+
+/* =========================================================
+   RESPONSIVE — TABLETTE
+   ========================================================= */
+
+@media screen and (max-width: 900px) {
+
+    .admin-invite-page {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .admin-invite-page h1 {
+        font-size: 1.9rem;
+    }
+
+    .admin-invite-page th,
+    .admin-invite-page td {
+        padding: 10px 8px;
+        font-size: .9rem;
+    }
+
+    .admin-invite-page .invite-badge {
+        white-space: normal;
+        text-align: center;
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 700px) {
+
+    .admin-invite-page {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .admin-invite-page h1 {
+        margin: 16px 0 20px;
+        font-size: 1.6rem;
+    }
+
+    .admin-invite-page .create {
+        text-align: center;
+    }
+
+    .admin-invite-page .btn-create {
+        width: 100%;
+
+        padding: 10px 12px;
+
+        font-size: .9rem;
+    }
+
+
+    /* Filtres */
+
+    .admin-invite-page .invite-filters {
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+
+    .admin-invite-page .alphabet-filter {
+        gap: 4px;
+        padding-top: 8px;
+    }
+
+    .admin-invite-page .alphabet-filter a {
+        min-width: 30px;
+        height: 30px;
+
+        padding: 0 6px;
+
+        font-size: 12px;
+    }
+
+    .admin-invite-page .type-filter {
+        gap: 6px;
+    }
+
+    .admin-invite-page .type-filter a {
+        flex: 0 1 auto;
+
+        min-height: 34px;
+
+        padding: 6px 10px;
+
+        font-size: .78rem;
+    }
+
+
+    /* Le tableau devient une liste compacte */
+
+    .admin-invite-page table,
+    .admin-invite-page tbody {
+        display: block;
+        width: 100%;
+    }
+
+    .admin-invite-page thead {
+        display: none;
+    }
+
+    .admin-invite-page tr {
+        display: grid;
+
+        grid-template-columns: 1fr auto;
+
+        width: 100%;
+
+        padding: 12px;
+
+        border-bottom: 1px solid #ddd;
+
+        background: white;
+
+        gap: 6px 12px;
+    }
+
+    .admin-invite-page tbody tr:nth-child(even) {
+        background: #f9f9f9;
+    }
+
+    .admin-invite-page tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .admin-invite-page td {
+        display: block;
+
+        padding: 0;
+
+        border: none;
+
+        min-width: 0;
+
+        font-size: .9rem;
+
+        overflow-wrap: anywhere;
+    }
+
+
+    /* Nom */
+
+    .admin-invite-page td:nth-child(1) {
+        grid-column: 1;
+        grid-row: 1;
+
+        font-size: 1rem;
+    }
+
+
+    /* Type */
+
+    .admin-invite-page td:nth-child(2) {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+
+    /* Email */
+
+    .admin-invite-page td:nth-child(3) {
+        grid-column: 1;
+        grid-row: 3;
+
+        color: #555;
+    }
+
+
+    /* Téléphone */
+
+    .admin-invite-page td:nth-child(4) {
+        grid-column: 1;
+        grid-row: 4;
+
+        color: #555;
+    }
+
+
+    /* Bouton édition */
+
+    .admin-invite-page td:nth-child(5) {
+        grid-column: 2;
+        grid-row: 1 / span 4;
+
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    .admin-invite-page .btn-edit {
+        padding: .4rem .75rem;
+
+        font-size: .8rem;
+    }
+
+    .admin-invite-page .invite-badge {
+        font-size: .75rem;
+    }
+}
+
+
+/* =========================================================
+   PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 480px) {
+
+    .admin-invite-page {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .admin-invite-page h1 {
+        font-size: 1.4rem;
+    }
+
+    .admin-invite-page tr {
+        grid-template-columns: minmax(0, 1fr) auto;
+
+        gap: 5px 12px;
+
+        padding: 10px;
+    }
+
+
+    /* Nom */
+
+    .admin-invite-page td:nth-child(1) {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+
+    /* Type */
+
+    .admin-invite-page td:nth-child(2) {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+
+    /* Email */
+
+    .admin-invite-page td:nth-child(3) {
+        grid-column: 1;
+        grid-row: 3;
+    }
+
+
+    /* Téléphone */
+
+    .admin-invite-page td:nth-child(4) {
+        grid-column: 1;
+        grid-row: 4;
+    }
+
+
+    /* Éditer à droite */
+
+    .admin-invite-page td:nth-child(5) {
+        grid-column: 2;
+        grid-row: 1 / 5;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        margin: 0;
+    }
+
+    .admin-invite-page .btn-edit {
+        width: auto;
+
+        white-space: nowrap;
+    }
+
+
+    /* Filtres */
+
+    .admin-invite-page .alphabet-filter {
+        gap: 4px;
+    }
+
+    .admin-invite-page .alphabet-filter a {
+        min-width: 30px;
+        height: 30px;
+
+        padding: 0 6px;
+
+        font-size: 12px;
+    }
+
+    .admin-invite-page .type-filter {
+        width: 100%;
+
+        gap: 5px;
+    }
+
+    .admin-invite-page .type-filter a {
+        flex: 1 1 auto;
+
+        min-width: 0;
+
+        padding: 6px 8px;
+
+        font-size: .72rem;
+
+        white-space: normal;
+    }
+}
+
+
+/* =========================================================
+   TRÈS PETIT MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 360px) {
+
+    .admin-invite-page .type-filter {
+        flex-direction: column;
+    }
+
+    .admin-invite-page .type-filter a {
+        width: 100%;
+    }
+
+    .admin-invite-page tr {
+        gap: 5px 8px;
+    }
+
+    .admin-invite-page .btn-edit {
+        padding: .35rem .55rem;
+        font-size: .75rem;
+    }
+}
+
+
+/* =========================================================
+   MOBILE PAYSAGE
+   ========================================================= */
+
+@media screen and (max-height: 500px) and (orientation: landscape) {
+
+    .admin-invite-page h1 {
+        margin-top: 12px;
+        margin-bottom: 14px;
+    }
+
+    .admin-invite-page .alphabet-filter {
+        padding-top: 6px;
+        padding-bottom: 4px;
+    }
+
+    .admin-invite-page .type-filter {
+        padding-bottom: 6px;
+    }
+}
+</style>
     <div class="admin-invite-page">
         <p class="create">
             <a class="btn-create" href="{{ path('admin.InviteOldAnimateur.create') }}">
-                Créer un nouveau invité ou ancien·ne animateurice
+                Créer un nouvel invité ou ancien·ne animateurice
             </a>
         </p>
-
-        <h1>Liste des invités et anciens·ne animateur·ice·s</h1>
-
-        <div class="admin-card-grid">
-            {% for inviteOldAnimateur in InviteOldAnimateurs %}
-                {% set badges = [] %}
-
-                {% if inviteOldAnimateur.ancienanimateur %}
-                    {% set badges = badges|merge([
-                        { label: 'Ancien·ne animateurice', class: 'admin-card__badge--primary' }
-                    ]) %}
-                {% else %}
-                    {% set badges = badges|merge([
-                        { label: 'Invité·e', class: 'admin-card__badge--secondary' }
-                    ]) %}
-                {% endif %}
-
-                {% set content %}
-                    {% if inviteOldAnimateur.mail %}
-                        <p><strong>Email :</strong> {{ inviteOldAnimateur.mail }}</p>
-                    {% endif %}
-
-                    {% if inviteOldAnimateur.phoneNumber %}
-                        <p><strong>Téléphone :</strong> {{ inviteOldAnimateur.phoneNumber }}</p>
-                    {% endif %}
-                {% endset %}
-
-                {% set actions %}
-                    <a
-                        class="btn-action"
-                        href="{{ path('admin.InviteOldAnimateur.edit', { id: inviteOldAnimateur.id }) }}"
-                    >
-                        Éditer
+        <h1>
+            Invité·es et ancien·nes animateurices
+        </h1>
+        <div class="invite-filters">
+            <nav class="alphabet-filter" aria-label="Filtrer par initiale">
+                <a href="{{ path('admin.InviteOldAnimateur.index', app.request.query.all|merge({
+                initiale: null
+            })) }}" class="{{ initiale is empty ? 'active' : '' }}">
+                    Tous
+                </a>
+                <a href="{{ path('admin.InviteOldAnimateur.index', app.request.query.all|merge({
+                initiale: '0-9'
+            })) }}" class="{{ initiale == '0-9' ? 'active' : '' }}">
+                    0-9
+                </a>
+                {% for letter in alphabet %}
+                    <a href="{{ path('admin.InviteOldAnimateur.index', app.request.query.all|merge({
+                    initiale: letter
+                })) }}" class="{{ initiale == letter ? 'active' : '' }}">
+                        {{ letter }}
                     </a>
-                {% endset %}
-
-                {% include 'partials/_admin_card.html.twig' with {
-                    title: inviteOldAnimateur.lastName ~ ' ' ~ inviteOldAnimateur.firstName,
-                    titleUrl: path('admin.InviteOldAnimateur.show', { id: inviteOldAnimateur.id }),
-                    badges: badges,
-                    content: content|trim,
-                    actions: actions
-                } only %}
-            {% endfor %}
+                {% endfor %}
+            </nav>
+            <div class="type-filter">
+                <a href="{{ path('admin.InviteOldAnimateur.index', app.request.query.all|merge({
+                type: null
+            })) }}" class="{{ type is empty ? 'active' : '' }}">
+                    Tous
+                </a>
+                <a href="{{ path('admin.InviteOldAnimateur.index', app.request.query.all|merge({
+                type: 'invite'
+            })) }}" class="{{ type == 'invite' ? 'active' : '' }}">
+                    Invité·es
+                </a>
+                <a href="{{ path('admin.InviteOldAnimateur.index', app.request.query.all|merge({
+                type: 'ancien'
+            })) }}" class="{{ type == 'ancien' ? 'active' : '' }}">
+                    Ancien·nes animateurices
+                </a>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>
+                            Nom
+                        </th>
+                        <th>
+                            Type
+                        </th>
+                        <th>
+                            Email
+                        </th>
+                        <th>
+                            Téléphone
+                        </th>
+                        <th>
+                            Action
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inviteOldAnimateur in InviteOldAnimateurs %}
+                        <tr>
+                            <td>
+                                <a class="invite-name" href="{{ path('admin.InviteOldAnimateur.show', {
+                                    id: inviteOldAnimateur.id
+                                }) }}">
+                                    {{ inviteOldAnimateur.lastName }}
+                                    {{ inviteOldAnimateur.firstName }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if inviteOldAnimateur.ancienanimateur %}
+                                    <span class="invite-badge invite-badge--animateur">
+                                        Ancien·ne animateurice
+                                    </span>
+                                {% else %}
+                                    <span class="invite-badge invite-badge--invite">
+                                        Invité·e
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if inviteOldAnimateur.mail %}
+                                    {{ inviteOldAnimateur.mail }}
+                                {% else %}
+                                    <span class="empty-value">
+                                        —
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if inviteOldAnimateur.phoneNumber %}
+                                    {{ inviteOldAnimateur.phoneNumber }}
+                                {% else %}
+                                    <span class="empty-value">
+                                        —
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a class="btn-edit" href="{{ path('admin.InviteOldAnimateur.edit', {
+                                    id: inviteOldAnimateur.id
+                                }) }}">
+                                    Éditer
+                                </a>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="5">
+                                Aucun invité ou ancien·ne animateurice.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 {% endblock %}

@@ -23,16 +23,41 @@ class UserController extends AbstractController
         'ROLE_EDITOR' => 'Éditeur',
         'ROLE_ADMIN' => 'Administrateur',
         'ROLE_SUPER_ADMIN' => 'Super Administrateur'
-       
+
     ];
 
     #[Route('/', name: 'index')]
-    public function index(UserRepository $userRepository): Response
-    {
-        
+    public function index(
+        Request $request,
+        UserRepository $userRepository
+    ): Response {
+        $allowedSorts = [
+            'id' => 'id',
+            'username' => 'username',
+            'email' => 'email',
+        ];
+
+        $sort = (string) $request->query->get('sort', 'username');
+        $direction = strtoupper((string) $request->query->get('direction', 'ASC'));
+
+        if (!isset($allowedSorts[$sort])) {
+            $sort = 'username';
+        }
+
+        if (!in_array($direction, ['ASC', 'DESC'], true)) {
+            $direction = 'ASC';
+        }
+
+        $users = $userRepository->findBy(
+            [],
+            [$allowedSorts[$sort] => $direction]
+        );
+
         return $this->render('admin/user/index.html.twig', [
-            'users' => $userRepository->findAll(),
-            'available_roles' => self::ROLES
+            'users' => $users,
+            'available_roles' => self::ROLES,
+            'sort' => $sort,
+            'direction' => $direction,
         ]);
     }
 
@@ -54,18 +79,18 @@ class UserController extends AbstractController
         ]);
     }
 
-#[Route('/{id}', name: 'delete', methods: ['POST'], requirements: ['id' => '\d+'])]
-public function delete(Request $request, User $user, EntityManagerInterface $em): Response
-{
-    if ($this->isCsrfTokenValid('delete-user-' . $user->getId(), $request->request->get('_token'))) {
-        $em->remove($user);
-        $em->flush();
+    #[Route('/{id}', name: 'delete', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function delete(Request $request, User $user, EntityManagerInterface $em): Response
+    {
+        if ($this->isCsrfTokenValid('delete-user-' . $user->getId(), $request->request->get('_token'))) {
+            $em->remove($user);
+            $em->flush();
 
-        $this->addFlash('success', 'L\'utilisateur a bien été supprimé.');
-    } else {
-        $this->addFlash('error', 'Jeton CSRF invalide. Suppression annulée.');
+            $this->addFlash('success', 'L\'utilisateur a bien été supprimé.');
+        } else {
+            $this->addFlash('error', 'Jeton CSRF invalide. Suppression annulée.');
+        }
+
+        return $this->redirectToRoute('admin.user.index');
     }
-
-    return $this->redirectToRoute('admin.user.index');
-}
 }

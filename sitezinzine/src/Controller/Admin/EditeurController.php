@@ -28,12 +28,28 @@ class EditeurController extends AbstractController
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => Requirement::DIGITS])]
-    public function show(Editeur $editeur, int $id, EditeurRepository $editeurRepository)
-    {
-        $editeur = $editeurRepository->find($id);
+    public function show(
+        Editeur $editeur,
+        Request $request,
+        EditeurRepository $editeurRepository
+    ): Response {
+        $page = $request->query->getInt('page', 1);
+
+        $initiale = strtoupper(
+            trim((string) $request->query->get('initiale', ''))
+        );
+
+        $emissions = $editeurRepository->paginateEmissions(
+            editeur: $editeur,
+            page: $page,
+            initiale: $initiale
+        );
+
         return $this->render('admin/editeur/show.html.twig', [
             'editeur' => $editeur,
-            
+            'emissions' => $emissions,
+            'initiale' => $initiale,
+            'alphabet' => range('A', 'Z'),
         ]);
     }
 
