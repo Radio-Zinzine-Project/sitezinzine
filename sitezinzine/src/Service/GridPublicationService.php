@@ -646,14 +646,23 @@ final class GridPublicationService
                      */
                     $diffusion
                         ->setEmission($emission)
-                        ->setHoraireDiffusion($mutableStartsAt)
                         ->setNombreDiffusion($nombreDiffusion)
-                        ->setDurationMinutes($durationMinutes)
-                        ->setEndsAt($mutableEndsAt)
                         ->setAssignmentGroupKey(
                             $draft->getAssignmentGroupKey()
                         )
                         ->markAsPublished();
+
+                    if (null !== $durationMinutes) {
+                        $diffusion->setSchedule(
+                            $mutableStartsAt,
+                            $durationMinutes
+                        );
+                    } else {
+                        $diffusion
+                            ->setEndsAt(null)
+                            ->setHoraireDiffusion($mutableStartsAt)
+                            ->setDurationMinutes(null);
+                    }
 
                     /*
                      * markAsPublished() rattache également le Draft

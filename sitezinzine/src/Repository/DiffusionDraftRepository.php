@@ -6,7 +6,6 @@ use App\Entity\DiffusionDraft;
 use App\Entity\ProgrammationRuleSlot;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use App\Entity\GridSlotArbitration;
 
 class DiffusionDraftRepository extends ServiceEntityRepository
 {
@@ -59,41 +58,6 @@ class DiffusionDraftRepository extends ServiceEntityRepository
         }
 
         return $qb->getQuery()->getResult();
-    }
-
-    private function filterBlockingDraftOverlaps(
-        array $drafts,
-        GridSlotArbitrationRepository $arbitrationRepository
-    ): array {
-        return array_values(array_filter(
-            $drafts,
-            static function (DiffusionDraft $draft) use ($arbitrationRepository): bool {
-                if (DiffusionDraft::TYPE_REGULAR !== $draft->getDraftType()) {
-                    return true;
-                }
-
-                $slot = $draft->getSlot();
-                $startsAt = $draft->getHoraireDiffusion();
-
-                if (!$slot || !$slot->getId() || !$startsAt instanceof \DateTimeImmutable) {
-                    return true;
-                }
-
-                $arbitration = $arbitrationRepository->findOneBy([
-                    'slot' => $slot,
-                    'originalStartsAt' => $startsAt,
-                ]);
-
-                if (!$arbitration instanceof GridSlotArbitration) {
-                    return true;
-                }
-
-                return !(
-                    $arbitration->isCancelAction()
-                    || $arbitration->isRescheduleAction()
-                );
-            }
-        ));
     }
 
     public function findByAssignmentGroupKey(string $assignmentGroupKey): array
@@ -149,7 +113,9 @@ class DiffusionDraftRepository extends ServiceEntityRepository
 
         return $qb
             ->andWhere('d.slot IS NOT NULL')
+            ->andWhere('d.draftType = :draftType')
             ->andWhere($orX)
+            ->setParameter('draftType', DiffusionDraft::TYPE_REGULAR)
             ->getQuery()
             ->getResult();
     }

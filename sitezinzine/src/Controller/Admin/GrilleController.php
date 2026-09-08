@@ -37,11 +37,13 @@ class GrilleController extends AbstractController
     public function indexCurrent(
         GridViewBuilder $gridViewBuilder,
         GridUnpublicationService $gridUnpublicationService,
+        GridPublicationService $gridPublicationService,
     ): Response {
         return $this->renderGrid(
             null,
             $gridViewBuilder,
-            $gridUnpublicationService
+            $gridUnpublicationService,
+            $gridPublicationService
         );
     }
 
@@ -55,11 +57,13 @@ class GrilleController extends AbstractController
         string $startOfWeek,
         GridViewBuilder $gridViewBuilder,
         GridUnpublicationService $gridUnpublicationService,
+        GridPublicationService $gridPublicationService,
     ): Response {
         return $this->renderGrid(
             $startOfWeek,
             $gridViewBuilder,
-            $gridUnpublicationService
+            $gridUnpublicationService,
+            $gridPublicationService
         );
     }
 
@@ -204,6 +208,7 @@ class GrilleController extends AbstractController
         ?string $startOfWeek,
         GridViewBuilder $gridViewBuilder,
         GridUnpublicationService $gridUnpublicationService,
+        GridPublicationService $gridPublicationService,
     ): Response {
         $startDate = $startOfWeek
             ? \DateTime::createFromFormat('Y-m-d', $startOfWeek)
@@ -244,9 +249,13 @@ class GrilleController extends AbstractController
         );
 
         /*
-     * Par défaut, une semaine n'est pas dévalidable.
+     * ==========================================================
+     * DÉVALIDATION
+     * ==========================================================
      *
-     * On vérifie seulement les semaines affichées depuis Diffusion.
+     * Une semaine affichée depuis Diffusion peut éventuellement
+     * être dévalidée si toutes les Diffusions possèdent encore
+     * leur Draft lié.
      */
         $canUnpublish = false;
 
@@ -261,12 +270,33 @@ class GrilleController extends AbstractController
             );
         }
 
+        /*
+     * ==========================================================
+     * PRÉVALIDATION / DIAGNOSTIC
+     * ==========================================================
+     *
+     * Pour une semaine brouillon, on calcule la preview exacte
+     * utilisée par GridPublicationService avant publication.
+     *
+     * Cette preview permettra au Twig d'afficher les conflits
+     * qui empêchent la validation au lieu de ne montrer qu'un
+     * message d'erreur après clic sur "Valider la semaine".
+     */
+        $publicationPreview = null;
+
+        if (($gridView['gridMode'] ?? null) === 'draft') {
+            $publicationPreview = $gridPublicationService->previewWeekPublication(
+                $startImmutable
+            );
+        }
+
         return $this->render(
             'admin/grille/index.html.twig',
             [
                 'startOfWeek' => $startOfWeekDate,
                 'jours' => $jours,
                 'canUnpublish' => $canUnpublish,
+                'publicationPreview' => $publicationPreview,
                 ...$gridView,
             ]
         );

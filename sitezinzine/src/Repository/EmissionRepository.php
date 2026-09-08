@@ -423,12 +423,12 @@ class EmissionRepository extends ServiceEntityRepository
 
             if (!empty($criteria['dateDebut'])) {
                 $havingConditions[] = 'MAX(d2.horaireDiffusion) >= :dateDebut';
-                $qb->setParameter('dateDebut', $criteria['dateDebut']);
+                $subQb->setParameter('dateDebut', $criteria['dateDebut']);
             }
 
             if (!empty($criteria['dateFin'])) {
                 $havingConditions[] = 'MAX(d2.horaireDiffusion) <= :dateFin';
-                $qb->setParameter('dateFin', $criteria['dateFin']);
+                $subQb->setParameter('dateFin', $criteria['dateFin']);
             }
 
             if ([] !== $havingConditions) {
@@ -453,6 +453,7 @@ class EmissionRepository extends ServiceEntityRepository
             $words = preg_split('/\s+/', mb_strtolower($search));
 
             $validWords = [];
+
             foreach ($words as $word) {
                 $word = trim($word);
 
@@ -463,7 +464,7 @@ class EmissionRepository extends ServiceEntityRepository
 
             foreach ($validWords as $index => $word) {
                 $paramName = 'searchRegex' . $index;
-                $regex = '(^|[[:space:][:punct:]])' . preg_quote($word, '/') . '($|[[:space:][:punct:]])';
+                $regex = $this->buildWordSearchRegex($word);
 
                 $qb->andWhere(
                     $qb->expr()->orX(
@@ -477,12 +478,18 @@ class EmissionRepository extends ServiceEntityRepository
 
         if (($criteria['categorie'] ?? null) instanceof Categories) {
             $qb->andWhere('c.id = :categorieId')
-                ->setParameter('categorieId', $criteria['categorie']->getId());
+                ->setParameter(
+                    'categorieId',
+                    $criteria['categorie']->getId()
+                );
         }
 
         if (($criteria['theme'] ?? null) instanceof Theme) {
             $qb->andWhere('t.id = :themeId')
-                ->setParameter('themeId', $criteria['theme']->getId());
+                ->setParameter(
+                    'themeId',
+                    $criteria['theme']->getId()
+                );
         }
 
         if (!empty($criteria['personne'])) {
@@ -496,20 +503,26 @@ class EmissionRepository extends ServiceEntityRepository
                         ->andWhere('u_filter.id = :personId')
                         ->setParameter('personId', (int) $id);
                 } elseif ('old' === $type && ctype_digit($id)) {
-                    $qb->innerJoin('e.inviteOldAnimateurs', 'ioa_filter')
+                    $qb->innerJoin(
+                        'e.inviteOldAnimateurs',
+                        'ioa_filter'
+                    )
                         ->andWhere('ioa_filter.id = :personId')
                         ->setParameter('personId', (int) $id);
                 }
             }
         }
 
-        $lastDiffSubQuery = $this->getEntityManager()->createQueryBuilder()
+        $lastDiffSubQuery = $this->getEntityManager()
+            ->createQueryBuilder()
             ->select('MAX(d3.horaireDiffusion)')
             ->from(\App\Entity\Diffusion::class, 'd3')
             ->where('d3.emission = e')
             ->getDQL();
 
-        $qb->addSelect('(' . $lastDiffSubQuery . ') AS HIDDEN lastDiff');
+        $qb->addSelect(
+            '(' . $lastDiffSubQuery . ') AS HIDDEN lastDiff'
+        );
 
         if ($initiale !== null && $initiale !== '') {
             $qb->orderBy('e.titre', 'ASC');
@@ -528,6 +541,7 @@ class EmissionRepository extends ServiceEntityRepository
         );
 
         $emissions = [];
+
         foreach ($pagination as $item) {
             if ($item instanceof Emission) {
                 $emissions[] = $item;
@@ -540,8 +554,12 @@ class EmissionRepository extends ServiceEntityRepository
                 $emissions
             );
 
-            $rows = $this->getEntityManager()->createQueryBuilder()
-                ->select('IDENTITY(d.emission) AS emissionId, MAX(d.horaireDiffusion) AS lastDiff')
+            $rows = $this->getEntityManager()
+                ->createQueryBuilder()
+                ->select(
+                    'IDENTITY(d.emission) AS emissionId, '
+                        . 'MAX(d.horaireDiffusion) AS lastDiff'
+                )
                 ->from(\App\Entity\Diffusion::class, 'd')
                 ->where('d.emission IN (:ids)')
                 ->groupBy('d.emission')
@@ -550,6 +568,7 @@ class EmissionRepository extends ServiceEntityRepository
                 ->getArrayResult();
 
             $lastDiffByEmissionId = [];
+
             foreach ($rows as $row) {
                 $lastDiffByEmissionId[(int) $row['emissionId']] = $row['lastDiff'];
             }
@@ -558,7 +577,9 @@ class EmissionRepository extends ServiceEntityRepository
                 $lastDiff = $lastDiffByEmissionId[$emission->getId()] ?? null;
 
                 if (null !== $lastDiff) {
-                    $emission->setLastDiffusion(new \DateTime($lastDiff));
+                    $emission->setLastDiffusion(
+                        new \DateTime($lastDiff)
+                    );
                 }
             }
         }
@@ -599,12 +620,12 @@ class EmissionRepository extends ServiceEntityRepository
 
             if (!empty($criteria['dateDebut'])) {
                 $havingConditions[] = 'MAX(d2.horaireDiffusion) >= :dateDebut';
-                $qb->setParameter('dateDebut', $criteria['dateDebut']);
+                $subQb->setParameter('dateDebut', $criteria['dateDebut']);
             }
 
             if (!empty($criteria['dateFin'])) {
                 $havingConditions[] = 'MAX(d2.horaireDiffusion) <= :dateFin';
-                $qb->setParameter('dateFin', $criteria['dateFin']);
+                $subQb->setParameter('dateFin', $criteria['dateFin']);
             }
 
             if ([] !== $havingConditions) {
@@ -629,8 +650,10 @@ class EmissionRepository extends ServiceEntityRepository
             $words = preg_split('/\s+/', mb_strtolower($search));
 
             $validWords = [];
+
             foreach ($words as $word) {
                 $word = trim($word);
+
                 if ('' !== $word && mb_strlen($word) >= 3) {
                     $validWords[] = $word;
                 }
@@ -638,7 +661,7 @@ class EmissionRepository extends ServiceEntityRepository
 
             foreach ($validWords as $index => $word) {
                 $paramName = 'searchRegex' . $index;
-                $regex = '(^|[[:space:][:punct:]])' . preg_quote($word, '/') . '($|[[:space:][:punct:]])';
+                $regex = $this->buildWordSearchRegex($word);
 
                 $qb->andWhere(
                     $qb->expr()->orX(
@@ -652,12 +675,18 @@ class EmissionRepository extends ServiceEntityRepository
 
         if (($criteria['categorie'] ?? null) instanceof Categories) {
             $qb->andWhere('c.id = :categorieId')
-                ->setParameter('categorieId', $criteria['categorie']->getId());
+                ->setParameter(
+                    'categorieId',
+                    $criteria['categorie']->getId()
+                );
         }
 
         if (($criteria['theme'] ?? null) instanceof Theme) {
             $qb->andWhere('t.id = :themeId')
-                ->setParameter('themeId', $criteria['theme']->getId());
+                ->setParameter(
+                    'themeId',
+                    $criteria['theme']->getId()
+                );
         }
 
         if (!empty($criteria['personne'])) {
@@ -673,20 +702,26 @@ class EmissionRepository extends ServiceEntityRepository
                 }
 
                 if ('old' === $type && ctype_digit($id)) {
-                    $qb->innerJoin('e.inviteOldAnimateurs', 'ioa_filter')
+                    $qb->innerJoin(
+                        'e.inviteOldAnimateurs',
+                        'ioa_filter'
+                    )
                         ->andWhere('ioa_filter.id = :personId')
                         ->setParameter('personId', (int) $id);
                 }
             }
         }
 
-        $lastDiffSubQuery = $this->getEntityManager()->createQueryBuilder()
+        $lastDiffSubQuery = $this->getEntityManager()
+            ->createQueryBuilder()
             ->select('MAX(d3.horaireDiffusion)')
             ->from(\App\Entity\Diffusion::class, 'd3')
             ->where('d3.emission = e')
             ->getDQL();
 
-        $qb->addSelect('(' . $lastDiffSubQuery . ') AS HIDDEN lastDiff');
+        $qb->addSelect(
+            '(' . $lastDiffSubQuery . ') AS HIDDEN lastDiff'
+        );
 
         if ($initiale !== null && $initiale !== '') {
             $qb->orderBy('e.titre', 'ASC');
@@ -709,7 +744,8 @@ class EmissionRepository extends ServiceEntityRepository
                 continue;
             }
 
-            $lastDiff = $this->getEntityManager()->createQueryBuilder()
+            $lastDiff = $this->getEntityManager()
+                ->createQueryBuilder()
                 ->select('MAX(d4.horaireDiffusion)')
                 ->from(\App\Entity\Diffusion::class, 'd4')
                 ->where('d4.emission = :emission')
@@ -718,7 +754,9 @@ class EmissionRepository extends ServiceEntityRepository
                 ->getSingleScalarResult();
 
             if (null !== $lastDiff) {
-                $emission->setLastDiffusion(new \DateTime($lastDiff));
+                $emission->setLastDiffusion(
+                    new \DateTime($lastDiff)
+                );
             }
         }
 
@@ -1155,7 +1193,7 @@ class EmissionRepository extends ServiceEntityRepository
                 }
 
                 $paramName = 'titleRegex' . $index;
-                $regex = '(^|[[:space:][:punct:]])' . preg_quote($word, '/') . '($|[[:space:][:punct:]])';
+                $regex = $this->buildWordSearchRegex($word);
 
                 $qb->andWhere("REGEXP(LOWER(e.titre), :$paramName) = 1")
                     ->setParameter($paramName, $regex);
@@ -1378,5 +1416,13 @@ class EmissionRepository extends ServiceEntityRepository
             ->orderBy('t.name', 'ASC')
             ->getQuery()
             ->getResult();
+    }
+
+    private function buildWordSearchRegex(string $word): string
+    {
+        return '(^|[[:space:][:punct:]])'
+            . preg_quote($word, '/')
+            . '(s|es|e|x)?'
+            . '($|[[:space:][:punct:]])';
     }
 }

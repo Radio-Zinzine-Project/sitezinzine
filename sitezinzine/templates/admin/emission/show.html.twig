@@ -451,25 +451,26 @@ font-size: 1.6rem;
                         </tbody>
                       </table>
                     </div>
-                    <div class="catemission">
-                      <div class="titre">
-                        {# si tu as une route admin.categorie.show, remplace le lien ici #}
-                        <h1>
-                          {{ emission.categorie.titre }}
-                        </h1>
-                      </div>
-                      {% if emission.categorie.thumbnail %}
-                        <img src="{{ vich_uploader_asset(emission.categorie, 'thumbnailFile', 'App\\Entity\\Categories') }}" alt="Photo de {{ emission.categorie.titre }}">
-                        {% endif %}
-                        <div class="descriptif">
-                          {{ emission.categorie.descriptif | raw }}
+                    {% if emission.categorie %}
+                      <div class="catemission">
+                        <div class="titre">
+                          <h1>
+                            {{ emission.categorie.titre }}
+                          </h1>
                         </div>
-                        <div class="admin-actions" style="justify-content:center; padding: 0 12px 14px;">
-                          <a class="btn-admin" href="{{ path('admin.categorie.edit', { id: emission.categorie.id }) }}">
-                            Éditer la catégorie
-                          </a>
+                        {% if emission.categorie.thumbnail %}
+                          <img src="{{ vich_uploader_asset(emission.categorie, 'thumbnailFile', 'App\\Entity\\Categories') }}" alt="Photo de {{ emission.categorie.titre }}">
+                          {% endif %}
+                          <div class="descriptif">
+                            {{ emission.categorie.descriptif | raw }}
+                          </div>
+                          <div class="admin-actions" style="justify-content:center; padding: 0 12px 14px;">
+                            <a class="btn-admin" href="{{ path('admin.categorie.edit', { id: emission.categorie.id }) }}">
+                              Éditer la catégorie
+                            </a>
+                          </div>
                         </div>
-                      </div>
+                      {% endif %}
                     </div>
                     <img class="bottom" src="/images/top-content-dechire-D.gif" alt="">
                       {% if emissions %}

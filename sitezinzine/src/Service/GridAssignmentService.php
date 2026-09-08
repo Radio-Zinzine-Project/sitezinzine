@@ -13,49 +13,54 @@ class GridAssignmentService
     public function __construct(
         private readonly DiffusionDraftRepository $draftRepository,
         private readonly EntityManagerInterface $em,
-    ) {
-    }
+    ) {}
 
-public function assign(ProgrammationRuleSlot $slot, Emission $emission, \DateTimeImmutable $selectedDate): bool
-{
-    $rule = $slot->getRule();
+    public function assign(
+        ProgrammationRuleSlot $slot,
+        Emission $emission,
+        \DateTimeImmutable $selectedDate
+    ): bool {
+        $rule = $slot->getRule();
 
-    if ($rule === null) {
-        throw new \RuntimeException('Règle introuvable.');
-    }
-
-    if ($slot->getBroadcastRank() !== 1) {
-        throw new \RuntimeException(
-            'L’affectation doit se faire sur la première diffusion. Les rediffusions sont générées automatiquement.'
-        );
-    }
-
-    $originDate = $selectedDate;
-    $assignmentGroupKey = $this->buildAssignmentGroupKey($rule->getId(), $originDate);
-
-    foreach ($rule->getSlots() as $relatedSlot) {
-        if (!$relatedSlot instanceof ProgrammationRuleSlot) {
-            continue;
+        if ($rule === null) {
+            throw new \RuntimeException('Règle introuvable.');
         }
 
-        if (!$relatedSlot->isActive() || $relatedSlot->isDeleted()) {
-            continue;
+        if ($slot->getBroadcastRank() !== 1) {
+            throw new \RuntimeException(
+                'L’affectation doit se faire sur la première diffusion. Les rediffusions sont générées automatiquement.'
+            );
         }
 
-        $relatedStartsAt = $this->computeStartsAtFromAnchor($originDate, $relatedSlot);
+        $originDate = $selectedDate;
 
-        $this->upsertDraft(
-            $relatedSlot,
-            $emission,
-            $relatedStartsAt,
-            $assignmentGroupKey
+        $assignmentGroupKey = $this->buildAssignmentGroupKey(
+            $rule->getId(),
+            $originDate
         );
+
+        foreach ($rule->getSlots() as $relatedSlot) {
+            if (!$relatedSlot->isActive() || $relatedSlot->isDeleted()) {
+                continue;
+            }
+
+            $relatedStartsAt = $this->computeStartsAtFromAnchor(
+                $originDate,
+                $relatedSlot
+            );
+
+            $this->upsertDraft(
+                $relatedSlot,
+                $emission,
+                $relatedStartsAt,
+                $assignmentGroupKey
+            );
+        }
+
+        $this->em->flush();
+
+        return true;
     }
-
-    $this->em->flush();
-
-    return true;
-}
 
     public function remove(ProgrammationRuleSlot $slot, \DateTimeImmutable $selectedDate): bool
     {
@@ -125,23 +130,6 @@ public function assign(ProgrammationRuleSlot $slot, Emission $emission, \DateTim
             $ruleId,
             $originDate->format('Ymd_Hi')
         );
-    }
-
-    private function resolveOriginDate(
-        ProgrammationRuleSlot $slot,
-        \DateTimeImmutable $selectedDate
-    ): \DateTimeImmutable {
-        if ($slot->getBroadcastRank() === 1) {
-            return $selectedDate;
-        }
-
-        $weekOffset = $slot->getWeekOffset();
-
-        if (!\is_int($weekOffset)) {
-            $weekOffset = 0;
-        }
-
-        return $selectedDate->modify(sprintf('-%d days', $weekOffset * 7));
     }
 
     private function resolveDurationMinutes(ProgrammationRuleSlot $slot, Emission $emission): int

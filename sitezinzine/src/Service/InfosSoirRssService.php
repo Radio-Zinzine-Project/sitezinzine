@@ -9,7 +9,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class InfosSoirRssService
 {
-    private const RSS_URL = 'TON_URL_RSS_ICI';
+    private const RSS_URL = 'https://radiozinzine.org/emissions/INS/2026/lastRecord_INS2026.php';
     private const CACHE_KEY = 'infos_soir_rss';
     private const CACHE_DURATION = 900; // 15 minutes
 
@@ -123,6 +123,7 @@ class InfosSoirRssService
             return $items;
         } finally {
             libxml_clear_errors();
+
             libxml_use_internal_errors(
                 $previousUseInternalErrors
             );

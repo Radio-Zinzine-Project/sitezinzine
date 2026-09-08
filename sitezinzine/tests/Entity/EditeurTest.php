@@ -8,55 +8,127 @@ use PHPUnit\Framework\TestCase;
 
 class EditeurTest extends TestCase
 {
-    public function testName()
+    public function testInitialValues(): void
     {
         $editeur = new Editeur();
-        $editeur->setName('Nom de test');
-        $this->assertEquals('Nom de test', $editeur->getName());
+
+        $this->assertNull($editeur->getId());
+        $this->assertNull($editeur->getName());
+        $this->assertNull($editeur->getMail());
+        $this->assertNull($editeur->getPhone());
+        $this->assertNull($editeur->getUpdateAt());
+        $this->assertCount(0, $editeur->getEmissions());
+        $this->assertSame('', (string) $editeur);
     }
 
-    public function testMail()
+    public function testGettersAndSetters(): void
     {
         $editeur = new Editeur();
-        $editeur->setMail('test@example.com');
-        $this->assertEquals('test@example.com', $editeur->getMail());
-    }
+        $date = new \DateTime('2026-09-06 12:00:00');
 
-    public function testPhone()
-    {
-        $editeur = new Editeur();
-        $editeur->setPhone('0601020304');
-        $this->assertEquals('0601020304', $editeur->getPhone());
-    }
+        $result = $editeur
+            ->setName('Nom de test')
+            ->setMail('test@example.com')
+            ->setPhone('0601020304')
+            ->setUpdateAt($date);
 
-    public function testUpdateAt()
-    {
-        $editeur = new Editeur();
-        $date = new \DateTime();
-        $editeur->setUpdateAt($date);
+        $this->assertSame($editeur, $result);
+        $this->assertSame('Nom de test', $editeur->getName());
+        $this->assertSame('test@example.com', $editeur->getMail());
+        $this->assertSame('0601020304', $editeur->getPhone());
         $this->assertSame($date, $editeur->getUpdateAt());
     }
 
-    public function testAddEmission()
+    public function testMailAndPhoneCanBeNull(): void
+    {
+        $editeur = new Editeur();
+
+        $editeur
+            ->setMail('test@example.com')
+            ->setPhone('0601020304');
+
+        $editeur
+            ->setMail(null)
+            ->setPhone(null);
+
+        $this->assertNull($editeur->getMail());
+        $this->assertNull($editeur->getPhone());
+    }
+
+    public function testToStringReturnsName(): void
+    {
+        $editeur = new Editeur();
+        $editeur->setName('Radio Zinzine');
+
+        $this->assertSame('Radio Zinzine', (string) $editeur);
+    }
+
+    public function testAddEmissionSetsOwningSide(): void
     {
         $editeur = new Editeur();
         $emission = new Emission();
 
-        $this->assertCount(0, $editeur->getEmissions());
+        $result = $editeur->addEmission($emission);
+
+        $this->assertSame($editeur, $result);
+        $this->assertCount(1, $editeur->getEmissions());
+        $this->assertTrue(
+            $editeur->getEmissions()->contains($emission)
+        );
+        $this->assertSame($editeur, $emission->getEditeur());
+    }
+
+    public function testAddingSameEmissionTwiceDoesNotDuplicateIt(): void
+    {
+        $editeur = new Editeur();
+        $emission = new Emission();
+
         $editeur->addEmission($emission);
+        $editeur->addEmission($emission);
+
         $this->assertCount(1, $editeur->getEmissions());
         $this->assertSame($editeur, $emission->getEditeur());
     }
 
-    public function testRemoveEmission()
+    public function testRemoveEmissionClearsOwningSide(): void
     {
         $editeur = new Editeur();
         $emission = new Emission();
 
         $editeur->addEmission($emission);
-        $this->assertCount(1, $editeur->getEmissions());
+
+        $result = $editeur->removeEmission($emission);
+
+        $this->assertSame($editeur, $result);
+        $this->assertCount(0, $editeur->getEmissions());
+        $this->assertNull($emission->getEditeur());
+    }
+
+    public function testRemoveEmissionDoesNotClearAnotherEditeur(): void
+    {
+        $editeur = new Editeur();
+        $otherEditeur = new Editeur();
+        $emission = new Emission();
+
+        $editeur->addEmission($emission);
+
+        // L'émission a entre-temps été rattachée à un autre éditeur.
+        $emission->setEditeur($otherEditeur);
 
         $editeur->removeEmission($emission);
+
+        $this->assertCount(0, $editeur->getEmissions());
+        $this->assertSame($otherEditeur, $emission->getEditeur());
+    }
+
+    public function testRemovingUnknownEmissionDoesNothing(): void
+    {
+        $editeur = new Editeur();
+        $emission = new Emission();
+
+        $result = $editeur->removeEmission($emission);
+
+        $this->assertSame($editeur, $result);
         $this->assertCount(0, $editeur->getEmissions());
         $this->assertNull($emission->getEditeur());
     }

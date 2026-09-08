@@ -4,8 +4,6 @@ namespace App\Repository;
 
 use App\Entity\Diffusion;
 use App\Entity\Emission;
-use App\Entity\DiffusionDraft;
-use App\Entity\ProgrammationRuleSlot;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -124,22 +122,6 @@ class DiffusionRepository extends ServiceEntityRepository
         }
 
         return $result;
-    }
-
-    public function findOneActiveDraftBySlotAndHoraire(
-        ProgrammationRuleSlot $slot,
-        \DateTimeImmutable $horaireDiffusion
-    ): ?DiffusionDraft {
-        return $this->createQueryBuilder('d')
-            ->andWhere('d.slot = :slot')
-            ->andWhere('d.horaireDiffusion = :horaire')
-            ->andWhere('d.deletedAt IS NULL')
-            ->andWhere('d.publicationStatus = :status')
-            ->setParameter('slot', $slot)
-            ->setParameter('horaire', $horaireDiffusion)
-            ->setParameter('status', DiffusionDraft::STATUS_DRAFT)
-            ->getQuery()
-            ->getOneOrNullResult();
     }
 
     /**

@@ -286,9 +286,7 @@ class Evenement
 
     /**
      * Set the value of thumbnail
-     *
-     * @return  self
-     */ 
+    */ 
     public function setThumbnail(?string $thumbnail): static
     {
         $this->thumbnail = $thumbnail !== null ? trim($thumbnail) : null;
@@ -307,7 +305,6 @@ class Evenement
     /**
      * Set the value of thumbnailFile
      *
-     * @return  self
      */ 
     public function setThumbnailFile(?File $thumbnailFile): static
     {

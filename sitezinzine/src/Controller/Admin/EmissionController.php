@@ -136,29 +136,45 @@ class EmissionController extends AbstractController
 
 
     #[Route('/create', name: 'create')]
-    public function create(Request $request, EntityManagerInterface $em, Security $security): Response
-    {
+    public function create(
+        Request $request,
+        EntityManagerInterface $em,
+        Security $security
+    ): Response {
         $emission = new Emission();
 
         /** @var User|null $user */
         $user = $security->getUser();
 
+        /*
+     * Lors d'une création, si aucun utilisateur n'est envoyé
+     * dans le formulaire, l'utilisateur connecté devient
+     * automatiquement propriétaire.
+     *
+     * Cela doit être fait AVANT handleRequest(), car Symfony
+     * déclenche la validation pendant la soumission du formulaire.
+     */
+        if ($request->isMethod('POST') && $user !== null) {
+            $submittedData = $request->request->all('emission');
+            $submittedUsers = $submittedData['users'] ?? [];
+
+            if (empty($submittedUsers)) {
+                $emission->addUser($user);
+            }
+        }
+
         $form = $this->createForm(EmissionType::class, $emission, [
             'current_user_identifier' => $user?->getUserIdentifier(),
+            'current_user' => $user,
         ]);
+
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $now = new \DateTime();
 
-            // Si ref est vide, on met le username du user connecté
-            if (empty($emission->getRef()) && $user) {
-                $emission->setRef($user->getUserIdentifier());
-            }
-
-            // Si aucun user n'est sélectionné, on ajoute le user connecté par défaut
-            if ($user && $emission->getUsers()->isEmpty()) {
-                $emission->addUser($user);
+            if (empty($emission->getRef())) {
+                $emission->setRef($user?->getUserIdentifier() ?? '');
             }
 
             $emission
@@ -168,7 +184,10 @@ class EmissionController extends AbstractController
             $em->persist($emission);
             $em->flush();
 
-            $this->addFlash('success', 'L\'émission a été créée !');
+            $this->addFlash(
+                'success',
+                'L\'émission a été créée !'
+            );
 
             return $this->redirectToRoute('admin.emission.index');
         }
@@ -225,12 +244,14 @@ class EmissionController extends AbstractController
 
             // ✅ suppression image si demandée
             if ($request->request->getBoolean('delete_thumbnail')) {
-
                 $mappings = $mappingFactory->fromObject($emission);
                 $thumbnailMapping = null;
 
                 foreach ($mappings as $m) {
-                    if (method_exists($m, 'getPropertyName') && $m->getPropertyName() === 'thumbnailFile') {
+                    if (
+                        method_exists($m, 'getFilePropertyName')
+                        && $m->getFilePropertyName() === 'thumbnailFile'
+                    ) {
                         $thumbnailMapping = $m;
                         break;
                     }
@@ -344,34 +365,6 @@ class EmissionController extends AbstractController
             'initiale' => $initiale,
             'alphabet' => range('A', 'Z'),
         ]);
-    }
-
-
-    #[Route('/{id}/delete-mp3', name: 'delete_mp3', methods: ['POST'], requirements: ['id' => '\d+'])]
-    public function deleteMp3(
-        Emission $emission,
-        Request $request,
-        EntityManagerInterface $em,
-        Mp3Processor $mp3Processor
-    ): Response {
-        if (!$this->isCsrfTokenValid('delete_mp3_' . $emission->getId(), $request->request->get('_token'))) {
-            $this->addFlash('error', 'Jeton CSRF invalide.');
-
-            return $this->redirectToRoute('admin.emission.edit', ['id' => $emission->getId()]);
-        }
-
-        if (!$emission->getThumbnailMp3()) {
-            $this->addFlash('error', 'Aucun fichier MP3 à supprimer.');
-
-            return $this->redirectToRoute('admin.emission.edit', ['id' => $emission->getId()]);
-        }
-
-        $mp3Processor->delete($emission);
-        $em->flush();
-
-        $this->addFlash('success', 'Le fichier MP3 a bien été supprimé.');
-
-        return $this->redirectToRoute('admin.emission.edit', ['id' => $emission->getId()]);
     }
 
     #[Route('/{id}/mark-completed', name: 'mark_completed', methods: ['POST'], requirements: ['id' => Requirement::DIGITS])]

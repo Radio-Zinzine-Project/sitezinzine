@@ -3,7 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Categories;
-use App\Entity\Editeur;
+use App\Entity\Emission;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Knp\Component\Pager\Pagination\PaginationInterface;
@@ -80,13 +80,14 @@ class CategoriesRepository extends ServiceEntityRepository
 
     public function findLatestEmissions(int $categoryId, int $limit = 20): array
     {
-        return $this->createQueryBuilder('c')
-            ->join('c.emissions', 'e')
-            ->andWhere('c.id = :id')
-            ->setParameter('id', $categoryId)
+        return $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('e')
+            ->from(Emission::class, 'e')
+            ->andWhere('e.categorie = :categoryId')
+            ->setParameter('categoryId', $categoryId)
             ->orderBy('e.datepub', 'DESC')
             ->setMaxResults($limit)
-            ->select('e')
             ->getQuery()
             ->getResult();
     }
@@ -101,19 +102,19 @@ class CategoriesRepository extends ServiceEntityRepository
             ->getArrayResult();
     }
 
-
     public function createActiveOrCurrentQueryBuilder(?Categories $currentCategorie): QueryBuilder
     {
         $qb = $this->createQueryBuilder('c');
 
         if ($currentCategorie !== null) {
             $qb
-                ->where('c.isActive = true OR c.id = :currentId')
+                ->where('c.active = true OR c.id = :currentId')
                 ->setParameter('currentId', $currentCategorie->getId());
         } else {
-            $qb->where('c.isActive = true');
+            $qb->where('c.active = true');
         }
 
         return $qb->orderBy('c.titre', 'ASC');
     }
+    
 }

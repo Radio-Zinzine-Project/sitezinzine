@@ -2,44 +2,58 @@
 
 namespace App\Tests\Controller;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Evenement;
+use App\Entity\Page;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 class HomeControllerTest extends WebTestCase
 {
-
     private EntityManagerInterface $entityManager;
-    private \Symfony\Bundle\FrameworkBundle\KernelBrowser $client;
+    private KernelBrowser $client;
 
     protected function setUp(): void
     {
         $this->client = static::createClient();
-        $this->entityManager = static::getContainer()->get('doctrine')->getManager();
-   
+
+        $this->entityManager = static::getContainer()
+            ->get('doctrine')
+            ->getManager();
+
+        $this->entityManager->beginTransaction();
+
+        $this->createStaticPages();
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->entityManager->getConnection()->isTransactionActive()) {
+            $this->entityManager->rollback();
+        }
+
+        parent::tearDown();
     }
 
     public function testIndex(): void
     {
-        
-        $crawler = $this->client->request('GET', '/');
+        $this->client->request('GET', '/');
 
         $this->assertResponseIsSuccessful();
         $this->assertPageTitleContains('Radio Zinzine, radio libre !');
 
-        // Check if the partials are included
-        $this->assertSelectorExists('div.titrelast'); // Assuming there's a div with this class in lastEmissions.html.twig
-        $this->assertSelectorExists('div.bodyondes'); // Assuming there's a div with this class in ondes.html.twig
-        $this->assertSelectorExists('div.vagues'); // Assuming there's a div with this class in vagues.html.twig
-        $this->assertSelectorExists('article.evenements'); // Assuming there's a div with this class in evenement.html.twig
+        $this->assertSelectorExists('div.titrelast');
+        $this->assertSelectorExists('div.bodyondes');
+        $this->assertSelectorExists('div.vagues');
+        $this->assertSelectorExists('article.evenements');
     }
-
 
     public function testShowEvenement(): void
     {
-        // Create a test event with all required fields
         $evenement = new Evenement();
-        $evenement->setTitre('Test Event')
+
+        $evenement
+            ->setTitre('Test Event')
             ->setOrganisateur('Test Organisateur')
             ->setVille('Test Ville')
             ->setDepartement('01')
@@ -58,21 +72,23 @@ class HomeControllerTest extends WebTestCase
         $this->entityManager->persist($evenement);
         $this->entityManager->flush();
 
-        
         $this->client->request('GET', '/' . $evenement->getId());
 
         $this->assertResponseIsSuccessful();
-        $this->assertSelectorExists('div.bodyevenement'); // Adjust the selector to match your template
+        $this->assertSelectorExists('div.evenement');
+        $this->assertSelectorTextContains('h1.evenement-titre', 'Test Event');
     }
-
-
 
     public function testRadio(): void
     {
         $this->client->request('GET', '/radio');
 
         $this->assertResponseIsSuccessful();
-        $this->assertSelectorExists('div.bodyradio'); // Adjust the text to match your radio page
+        $this->assertSelectorExists('div.page-card');
+        $this->assertSelectorTextContains(
+            'h1.page-title',
+            'Page de test Radio'
+        );
     }
 
     public function testProgramme(): void
@@ -80,7 +96,7 @@ class HomeControllerTest extends WebTestCase
         $this->client->request('GET', '/programme');
 
         $this->assertResponseIsSuccessful();
-        $this->assertSelectorExists('div.bodyprogramme'); // Adjust the text to match your programme page
+        $this->assertSelectorExists('div.bodyprogramme');
     }
 
     public function testInfos(): void
@@ -97,7 +113,6 @@ class HomeControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $this->assertSelectorExists('div.bodyzoneecoute');
-        
     }
 
     public function testAide(): void
@@ -106,7 +121,6 @@ class HomeControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $this->assertSelectorExists('div.bodyaide');
-
     }
 
     public function testAmis(): void
@@ -115,7 +129,6 @@ class HomeControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $this->assertSelectorExists('div.bodyamis');
-
     }
 
     public function testMentions(): void
@@ -124,7 +137,6 @@ class HomeControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $this->assertSelectorExists('div.bodymentions');
-
     }
 
     public function testContacts(): void
@@ -132,7 +144,8 @@ class HomeControllerTest extends WebTestCase
         $this->client->request('GET', '/contacts');
 
         $this->assertResponseIsSuccessful();
-        $this->assertSelectorExists('div.bodycontacts');    }
+        $this->assertSelectorExists('div.bodycontacts');
+    }
 
     public function testDon(): void
     {
@@ -142,5 +155,38 @@ class HomeControllerTest extends WebTestCase
         $this->assertSelectorExists('div.bodydon');
     }
 
-   
+    public function testNewsletter(): void
+    {
+        $this->client->request('GET', '/newsletter');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorExists('div.bodynewsletter');
+    }
+
+    private function createStaticPages(): void
+    {
+        $pages = [
+            'radio',
+            'zone',
+            'aide',
+            'amis',
+            'mentions',
+            'contacts',
+            'don',
+            'newsletter',
+        ];
+
+        foreach ($pages as $slug) {
+            $page = new Page();
+
+            $page
+                ->setSlug($slug)
+                ->setTitle('Page de test ' . ucfirst($slug))
+                ->setContent('<p>Contenu de test pour ' . $slug . '</p>');
+
+            $this->entityManager->persist($page);
+        }
+
+        $this->entityManager->flush();
+    }
 }

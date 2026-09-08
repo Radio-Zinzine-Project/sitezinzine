@@ -5,6 +5,7 @@ namespace App\Controller;
 
 use App\Repository\EmissionRepository;
 use App\Repository\EvenementRepository;
+use App\Service\InfosSoirRssService;
 use App\Repository\PageRepository;
 use App\Entity\Evenement;
 use Symfony\Component\Routing\Requirement\Requirement;
@@ -97,11 +98,17 @@ class HomeController extends AbstractController
         ]);
     }
 
-    #[Route("/infos", name: "infos")]
-    function infos(): Response
-    {
 
-        return $this->render('home/infos.html.twig');
+
+    #[Route("/infos", name: "infos")]
+    public function infos(
+        InfosSoirRssService $infosSoirRssService
+    ): Response {
+        $infos = $infosSoirRssService->getLatest(7);
+
+        return $this->render('home/infos.html.twig', [
+            'infos' => $infos,
+        ]);
     }
 
     #[Route("/zone", name: "zone")]

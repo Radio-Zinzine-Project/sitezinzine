@@ -455,22 +455,246 @@ final class GridRebroadcastCoverageService
 
                 $createdDrafts = [];
                 $updatedSourceDiffusions = [];
+                $updatedExistingDrafts = [];
                 $skipped = [];
 
                 foreach ($preview['items'] as $item) {
+                    $status = $item['status'] ?? null;
+
                     /*
-                 * On ne remplit QUE les vrais "missing".
+                 * ==========================================================
+                 * CAS 1 : REDIFFUSION NORMALE LEGACY SANS GROUPE
+                 * ==========================================================
+                 *
+                 * Le Draft existe déjà et contient la même émission que
+                 * la première Diffusion.
+                 *
+                 * On ne crée donc rien.
+                 *
+                 * En revanche, les anciennes données peuvent ne pas avoir
+                 * d'assignmentGroupKey. Puisque la relation entre la source
+                 * et la rediffusion est ici non ambiguë, on peut réparer
+                 * leur groupe.
+                 */
+                    if ($status === self::STATUS_NORMAL) {
+                        $sourceDiffusionId = (int) (
+                            $item['sourceDiffusionId'] ?? 0
+                        );
+
+                        $draftId = (int) (
+                            $item['draftId'] ?? 0
+                        );
+
+                        /*
+                     * Un STATUS_NORMAL devrait toujours posséder ces deux
+                     * références. Si ce n'est pas le cas, on ne tente
+                     * aucune réparation hasardeuse.
+                     */
+                        if ($sourceDiffusionId <= 0 || $draftId <= 0) {
+                            $skipped[] = [
+                                'reason' => 'normal_item_invalid_reference',
+                                'item' => $item,
+                            ];
+
+                            continue;
+                        }
+
+                        $sourceDiffusion = $this->diffusionRepository->find(
+                            $sourceDiffusionId
+                        );
+
+                        $existingDraft = $this->draftRepository->find(
+                            $draftId
+                        );
+
+                        if (
+                            !$sourceDiffusion instanceof Diffusion
+                            || !$existingDraft instanceof DiffusionDraft
+                        ) {
+                            $skipped[] = [
+                                'reason' => 'normal_item_entity_not_found',
+                                'item' => $item,
+                            ];
+
+                            continue;
+                        }
+
+                        /*
+                     * La relation doit toujours être cohérente :
+                     * même émission entre la source historique et le Draft.
+                     */
+                        $sourceEmission = $sourceDiffusion->getEmission();
+                        $draftEmission = $existingDraft->getEmission();
+
+                        if (
+                            null === $sourceEmission
+                            || null === $draftEmission
+                            || $sourceEmission->getId() !== $draftEmission->getId()
+                        ) {
+                            $skipped[] = [
+                                'reason' => 'normal_item_emission_mismatch',
+                                'sourceDiffusionId' => $sourceDiffusionId,
+                                'draftId' => $draftId,
+                                'item' => $item,
+                            ];
+
+                            continue;
+                        }
+
+                        $sourceGroupKey = $sourceDiffusion
+                            ->getAssignmentGroupKey();
+
+                        $draftGroupKey = $existingDraft
+                            ->getAssignmentGroupKey();
+
+                        $sourceGroupKey = null !== $sourceGroupKey
+                            ? trim($sourceGroupKey)
+                            : '';
+
+                        $draftGroupKey = null !== $draftGroupKey
+                            ? trim($draftGroupKey)
+                            : '';
+
+                        /*
+                     * Les deux possèdent déjà exactement la même clé :
+                     * rien à réparer.
+                     */
+                        if (
+                            '' !== $sourceGroupKey
+                            && '' !== $draftGroupKey
+                            && $sourceGroupKey === $draftGroupKey
+                        ) {
+                            continue;
+                        }
+
+                        /*
+                     * Les deux possèdent déjà une clé mais elles sont
+                     * différentes.
+                     *
+                     * On refuse d'en choisir une arbitrairement.
+                     */
+                        if (
+                            '' !== $sourceGroupKey
+                            && '' !== $draftGroupKey
+                            && $sourceGroupKey !== $draftGroupKey
+                        ) {
+                            $skipped[] = [
+                                'reason' => 'assignment_group_key_mismatch',
+                                'sourceDiffusionId' => $sourceDiffusionId,
+                                'draftId' => $draftId,
+                                'sourceAssignmentGroupKey' => $sourceGroupKey,
+                                'draftAssignmentGroupKey' => $draftGroupKey,
+                                'item' => $item,
+                            ];
+
+                            continue;
+                        }
+
+                        /*
+                     * La source possède déjà une clé :
+                     * elle fait foi et le Draft la récupère.
+                     */
+                        if ('' !== $sourceGroupKey) {
+                            $existingDraft->setAssignmentGroupKey(
+                                $sourceGroupKey
+                            );
+
+                            $updatedExistingDrafts[$existingDraft->getId()] =
+                                $existingDraft;
+
+                            continue;
+                        }
+
+                        /*
+                     * Le Draft possède déjà une clé alors que la source
+                     * n'en a pas.
+                     *
+                     * Comme la relation est STATUS_NORMAL et donc
+                     * non ambiguë, on rattache la source à ce groupe
+                     * existant plutôt que d'en inventer un second.
+                     */
+                        if ('' !== $draftGroupKey) {
+                            $sourceDiffusion->setAssignmentGroupKey(
+                                $draftGroupKey
+                            );
+
+                            $updatedSourceDiffusions[$sourceDiffusion->getId()] =
+                                $sourceDiffusion;
+
+                            continue;
+                        }
+
+                        /*
+                     * Ni la source ni le Draft n'ont de groupe.
+                     *
+                     * On reconstruit la clé à partir :
+                     *
+                     * - de la règle ;
+                     * - de l'occurrence de première diffusion.
+                     */
+                        $ruleId = (int) ($item['ruleId'] ?? 0);
+
+                        $firstBroadcastStartsAt = $this->toImmutable(
+                            $item['firstBroadcastStartsAt'] ?? null
+                        );
+
+                        if (
+                            $ruleId <= 0
+                            || null === $firstBroadcastStartsAt
+                        ) {
+                            $skipped[] = [
+                                'reason' => 'legacy_group_cannot_be_rebuilt',
+                                'sourceDiffusionId' => $sourceDiffusionId,
+                                'draftId' => $draftId,
+                                'item' => $item,
+                            ];
+
+                            continue;
+                        }
+
+                        $assignmentGroupKey =
+                            $this->buildAssignmentGroupKey(
+                                $ruleId,
+                                $firstBroadcastStartsAt
+                            );
+
+                        $sourceDiffusion->setAssignmentGroupKey(
+                            $assignmentGroupKey
+                        );
+
+                        $existingDraft->setAssignmentGroupKey(
+                            $assignmentGroupKey
+                        );
+
+                        $updatedSourceDiffusions[$sourceDiffusion->getId()] =
+                            $sourceDiffusion;
+
+                        $updatedExistingDrafts[$existingDraft->getId()] =
+                            $existingDraft;
+
+                        continue;
+                    }
+
+                    /*
+                 * ==========================================================
+                 * CAS 2 : REDIFFUSION MANQUANTE
+                 * ==========================================================
+                 *
+                 * Seuls les vrais STATUS_MISSING donnent lieu à la création
+                 * automatique d'un nouveau DiffusionDraft.
                  *
                  * pending_source, override, arbitrated,
-                 * source_not_found, ambiguous et normal
-                 * ne sont jamais modifiés ici.
+                 * source_not_found et ambiguous ne sont jamais remplis.
                  */
-                    if (($item['status'] ?? null) !== self::STATUS_MISSING) {
+                    if ($status !== self::STATUS_MISSING) {
                         continue;
                     }
 
                     $slotId = (int) ($item['slotId'] ?? 0);
-                    $sourceDiffusionId = (int) ($item['sourceDiffusionId'] ?? 0);
+
+                    $sourceDiffusionId = (int) (
+                        $item['sourceDiffusionId'] ?? 0
+                    );
 
                     if ($slotId <= 0 || $sourceDiffusionId <= 0) {
                         $skipped[] = [
@@ -481,7 +705,10 @@ final class GridRebroadcastCoverageService
                         continue;
                     }
 
-                    $slot = $this->slotRepository->find($slotId);
+                    $slot = $this->slotRepository->find(
+                        $slotId
+                    );
+
                     $sourceDiffusion = $this->diffusionRepository->find(
                         $sourceDiffusionId
                     );
@@ -531,6 +758,7 @@ final class GridRebroadcastCoverageService
 
                     /*
                  * Protection supplémentaire :
+                 *
                  * la preview disait "missing", mais quelque chose peut
                  * avoir été créé entre-temps.
                  */
@@ -550,7 +778,8 @@ final class GridRebroadcastCoverageService
                         continue;
                     }
 
-                    $durationMinutes = $slot->getDurationMinutes() ?? 15;
+                    $durationMinutes =
+                        $slot->getDurationMinutes() ?? 15;
 
                     if ($durationMinutes < 1) {
                         $durationMinutes = 15;
@@ -561,10 +790,12 @@ final class GridRebroadcastCoverageService
                  * c'est lui qui fait foi.
                  *
                  * Sinon on génère un groupe stable à partir de :
-                 * - la règle
-                 * - l'occurrence de première diffusion
+                 *
+                 * - la règle ;
+                 * - l'occurrence de première diffusion.
                  */
-                    $assignmentGroupKey = $sourceDiffusion->getAssignmentGroupKey();
+                    $assignmentGroupKey =
+                        $sourceDiffusion->getAssignmentGroupKey();
 
                     if (
                         null === $assignmentGroupKey
@@ -581,10 +812,11 @@ final class GridRebroadcastCoverageService
                             continue;
                         }
 
-                        $assignmentGroupKey = $this->buildAssignmentGroupKey(
-                            $ruleId,
-                            $firstBroadcastStartsAt
-                        );
+                        $assignmentGroupKey =
+                            $this->buildAssignmentGroupKey(
+                                $ruleId,
+                                $firstBroadcastStartsAt
+                            );
 
                         $sourceDiffusion->setAssignmentGroupKey(
                             $assignmentGroupKey
@@ -616,13 +848,21 @@ final class GridRebroadcastCoverageService
                             DiffusionDraft::STATUS_DRAFT
                         );
 
-                    $this->entityManager->persist($draft);
+                    $this->entityManager->persist(
+                        $draft
+                    );
 
                     $createdDrafts[] = $draft;
                 }
 
                 /*
              * Un seul flush pour l'ensemble de l'opération.
+             *
+             * Cela persiste à la fois :
+             *
+             * - les nouveaux Drafts ;
+             * - les groupKeys reconstruits sur les Diffusions ;
+             * - les groupKeys reconstruits sur les Drafts legacy.
              */
                 $this->entityManager->flush();
 
@@ -630,16 +870,32 @@ final class GridRebroadcastCoverageService
                     'weekStart' => $preview['weekStart'],
                     'weekEnd' => $preview['weekEnd'],
 
-                    'createdCount' => count($createdDrafts),
+                    'createdCount' => count(
+                        $createdDrafts
+                    ),
+
                     'updatedSourceDiffusionCount' => count(
                         $updatedSourceDiffusions
                     ),
-                    'skippedCount' => count($skipped),
+
+                    'updatedExistingDraftCount' => count(
+                        $updatedExistingDrafts
+                    ),
+
+                    'skippedCount' => count(
+                        $skipped
+                    ),
 
                     'createdDrafts' => $createdDrafts,
+
                     'updatedSourceDiffusions' => array_values(
                         $updatedSourceDiffusions
                     ),
+
+                    'updatedExistingDrafts' => array_values(
+                        $updatedExistingDrafts
+                    ),
+
                     'skipped' => $skipped,
                 ];
             }

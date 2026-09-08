@@ -246,12 +246,43 @@ class EmissionType extends AbstractType
         });
 
         $builder->addEventListener(FormEvents::PRE_SUBMIT, $this->autoKeyword(...));
-        $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) use ($options) {
-            $data = $event->getData();
+        $builder->addEventListener(FormEvents::SUBMIT, function (FormEvent $event) use ($options) {
+            $emission = $event->getData();
+            $form = $event->getForm();
 
-            if (empty($data['ref']) && !empty($options['current_user_identifier'])) {
-                $data['ref'] = $options['current_user_identifier'];
-                $event->setData($data);
+            if (!$emission instanceof Emission) {
+                return;
+            }
+
+            foreach ($emission->getInviteOldAnimateurs()->toArray() as $person) {
+                $emission->removeInviteOldAnimateur($person);
+            }
+
+            $invites = $form->get('invites')->getData() ?? [];
+            $anciens = $form->get('inviteOldAnimateurs')->getData() ?? [];
+
+            foreach ($invites as $p) {
+                $emission->addInviteOldAnimateur($p);
+            }
+
+            foreach ($anciens as $p) {
+                $emission->addInviteOldAnimateur($p);
+            }
+
+            /*
+     * Lors de la création, si aucun utilisateur n'a été sélectionné,
+     * l'utilisateur connecté devient automatiquement propriétaire.
+     *
+     * Le listener SUBMIT intervient après le mapping des champs
+     * mais avant la validation de l'entité.
+     */
+            $currentUser = $options['current_user'];
+
+            if (
+                $currentUser instanceof User
+                && $emission->getUsers()->isEmpty()
+            ) {
+                $emission->addUser($currentUser);
             }
         });
     }
@@ -272,9 +303,11 @@ class EmissionType extends AbstractType
             'data_class' => Emission::class,
             'allow_extra_fields' => true,
             'current_user_identifier' => null,
+            'current_user' => null,
             'with_mp3' => false,
         ]);
 
+        $resolver->setAllowedTypes('current_user', [User::class, 'null']);
         $resolver->setAllowedTypes('with_mp3', 'bool');
     }
 }

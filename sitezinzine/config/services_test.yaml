@@ -1,0 +1,7 @@
+services:
+    Symfony\Component\Mailer\EventListener\MessageLoggerListener: ~
+
+    App\Service\GridRebroadcastCoverageService:
+        autowire: true
+        autoconfigure: true
+        public: true

@@ -1,9 +1,20 @@
 # Changelog
 
+## [1.0.112] - 2026-09-xx
+### Ajout
+- Ajout du contenu de la page infos du soir côté public en lien avec le flux rss.
+- Début des tests d'intégration.
+### Correction
+- Correction et mise à jour des tests existants (voir Docs/TEST.md).
+- Correction de la regex de recherche de la grille.
+- Correction d'un certain nombre de bugs remontés par les tests.
+
+
+
 ## [1.0.111] - 2026-09-05
 ### Correction
 - Correction du responsive du tableau de bord.
-- Correction d ela liste à scroller des émissions à finaliser.
+- Correction de la liste à scroller des émissions à finaliser.
 - Correction du style et de la forme de la page invité·es, ancien·nes animateur·ices, create, edit et show.
 - Correction du responsive de la page catégories.
 - Correction du style et du responsive des pages thème, create, édit et show.

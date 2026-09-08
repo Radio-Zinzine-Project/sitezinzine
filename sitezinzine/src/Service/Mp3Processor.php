@@ -60,16 +60,6 @@ final class Mp3Processor
         $emission->setUrl(rtrim($this->mp3PublicBaseUrl, '/') . '/' . $relative);
     }
 
-    private function slugifyFilename(string $s): string
-    {
-        $s = trim($s);
-        $s = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s) ?: $s;
-        $s = preg_replace('/[^A-Za-z0-9]+/', '-', $s) ?? '';
-        $s = trim($s, '-');
-
-        return $s !== '' ? strtolower($s) : 'emission';
-    }
-
     private function formatTitleCamelCase(string $s): string
     {
         $s = trim($s);
@@ -106,76 +96,76 @@ final class Mp3Processor
     }
 
     private function writeTags(string $filePath, Emission $emission): void
-{
-    $getId3Php = $this->projectDir . '/vendor/james-heinrich/getid3/getid3/getid3.php';
-    $writePhp  = $this->projectDir . '/vendor/james-heinrich/getid3/getid3/write.php';
+    {
+        $getId3Php = $this->projectDir . '/vendor/james-heinrich/getid3/getid3/getid3.php';
+        $writePhp  = $this->projectDir . '/vendor/james-heinrich/getid3/getid3/write.php';
 
-    if (!is_file($getId3Php)) {
-        throw new \RuntimeException('getid3.php introuvable : ' . $getId3Php);
-    }
+        if (!is_file($getId3Php)) {
+            throw new \RuntimeException('getid3.php introuvable : ' . $getId3Php);
+        }
 
-    if (!is_file($writePhp)) {
-        throw new \RuntimeException('write.php introuvable : ' . $writePhp);
-    }
+        if (!is_file($writePhp)) {
+            throw new \RuntimeException('write.php introuvable : ' . $writePhp);
+        }
 
-    require_once $getId3Php;
-    require_once $writePhp;
+        require_once $getId3Php;
+        require_once $writePhp;
 
-    if (!class_exists('getid3_writetags')) {
-        throw new \RuntimeException('La classe getid3_writetags n’a pas été chargée.');
-    }
+        if (!class_exists('getid3_writetags')) {
+            throw new \RuntimeException('La classe getid3_writetags n’a pas été chargée.');
+        }
 
-    $tagwriter = new \getid3_writetags();
-    $tagwriter->filename = $filePath;
-    $tagwriter->tagformats = ['id3v2.3'];
-    $tagwriter->overwrite_tags = true;
-    $tagwriter->remove_other_tags = false;
-    $tagwriter->tag_encoding = 'UTF-8';
+        $tagwriter = new \getid3_writetags();
+        $tagwriter->filename = $filePath;
+        $tagwriter->tagformats = ['id3v2.3'];
+        $tagwriter->overwrite_tags = true;
+        $tagwriter->remove_other_tags = false;
+        $tagwriter->tag_encoding = 'UTF-8';
 
-    $cat = $emission->getCategorie();
-    $code = $cat?->getSlug() ?? 'XXX';
+        $cat = $emission->getCategorie();
+        $code = $cat?->getSlug() ?? 'XXX';
 
-    $date = $emission->getDatepub() ?? new \DateTime();
-    $dateStr = $date->format('Ymd');
+        $date = $emission->getDatepub() ?? new \DateTime();
+        $dateStr = $date->format('Ymd');
 
-    $titre = trim($emission->getTitre() ?? '');
-    $fullTitle = trim(sprintf('%s%s %s', $code, $dateStr, $titre));
+        $titre = trim($emission->getTitre() ?? '');
+        $fullTitle = trim(sprintf('%s%s %s', $code, $dateStr, $titre));
 
-    $tagData = [
-        'title'     => [$fullTitle],
-        'artist'    => [$this->buildArtist($emission)],
-        'album'     => [$cat?->getTitre() ?? 'Radio Zinzine'],
-        'year'      => [$date->format('Y')],
-        'comment'   => [$this->trimComment($emission->getDescriptif() ?? '')],
-        'genre'     => ['Podcast'],
-        'publisher' => [$emission->getEditeur()?->getName() ?? 'Radio Zinzine'],
-        'language'  => ['fr'],
-    ];
+        $tagData = [
+            'title'     => [$fullTitle],
+            'artist'    => [$this->buildArtist($emission)],
+            'album'     => [$cat?->getTitre() ?? 'Radio Zinzine'],
+            'year'      => [$date->format('Y')],
+            'comment'   => [$this->trimComment($emission->getDescriptif() ?? '')],
+            'genre'     => ['Podcast'],
+            'publisher' => [$emission->getEditeur()?->getName() ?? 'Radio Zinzine'],
+            'language'  => ['fr'],
+        ];
 
-    $coverPath = $this->resolveCoverPath($emission);
+        $coverPath = $this->resolveCoverPath($emission);
 
-    if ($coverPath !== null) {
-        $imageData = @file_get_contents($coverPath);
+        if ($coverPath !== null) {
+            $imageData = @file_get_contents($coverPath);
 
-        if ($imageData !== false) {
-            $mime = mime_content_type($coverPath) ?: 'image/jpeg';
+            if ($imageData !== false) {
+                $mime = mime_content_type($coverPath) ?: 'image/jpeg';
 
-            $tagData['attached_picture'][0] = [
-                'data'          => $imageData,
-                'picturetypeid' => 0x03,
-                'description'   => 'Cover',
-                'mime'          => $mime,
-            ];
+                $tagData['attached_picture'][0] = [
+                    'data'          => $imageData,
+                    'picturetypeid' => 0x03,
+                    'description'   => 'Cover',
+                    'mime'          => $mime,
+                ];
+            }
+        }
+
+        $tagwriter->tag_data = $tagData;
+
+        if (!$tagwriter->WriteTags()) {
+            $errors = $tagwriter->errors ?? [];
+            throw new \RuntimeException('Écriture des tags impossible : ' . implode(' | ', $errors));
         }
     }
-
-    $tagwriter->tag_data = $tagData;
-
-    if (!$tagwriter->WriteTags()) {
-        $errors = $tagwriter->errors ?? [];
-        throw new \RuntimeException('Écriture des tags impossible : ' . implode(' | ', $errors));
-    }
-}
 
     private function resolveCoverPath(Emission $emission): ?string
     {
@@ -240,20 +230,21 @@ final class Mp3Processor
     }
 
     public function delete(Emission $emission): void
-{
-    $currentMp3 = $emission->getThumbnailMp3();
+    {
+        $currentMp3 = $emission->getThumbnailMp3();
 
-    if (!$currentMp3) {
-        return;
+        if (!$currentMp3) {
+            return;
+        }
+
+        $fullPath = rtrim($this->mp3BaseDir, '/\\') . DIRECTORY_SEPARATOR . ltrim($currentMp3, '/\\');
+
+        if (is_file($fullPath)) {
+            $this->fs->remove($fullPath);
+        }
+
+        $emission->setThumbnailMp3(null);
+        $emission->setUrl(null);
     }
 
-    $fullPath = rtrim($this->mp3BaseDir, '/\\') . DIRECTORY_SEPARATOR . ltrim($currentMp3, '/\\');
-
-    if (is_file($fullPath)) {
-        $this->fs->remove($fullPath);
-    }
-
-    $emission->setThumbnailMp3(null);
-    $emission->setUrl(null);
-}
 }

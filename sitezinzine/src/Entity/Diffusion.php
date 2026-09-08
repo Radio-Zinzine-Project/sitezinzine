@@ -150,6 +150,32 @@ class Diffusion
         return $this;
     }
 
+    public function setSchedule(
+        \DateTimeInterface $startsAt,
+        int $durationMinutes
+    ): static {
+        if ($durationMinutes < 1) {
+            throw new \InvalidArgumentException(
+                'durationMinutes doit être supérieur ou égal à 1.'
+            );
+        }
+
+        $this->horaireDiffusion = $startsAt;
+        $this->durationMinutes = $durationMinutes;
+
+        $immutableStartsAt = \DateTimeImmutable::createFromInterface($startsAt);
+
+        $this->endsAt = \DateTime::createFromImmutable(
+            $immutableStartsAt->modify(
+                sprintf('+%d minutes', $durationMinutes)
+            )
+        );
+
+        $this->touch();
+
+        return $this;
+    }
+
     public function getAssignmentGroupKey(): ?string
     {
         return $this->assignmentGroupKey;

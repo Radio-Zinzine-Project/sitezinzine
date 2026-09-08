@@ -1,214 +1,205 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tests\Controller\Admin;
 
 use App\Entity\Annonce;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\HttpFoundation\Response;
-use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\User;
-use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
-use Symfony\Component\HttpFoundation\Session\Session;
-use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 class AnnonceAdminControllerTest extends WebTestCase
 {
-    private $client;
-    private $entityManager;
+    private KernelBrowser $client;
+    private EntityManagerInterface $entityManager;
 
     protected function setUp(): void
-{
-    parent::setUp();
+    {
+        parent::setUp();
 
-    $this->client = static::createClient(); // Une seule fois ici
-    $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
-}
+        $this->client = static::createClient();
 
-public function testIndexPageIsAccessible(): void
-{
-    // Créer un utilisateur avec un rôle suffisant
-    $user = new User();
-    $user->setEmail('admin' . uniqid() . '@test.com');
-    $user->setUsername('username'. uniqid());
-    $user->setRoles(['ROLE_ADMIN']);
-    $user->setPassword(password_hash('password', PASSWORD_BCRYPT));
+        $this->entityManager = static::getContainer()
+            ->get(EntityManagerInterface::class);
+    }
 
-    $this->entityManager->persist($user);
-    $this->entityManager->flush();
+    public function testIndexPageIsAccessible(): void
+    {
+        $user = $this->createUser(['ROLE_ADMIN']);
 
-    // Connexion de l'utilisateur
-    $this->client->loginUser($user);
+        $this->client->loginUser($user);
 
-    // Accès à la page d’index
-    $this->client->request('GET', '/admin/annonce/');
-    
-    // Vérifie que la réponse est bien 200
-    $this->assertResponseIsSuccessful();
-}
+        $this->client->request('GET', '/admin/annonce/');
 
+        $this->assertResponseIsSuccessful();
+    }
 
-public function testCanEditAnnonce(): void
-{
-    // Création d’un utilisateur avec un rôle suffisant
-    $user = new User();
-    $user->setEmail('admin' . uniqid() . '@test.com');
-    $user->setUsername('username'. uniqid());
-    $user->setRoles(['ROLE_EDITOR']);
-    $user->setPassword(password_hash('password', PASSWORD_BCRYPT));
-    $this->entityManager->persist($user);
+    public function testCanEditAnnonce(): void
+    {
+        $user = $this->createUser(['ROLE_EDITOR']);
+        $annonce = $this->createTestAnnonce(false);
 
-    // Création de l’annonce
-    $annonce = new Annonce();
-    $annonce->setTitre('Annonce à modifier');
-    $annonce->setPresentation('Description de l\'annonce');
-    $annonce->setType('Concert');
-    $annonce->setVille('Paris');
-    $annonce->setDateDebut(new \DateTime());
-    $annonce->setDateFin(new \DateTime('+7 days'));
-    $annonce->setDepartement('04');
-    $annonce->setAdresse('123 rue de Paris');
-    $annonce->setHoraire('9h-18h');
-    $annonce->setPrix('Gratuit');
-    $annonce->setContact('exemple@exemple.fr');
-    $annonce->setValid(false);
-    $annonce->setUpdateAt(new \DateTime());
-    $annonce->setOrganisateur('Organisateur de l\'annonce');
-    $annonce->setSoftDelete(false);
+        $annonceId = $annonce->getId();
 
-    $this->entityManager->persist($annonce);
-    $this->entityManager->flush();
+        $this->client->loginUser($user);
 
-    // Connexion
-    $this->client->loginUser($user);
+        $crawler = $this->client->request(
+            'GET',
+            '/admin/annonce/' . $annonceId . '/edit'
+        );
 
-    // Accès au formulaire d’édition
-    $crawler = $this->client->request('GET', '/admin/annonce/' . $annonce->getId() . '/edit');
+        $this->assertResponseIsSuccessful();
 
-    // Remplir et soumettre le formulaire
-    $form = $crawler->selectButton('Sauvegarder')->form([
-        'annonce[titre]' => 'Annonce modifiée',
-        'annonce[presentation]' => 'Nouvelle description',
-        'annonce[valid]' => true,
-        'annonce[dateDebut]' => (new \DateTime())->format('Y-m-d H:i'),
-        'annonce[dateFin]' => (new \DateTime('+7 days'))->format('Y-m-d H:i'),
-        'annonce[horaire]' => '10h-20h',
-        'annonce[prix]' => '10€',
-        'annonce[contact]' => 'nouvellemail@example.com',
-        'annonce[type]' => 'concert',
-        'annonce[departement]' => '04',
-        'annonce[ville]' => 'New York',
-        'annonce[adresse]' => '123 Main St',
-    ]);
+        $form = $crawler->selectButton('Enregistrer')->form([
+            'annonce[titre]' => 'Annonce modifiée',
+            'annonce[presentation]' => 'Nouvelle description',
+            'annonce[valid]' => true,
+            'annonce[dateDebut]' => (new \DateTime('+1 day'))->format('Y-m-d H:i'),
+            'annonce[dateFin]' => (new \DateTime('+7 days'))->format('Y-m-d H:i'),
+            'annonce[horaire]' => '10h-20h',
+            'annonce[prix]' => '10€',
+            'annonce[contact]' => 'nouvellemail@example.com',
+            'annonce[type]' => 'Concert',
+            'annonce[departement]' => '04',
+            'annonce[ville]' => 'New York',
+            'annonce[adresse]' => '123 Main St',
+        ]);
 
-    $this->client->submit($form);
+        $this->client->submit($form);
 
-    // Vérifications
-    $this->assertResponseRedirects('/admin/annonce/');
-    $this->client->followRedirect();
-    $this->assertSelectorExists('.alert.alert-success', 'L\'annonce a bien été modifié');
-}
+        $this->assertResponseRedirects('/admin/annonce/');
 
-public function testCanValidateAnnonce(): void
-{
-    // Création de l'annonce
-    $annonce = $this->createTestAnnonce(false);
-    $annonce->setOrganisateur('Organisateur test');
-    $this->entityManager->flush();
+        $this->entityManager->clear();
 
-    // Création d'un admin
-    $admin = new User();
-    $admin->setUsername('admin_' . uniqid());
-    $admin->setEmail('admin_' . uniqid() . '@example.com');
-    $admin->setPassword('fakehash');
-    $admin->setRoles(['ROLE_ADMIN']);
+        $updatedAnnonce = $this->entityManager
+            ->getRepository(Annonce::class)
+            ->find($annonceId);
 
-    $this->entityManager->persist($admin);
-    $this->entityManager->flush();
+        $this->assertNotNull($updatedAnnonce);
+        $this->assertSame('Annonce modifiée', $updatedAnnonce->getTitre());
+        $this->assertSame(
+            'Nouvelle description',
+            $updatedAnnonce->getPresentation()
+        );
+        $this->assertSame('Concert', $updatedAnnonce->getType());
+        $this->assertSame('New York', $updatedAnnonce->getVille());
+        $this->assertSame('123 Main St', $updatedAnnonce->getAdresse());
+        $this->assertSame('10h-20h', $updatedAnnonce->getHoraire());
+        $this->assertSame('10€', $updatedAnnonce->getPrix());
+        $this->assertSame(
+            'nouvellemail@example.com',
+            $updatedAnnonce->getContact()
+        );
+        $this->assertTrue($updatedAnnonce->isValid());
 
-    // Authentification de l'utilisateur dans le firewall "main"
-    $this->client->loginUser($admin, 'main');
+        $this->client->followRedirect();
 
-    // Envoie de la requête
-    $this->client->request('POST', '/admin/annonce/' . $annonce->getId() . '/valid');
-    $this->assertResponseRedirects('/admin/annonce/');
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorExists('.alert.alert-success');
+    }
 
-    // Vérification
-    $annonceValid = $this->entityManager->getRepository(Annonce::class)->find($annonce->getId());
-    $this->assertTrue($annonceValid->isValid());
-}
+    public function testCanValidateAnnonce(): void
+    {
+        $user = $this->createUser(['ROLE_ADMIN']);
+        $annonce = $this->createTestAnnonce(false);
 
+        $annonceId = $annonce->getId();
 
+        $this->client->loginUser($user);
 
+        $this->client->request(
+            'POST',
+            '/admin/annonce/' . $annonceId . '/valid'
+        );
 
-public function testCanUnvalidateAnnonce(): void
-{
-    // Création d'une annonce validée
-    $annonce = $this->createTestAnnonce(true); // true = validée
-    $annonce->setOrganisateur('Organisateur test');
-    $this->entityManager->flush();
+        $this->assertResponseRedirects('/admin/annonce/');
 
-    // Création d'un utilisateur admin
-    $admin = new User();
-    $admin->setUsername('admin_' . uniqid());
-    $admin->setEmail('admin_' . uniqid() . '@example.com');
-    $admin->setPassword('fakehash');
-    $admin->setRoles(['ROLE_ADMIN']);
+        $this->entityManager->clear();
 
-    $this->entityManager->persist($admin);
-    $this->entityManager->flush();
+        $updatedAnnonce = $this->entityManager
+            ->getRepository(Annonce::class)
+            ->find($annonceId);
 
-    // Connexion de l'utilisateur admin
-    $this->client->loginUser($admin, 'main');
+        $this->assertNotNull($updatedAnnonce);
+        $this->assertTrue($updatedAnnonce->isValid());
+    }
 
-    // Requête pour invalider l'annonce
-    $this->client->request('POST', '/admin/annonce/' . $annonce->getId() . '/unvalid');
+    public function testCanUnvalidateAnnonce(): void
+    {
+        $user = $this->createUser(['ROLE_ADMIN']);
+        $annonce = $this->createTestAnnonce(true);
 
-    // Vérification redirection
-    $this->assertResponseRedirects('/admin/annonce/');
+        $annonceId = $annonce->getId();
 
-    // Vérifie que l'annonce est maintenant invalide
-    $updatedAnnonce = $this->entityManager->getRepository(Annonce::class)->find($annonce->getId());
-    $this->assertFalse($updatedAnnonce->isValid());
-}
+        $this->client->loginUser($user);
 
-public function testCanSoftDeleteAnnonce(): void
-{
-    // Création de l'annonce à supprimer
-    $annonce = $this->createTestAnnonce();
-    $annonce->setOrganisateur('Organisateur test');
-    $this->entityManager->flush();
+        $this->client->request(
+            'POST',
+            '/admin/annonce/' . $annonceId . '/unvalid'
+        );
 
-    // Création d'un admin
-    $admin = new User();
-    $admin->setUsername('admin_' . uniqid());
-    $admin->setEmail('admin_' . uniqid() . '@example.com');
-    $admin->setPassword('fakehash');
-    $admin->setRoles(['ROLE_ADMIN']);
+        $this->assertResponseRedirects('/admin/annonce/');
 
-    $this->entityManager->persist($admin);
-    $this->entityManager->flush();
+        $this->entityManager->clear();
 
-    // Authentification de l'admin
-    $this->client->loginUser($admin, 'main');
+        $updatedAnnonce = $this->entityManager
+            ->getRepository(Annonce::class)
+            ->find($annonceId);
 
-    // Suppression en mode soft delete
-    $this->client->request('DELETE', '/admin/annonce/' . $annonce->getId());
+        $this->assertNotNull($updatedAnnonce);
+        $this->assertFalse($updatedAnnonce->isValid());
+    }
 
-    // Vérifie la redirection
-    $this->assertResponseRedirects('/admin/annonce/');
+    public function testCanSoftDeleteAnnonce(): void
+    {
+        $user = $this->createUser(['ROLE_ADMIN']);
+        $annonce = $this->createTestAnnonce();
 
-    // Vérifie que l'annonce est soft-supprimée
-    $deletedAnnonce = $this->entityManager->getRepository(Annonce::class)->find($annonce->getId());
-    $this->assertTrue($deletedAnnonce->isSoftDelete());
-}
+        $annonceId = $annonce->getId();
 
+        $this->client->loginUser($user);
+
+        $this->client->request(
+            'DELETE',
+            '/admin/annonce/' . $annonceId
+        );
+
+        $this->assertResponseRedirects('/admin/annonce/');
+
+        $this->entityManager->clear();
+
+        $deletedAnnonce = $this->entityManager
+            ->getRepository(Annonce::class)
+            ->find($annonceId);
+
+        $this->assertNotNull($deletedAnnonce);
+        $this->assertTrue($deletedAnnonce->isSoftDelete());
+    }
+
+    private function createUser(array $roles): User
+    {
+        $uniqueId = uniqid();
+
+        $user = new User();
+        $user->setUsername('user_' . $uniqueId);
+        $user->setEmail('user_' . $uniqueId . '@example.com');
+        $user->setPassword('fakehashedpassword');
+        $user->setRoles($roles);
+
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
+
+        return $user;
+    }
 
     private function createTestAnnonce(bool $valid = true): Annonce
     {
         $annonce = new Annonce();
         $annonce->setTitre('Test annonce');
         $annonce->setPresentation('Description test');
-        $annonce->setType('offre');
+        $annonce->setType('Concert');
         $annonce->setValid($valid);
         $annonce->setSoftDelete(false);
         $annonce->setUpdateAt(new \DateTime());
@@ -229,10 +220,19 @@ public function testCanSoftDeleteAnnonce(): void
     }
 
     protected function tearDown(): void
-{
-    parent::tearDown();
-    $this->entityManager->createQuery('DELETE FROM App\Entity\User')->execute();
-    $this->entityManager->createQuery('DELETE FROM App\Entity\Annonce')->execute();
-}
+    {
+        if (isset($this->entityManager)) {
+            $this->entityManager
+                ->createQuery('DELETE FROM App\Entity\Annonce')
+                ->execute();
 
+            $this->entityManager
+                ->createQuery('DELETE FROM App\Entity\User')
+                ->execute();
+
+            $this->entityManager->close();
+        }
+
+        parent::tearDown();
+    }
 }
