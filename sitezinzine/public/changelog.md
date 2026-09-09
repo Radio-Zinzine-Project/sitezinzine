@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.112] - 2026-09-xx
+## [1.0.112] - 2026-09-09
 ### Ajout
 - Ajout du contenu de la page infos du soir côté public en lien avec le flux rss.
 - Début des tests d'intégration.
@@ -8,6 +8,7 @@
 - Correction et mise à jour des tests existants (voir Docs/TEST.md).
 - Correction de la regex de recherche de la grille.
 - Correction d'un certain nombre de bugs remontés par les tests.
+- Correction du bug sur la page Mes émissions qui empêchait de filtrer par catégorie ou par thème.
 
 
 

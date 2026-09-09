@@ -56,12 +56,24 @@ class EmissionController extends AbstractController
         $search = trim((string) $request->query->get('q', ''));
 
         // Catégorie
-        $categoryId = $request->query->getInt('categorie');
-        $categoryId = $categoryId > 0 ? $categoryId : null;
+        $categoryId = $request->query->filter(
+            'categorie',
+            null,
+            FILTER_VALIDATE_INT,
+            ['flags' => FILTER_NULL_ON_FAILURE]
+        );
+
+        $categoryId = $categoryId && $categoryId > 0 ? $categoryId : null;
 
         // Thème
-        $themeId = $request->query->getInt('theme');
-        $themeId = $themeId > 0 ? $themeId : null;
+        $themeId = $request->query->filter(
+            'theme',
+            null,
+            FILTER_VALIDATE_INT,
+            ['flags' => FILTER_NULL_ON_FAILURE]
+        );
+
+        $themeId = $themeId && $themeId > 0 ? $themeId : null;
 
         // État : toutes / à finaliser / sans diffusion
         $status = (string) $request->query->get('status', '');
