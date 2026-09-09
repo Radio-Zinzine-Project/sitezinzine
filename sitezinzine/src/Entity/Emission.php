@@ -72,7 +72,7 @@ class Emission
      * This field is used to store a reference radio animator for the emission.
      * It is required and has a maximum length of 250 characters.
      */
-    #[ORM\Column(length: 250, nullable: false)]
+    #[ORM\Column(length: 250, nullable: true)]
     #[Groups(['emissions.index', 'emissions.create'])]
     private ?string $ref = null;
 
@@ -395,7 +395,7 @@ class Emission
      * @param string $ref The reference to set.
      * @return static Returns the current instance for method chaining.
      */
-    public function setRef(string $ref): static
+    public function setRef(?string $ref): static
     {
         $this->ref = $ref;
 

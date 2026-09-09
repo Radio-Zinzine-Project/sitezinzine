@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.113] - 2026-09-09
+### Correction
+- Correction de l'entity emission qui n'autoriseait pas la ref nullable alors que le form le rend ainsi.
+
+
 ## [1.0.112] - 2026-09-09
 ### Ajout
 - Ajout du contenu de la page infos du soir côté public en lien avec le flux rss.
@@ -9,7 +14,6 @@
 - Correction de la regex de recherche de la grille.
 - Correction d'un certain nombre de bugs remontés par les tests.
 - Correction du bug sur la page Mes émissions qui empêchait de filtrer par catégorie ou par thème.
-
 
 
 ## [1.0.111] - 2026-09-05
