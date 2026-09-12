@@ -228,13 +228,6 @@ class GridDraftController extends AbstractController
             ], 400);
         }
 
-        if (!$emission instanceof Emission) {
-            return $this->json([
-                'success' => false,
-                'error' => 'Impossible de créer le direct.',
-            ], 500);
-        }
-
         $duration = (int) ($emission->getDuree() ?? 0);
         if ($duration < 1) {
             $duration = 60;
@@ -438,10 +431,6 @@ class GridDraftController extends AbstractController
             $rank = 1;
 
             foreach ($remainingDrafts as $remainingDraft) {
-                if (!$remainingDraft instanceof DiffusionDraft) {
-                    continue;
-                }
-
                 if (\in_array($remainingDraft, $draftsToDelete, true)) {
                     continue;
                 }
@@ -661,16 +650,10 @@ class GridDraftController extends AbstractController
 
         $emission = $parentDraft->getEmission();
 
-        if (!$emission instanceof Emission) {
-            return $this->json([
-                'success' => false,
-                'error' => 'Émission introuvable.',
-            ], 404);
-        }
-
-        $duration = $parentDraft->getDurationMinutes()
+        $duration = (int) (
+            $parentDraft->getDurationMinutes()
             ?? $emission->getDuree()
-            ?? 15;
+        );
 
         if ($duration < 1) {
             $duration = 15;
@@ -690,14 +673,11 @@ class GridDraftController extends AbstractController
         $maxNombreDiffusion = 1;
 
         foreach ($existingGroupDrafts as $groupDraft) {
-            if ($groupDraft instanceof DiffusionDraft) {
-                $maxNombreDiffusion = max(
-                    $maxNombreDiffusion,
-                    (int) $groupDraft->getNombreDiffusion()
-                );
-            }
+            $maxNombreDiffusion = max(
+                $maxNombreDiffusion,
+                (int) $groupDraft->getNombreDiffusion()
+            );
         }
-
         $createdDrafts = [];
 
         foreach ($rebroadcasts as $rawStartsAt) {
@@ -887,9 +867,6 @@ class GridDraftController extends AbstractController
         $items = [];
 
         foreach ($groupDrafts as $item) {
-            if (!$item instanceof DiffusionDraft) {
-                continue;
-            }
 
             $items[] = [
                 'id' => $item->getId(),
@@ -934,9 +911,6 @@ class GridDraftController extends AbstractController
         $rank = 1;
 
         foreach ($groupDrafts as $groupDraft) {
-            if (!$groupDraft instanceof DiffusionDraft) {
-                continue;
-            }
 
             $groupDraft->setNombreDiffusion($rank);
             ++$rank;

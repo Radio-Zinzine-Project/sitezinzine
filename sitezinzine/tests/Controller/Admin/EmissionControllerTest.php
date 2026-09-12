@@ -48,6 +48,138 @@ class EmissionControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
     }
 
+    public function testEditEmissionWithNullRef(): void
+    {
+        $admin = $this->createUser(['ROLE_ADMIN']);
+        $theme = $this->createTheme();
+        $categorie = $this->createCategorie();
+
+        $emission = $this->createEmission(
+            theme: $theme,
+            categorie: $categorie,
+            titre: 'Émission ref null ' . uniqid()
+        );
+
+        $emission->setRef(null);
+        $emission->addUser($admin);
+
+        $this->entityManager->flush();
+
+        $emissionId = $emission->getId();
+
+        $this->client->loginUser($admin);
+
+        $crawler = $this->client->request(
+            'GET',
+            '/admin/emission/' . $emissionId . '/edit'
+        );
+
+        $this->assertResponseIsSuccessful();
+
+        $form = $crawler->selectButton('Sauvegarder')->form([
+            'emission[titre]' => $emission->getTitre(),
+            'emission[keyword]' => 'test-ref-null',
+            'emission[theme]' => (string) $theme->getId(),
+            'emission[categorie]' => (string) $categorie->getId(),
+            'emission[duree]' => 60,
+            'emission[descriptif]' => 'Description test',
+            'emission[url]' => '',
+            'emission[ref]' => '',
+            'emission[users]' => [(string) $admin->getId()],
+        ]);
+
+        $this->client->submit($form);
+
+        $this->assertResponseRedirects();
+
+        $this->entityManager->clear();
+
+        $updatedEmission = $this->entityManager
+            ->getRepository(Emission::class)
+            ->find($emissionId);
+
+        $this->assertNotNull($updatedEmission);
+        $this->assertNull($updatedEmission->getRef());
+    }
+
+    public function testIndexCanFilterByCategoryWithEmptyTheme(): void
+    {
+        $user = $this->createUser(['ROLE_USER']);
+        $theme = $this->createTheme();
+        $categorie = $this->createCategorie();
+
+        $emission = $this->createEmission(
+            theme: $theme,
+            categorie: $categorie,
+            titre: 'Filtre catégorie ' . uniqid()
+        );
+
+        $emission->addUser($user);
+        $this->entityManager->flush();
+
+        $this->client->loginUser($user);
+
+        $this->client->request(
+            'GET',
+            '/admin/emission/',
+            [
+                'categorie' => (string) $categorie->getId(),
+                'theme' => '',
+            ]
+        );
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('body', $emission->getTitre());
+    }
+
+    public function testIndexCanFilterByThemeWithEmptyCategory(): void
+    {
+        $user = $this->createUser(['ROLE_USER']);
+        $theme = $this->createTheme();
+        $categorie = $this->createCategorie();
+
+        $emission = $this->createEmission(
+            theme: $theme,
+            categorie: $categorie,
+            titre: 'Filtre thème ' . uniqid()
+        );
+
+        $emission->addUser($user);
+        $this->entityManager->flush();
+
+        $this->client->loginUser($user);
+
+        $this->client->request(
+            'GET',
+            '/admin/emission/',
+            [
+                'categorie' => '',
+                'theme' => (string) $theme->getId(),
+            ]
+        );
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('body', $emission->getTitre());
+    }
+
+    public function testIndexAcceptsEmptyCategoryAndThemeFilters(): void
+    {
+        $user = $this->createUser(['ROLE_USER']);
+
+        $this->client->loginUser($user);
+
+        $this->client->request(
+            'GET',
+            '/admin/emission/',
+            [
+                'categorie' => '',
+                'theme' => '',
+            ]
+        );
+
+        $this->assertResponseIsSuccessful();
+    }
+
     public function testCreateEmission(): void
     {
         $admin = $this->createUser(['ROLE_ADMIN']);

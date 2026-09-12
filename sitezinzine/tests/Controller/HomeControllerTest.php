@@ -15,6 +15,8 @@ class HomeControllerTest extends WebTestCase
 
     protected function setUp(): void
     {
+        parent::setUp();
+
         $this->client = static::createClient();
 
         $this->entityManager = static::getContainer()
@@ -42,10 +44,17 @@ class HomeControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertPageTitleContains('Radio Zinzine, radio libre !');
 
-        $this->assertSelectorExists('div.titrelast');
-        $this->assertSelectorExists('div.bodyondes');
+        // partials/lastEmissions.html.twig
+        $this->assertSelectorExists('div.bodylast');
+
+        // partials/ondes.html.twig
+        $this->assertSelectorExists('div.ondes-section');
+
+        // partials/vagues.html.twig
         $this->assertSelectorExists('div.vagues');
-        $this->assertSelectorExists('article.evenements');
+
+        // partials/evenement.html.twig
+        $this->assertSelectorExists('div.evenements-section');
     }
 
     public function testShowEvenement(): void
@@ -72,23 +81,22 @@ class HomeControllerTest extends WebTestCase
         $this->entityManager->persist($evenement);
         $this->entityManager->flush();
 
-        $this->client->request('GET', '/' . $evenement->getId());
+        $this->client->request(
+            'GET',
+            '/' . $evenement->getId()
+        );
 
         $this->assertResponseIsSuccessful();
         $this->assertSelectorExists('div.evenement');
-        $this->assertSelectorTextContains('h1.evenement-titre', 'Test Event');
+        $this->assertSelectorTextContains(
+            'h1.evenement-titre',
+            'Test Event'
+        );
     }
 
     public function testRadio(): void
     {
-        $this->client->request('GET', '/radio');
-
-        $this->assertResponseIsSuccessful();
-        $this->assertSelectorExists('div.page-card');
-        $this->assertSelectorTextContains(
-            'h1.page-title',
-            'Page de test Radio'
-        );
+        $this->assertStaticPage('/radio', 'Radio');
     }
 
     public function testProgramme(): void
@@ -109,58 +117,55 @@ class HomeControllerTest extends WebTestCase
 
     public function testZone(): void
     {
-        $this->client->request('GET', '/zone');
-
-        $this->assertResponseIsSuccessful();
-        $this->assertSelectorExists('div.bodyzoneecoute');
+        $this->assertStaticPage('/zone', 'Zone');
     }
 
     public function testAide(): void
     {
-        $this->client->request('GET', '/aide');
-
-        $this->assertResponseIsSuccessful();
-        $this->assertSelectorExists('div.bodyaide');
+        $this->assertStaticPage('/aide', 'Aide');
     }
 
     public function testAmis(): void
     {
-        $this->client->request('GET', '/amis');
-
-        $this->assertResponseIsSuccessful();
-        $this->assertSelectorExists('div.bodyamis');
+        $this->assertStaticPage('/amis', 'Amis');
     }
 
     public function testMentions(): void
     {
-        $this->client->request('GET', '/mentions');
-
-        $this->assertResponseIsSuccessful();
-        $this->assertSelectorExists('div.bodymentions');
+        $this->assertStaticPage('/mentions', 'Mentions');
     }
 
     public function testContacts(): void
     {
-        $this->client->request('GET', '/contacts');
-
-        $this->assertResponseIsSuccessful();
-        $this->assertSelectorExists('div.bodycontacts');
+        $this->assertStaticPage('/contacts', 'Contacts');
     }
 
     public function testDon(): void
     {
-        $this->client->request('GET', '/don');
-
-        $this->assertResponseIsSuccessful();
-        $this->assertSelectorExists('div.bodydon');
+        $this->assertStaticPage('/don', 'Don');
     }
 
     public function testNewsletter(): void
     {
-        $this->client->request('GET', '/newsletter');
+        $this->assertStaticPage('/newsletter', 'Newsletter');
+    }
+
+    private function assertStaticPage(
+        string $url,
+        string $title
+    ): void {
+        $this->client->request('GET', $url);
 
         $this->assertResponseIsSuccessful();
-        $this->assertSelectorExists('div.bodynewsletter');
+
+        $this->assertSelectorExists(
+            'div.page-card'
+        );
+
+        $this->assertSelectorTextContains(
+            'h1.page-title',
+            'Page de test ' . $title
+        );
     }
 
     private function createStaticPages(): void
@@ -181,12 +186,53 @@ class HomeControllerTest extends WebTestCase
 
             $page
                 ->setSlug($slug)
-                ->setTitle('Page de test ' . ucfirst($slug))
-                ->setContent('<p>Contenu de test pour ' . $slug . '</p>');
+                ->setTitle(
+                    'Page de test ' . ucfirst($slug)
+                )
+                ->setContent(
+                    '<p>Contenu de test pour '
+                        . $slug
+                        . '</p>'
+                );
 
             $this->entityManager->persist($page);
         }
 
         $this->entityManager->flush();
+    }
+
+    /**
+     * @dataProvider staticPageNotFoundProvider
+     */
+    public function testStaticPageReturns404WhenPageDoesNotExist(
+        string $slug,
+        string $url
+    ): void {
+        $page = $this->entityManager
+            ->getRepository(Page::class)
+            ->findOneBy(['slug' => $slug]);
+
+        $this->assertNotNull($page);
+
+        $this->entityManager->remove($page);
+        $this->entityManager->flush();
+
+        $this->client->request('GET', $url);
+
+        $this->assertResponseStatusCodeSame(404);
+    }
+
+    public static function staticPageNotFoundProvider(): array
+    {
+        return [
+            'radio' => ['radio', '/radio'],
+            'zone' => ['zone', '/zone'],
+            'aide' => ['aide', '/aide'],
+            'amis' => ['amis', '/amis'],
+            'mentions' => ['mentions', '/mentions'],
+            'contacts' => ['contacts', '/contacts'],
+            'don' => ['don', '/don'],
+            'newsletter' => ['newsletter', '/newsletter'],
+        ];
     }
 }

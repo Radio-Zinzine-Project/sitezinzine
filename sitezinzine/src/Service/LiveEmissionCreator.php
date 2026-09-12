@@ -8,7 +8,6 @@ use App\Entity\Emission;
 use App\Entity\ProgrammationRuleSlot;
 use App\Entity\Theme;
 use App\Entity\User;
-use App\Repository\EditeurRepository;
 use App\Repository\ThemeRepository;
 use App\Repository\UserRepository;
 use Doctrine\DBAL\Connection;
@@ -21,9 +20,7 @@ class LiveEmissionCreator
         private readonly Connection $connection,
         private readonly UserRepository $userRepository,
         private readonly ThemeRepository $themeRepository,
-        private readonly EditeurRepository $editeurRepository,
-    ) {
-    }
+    ) {}
 
     public function createFromSlot(ProgrammationRuleSlot $slot, \DateTimeInterface $startsAt): Emission
     {
@@ -152,19 +149,7 @@ class LiveEmissionCreator
 
     private function resolveEditorForCategory(Categories $category): ?Editeur
     {
-        $editeurId = $category->getEditeur();
-
-        if ($editeurId === null) {
-            return null;
-        }
-
-        $editeur = $this->editeurRepository->find($editeurId);
-
-        if (!$editeur instanceof Editeur) {
-            throw new \RuntimeException(sprintf('Éditeur introuvable pour l’ID %d.', $editeurId));
-        }
-
-        return $editeur;
+        return $category->getEditeur();
     }
 
     private function resolveManualLiveDuration(Categories $category): int

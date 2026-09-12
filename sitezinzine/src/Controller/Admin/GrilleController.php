@@ -14,7 +14,6 @@ use App\Repository\GridSlotArbitrationRepository;
 use App\Repository\ProgrammationRuleRepository;
 use App\Repository\ProgrammationRuleSlotRepository;
 use App\Service\WeeklyAnnouncementPrintBuilder;
-use App\Service\GridRebroadcastCoverageService;
 use App\Service\GridAssignmentService;
 use App\Service\GridViewBuilder;
 use App\Service\GridUnpublicationService;
@@ -77,7 +76,10 @@ class GrilleController extends AbstractController
         string $startOfWeek,
         GridViewBuilder $gridViewBuilder,
     ): Response {
-        $startDate = \DateTime::createFromFormat('Y-m-d', $startOfWeek);
+        $startDate = \DateTimeImmutable::createFromFormat(
+            'Y-m-d',
+            $startOfWeek
+        );
 
         if (!$startDate) {
             throw $this->createNotFoundException(
@@ -85,20 +87,21 @@ class GrilleController extends AbstractController
             );
         }
 
-        $startOfWeekDate = (clone $startDate)
-            ->modify('this week')
-            ->modify('+1 day')
-            ->setTime(0, 0, 0);
-
-        $endOfWeekDate = (clone $startOfWeekDate)
-            ->modify('+7 days');
-
-        $startImmutable = \DateTimeImmutable::createFromMutable(
-            $startOfWeekDate
+        /*
+     * La semaine radio commence le mardi.
+     *
+     * Important : un lundi appartient encore à la semaine
+     * commencée le mardi précédent.
+     */
+        $startImmutable = $this->getRadioWeekStart(
+            $startDate
         );
 
-        $endImmutable = \DateTimeImmutable::createFromMutable(
-            $endOfWeekDate
+        $endImmutable = $startImmutable
+            ->modify('+7 days');
+
+        $startOfWeekDate = \DateTime::createFromImmutable(
+            $startImmutable
         );
 
         $gridView = $gridViewBuilder->build(
@@ -112,16 +115,20 @@ class GrilleController extends AbstractController
                 'La grille doit être validée avant de pouvoir être imprimée.'
             );
 
-            return $this->redirectToRoute('admin.grille.index', [
-                'startOfWeek' => $startOfWeekDate->format('Y-m-d'),
-            ]);
+            return $this->redirectToRoute(
+                'admin.grille.index',
+                [
+                    'startOfWeek' => $startImmutable->format('Y-m-d'),
+                ]
+            );
         }
 
         $jours = [];
 
         for ($i = 0; $i < 7; $i++) {
-            $jours[] = (clone $startOfWeekDate)
-                ->modify("+{$i} days");
+            $jours[] = \DateTime::createFromImmutable(
+                $startImmutable->modify("+{$i} days")
+            );
         }
 
         return $this->render(
@@ -145,7 +152,10 @@ class GrilleController extends AbstractController
         GridViewBuilder $gridViewBuilder,
         WeeklyAnnouncementPrintBuilder $weeklyAnnouncementPrintBuilder,
     ): Response {
-        $startDate = \DateTime::createFromFormat('Y-m-d', $startOfWeek);
+        $startDate = \DateTimeImmutable::createFromFormat(
+            'Y-m-d',
+            $startOfWeek
+        );
 
         if (!$startDate) {
             throw $this->createNotFoundException(
@@ -153,20 +163,21 @@ class GrilleController extends AbstractController
             );
         }
 
-        $startOfWeekDate = (clone $startDate)
-            ->modify('this week')
-            ->modify('+1 day')
-            ->setTime(0, 0, 0);
-
-        $endOfWeekDate = (clone $startOfWeekDate)
-            ->modify('+7 days');
-
-        $startImmutable = \DateTimeImmutable::createFromMutable(
-            $startOfWeekDate
+        /*
+     * La semaine radio commence le mardi.
+     *
+     * On utilise la même règle partout afin qu'un lundi
+     * soit rattaché au mardi précédent.
+     */
+        $startImmutable = $this->getRadioWeekStart(
+            $startDate
         );
 
-        $endImmutable = \DateTimeImmutable::createFromMutable(
-            $endOfWeekDate
+        $endImmutable = $startImmutable
+            ->modify('+7 days');
+
+        $startOfWeekDate = \DateTime::createFromImmutable(
+            $startImmutable
         );
 
         /*
@@ -185,9 +196,12 @@ class GrilleController extends AbstractController
                 'La grille doit être validée avant de pouvoir imprimer les émissions à annoncer.'
             );
 
-            return $this->redirectToRoute('admin.grille.index', [
-                'startOfWeek' => $startOfWeekDate->format('Y-m-d'),
-            ]);
+            return $this->redirectToRoute(
+                'admin.grille.index',
+                [
+                    'startOfWeek' => $startImmutable->format('Y-m-d'),
+                ]
+            );
         }
 
         $items = $weeklyAnnouncementPrintBuilder->build(
@@ -210,38 +224,50 @@ class GrilleController extends AbstractController
         GridUnpublicationService $gridUnpublicationService,
         GridPublicationService $gridPublicationService,
     ): Response {
-        $startDate = $startOfWeek
-            ? \DateTime::createFromFormat('Y-m-d', $startOfWeek)
-            : new \DateTime();
-
-        if (!$startDate) {
-            throw $this->createNotFoundException(
-                'Date de semaine invalide.'
+        if ($startOfWeek !== null) {
+            $startDate = \DateTimeImmutable::createFromFormat(
+                'Y-m-d',
+                $startOfWeek
             );
+
+            if (!$startDate) {
+                throw $this->createNotFoundException(
+                    'Date de semaine invalide.'
+                );
+            }
+        } else {
+            $startDate = new \DateTimeImmutable();
         }
 
-        $startOfWeekDate = (clone $startDate)
-            ->modify('this week')
-            ->modify('+1 day')
-            ->setTime(0, 0, 0);
+        /*
+     * La semaine radio commence le mardi et se termine
+     * le lundi suivant.
+     *
+     * On passe systématiquement par getRadioWeekStart()
+     * afin qu'un lundi reste rattaché au mardi précédent.
+     */
+        $startImmutable = $this->getRadioWeekStart(
+            $startDate
+        );
 
-        $endOfWeekDate = (clone $startOfWeekDate)
+        $endImmutable = $startImmutable
             ->modify('+7 days');
+
+        /*
+     * Les templates utilisent actuellement des DateTime
+     * mutables pour startOfWeek et jours.
+     */
+        $startOfWeekDate = \DateTime::createFromImmutable(
+            $startImmutable
+        );
 
         $jours = [];
 
         for ($i = 0; $i < 7; $i++) {
-            $jours[] = (clone $startOfWeekDate)
-                ->modify("+{$i} days");
+            $jours[] = \DateTime::createFromImmutable(
+                $startImmutable->modify("+{$i} days")
+            );
         }
-
-        $startImmutable = \DateTimeImmutable::createFromMutable(
-            $startOfWeekDate
-        );
-
-        $endImmutable = \DateTimeImmutable::createFromMutable(
-            $endOfWeekDate
-        );
 
         $gridView = $gridViewBuilder->build(
             $startImmutable,

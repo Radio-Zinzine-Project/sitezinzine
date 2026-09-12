@@ -3,28 +3,29 @@
 namespace App\Form;
 
 use App\Entity\Evenement;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
-use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
-use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
-use Symfony\Component\Form\Extension\Core\Type\TextareaType;
-use Symfony\Component\Form\Extension\Core\Type\SubmitType;
-use Symfony\Component\Form\Extension\Core\Type\FileType;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class EvenementType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        /** @var Evenement|null $evenement */
+        $evenement = $options['data'] ?? null;
 
-        $type = $options['data']->getType();
-        $existingType = $type !== null ? trim($type) : null; // Supprime les espaces invisibles
-
-        if ($existingType !== null) {
-            $existingType = ucfirst(strtolower($existingType)); // Normalise la casse
-        }
+        $type = $evenement?->getType();
+        $existingType = $type !== null ? trim($type) : null;
 
         $choices = [
             'Emission' => 'Emission',
@@ -32,8 +33,45 @@ class EvenementType extends AbstractType
             'Studio Mobile' => 'Studio Mobile',
             'Table Ronde' => 'Table Ronde',
             'Rassemblement - Manifestation' => 'Rassemblement - Manifestation',
-            'Autre' => 'autre'
+            'Autre' => 'autre',
         ];
+
+        /*
+         * Permet de reconnaître les types connus même si les anciennes
+         * données ne respectent pas exactement la casse utilisée aujourd'hui.
+         */
+        $knownTypes = [
+            'emission' => 'Emission',
+            'fete' => 'Fete',
+            'studio mobile' => 'Studio Mobile',
+            'table ronde' => 'Table Ronde',
+            'rassemblement - manifestation' => 'Rassemblement - Manifestation',
+        ];
+
+        if ($existingType !== null && $existingType !== '') {
+            $normalizedKey = strtolower($existingType);
+
+            if (isset($knownTypes[$normalizedKey])) {
+                $existingType = $knownTypes[$normalizedKey];
+            }
+        }
+
+        $autreTypeValue = '';
+        $typeValue = $existingType;
+
+        /*
+         * Si le type enregistré n'appartient pas aux types connus,
+         * le select affiche "Autre" et le champ autreType reprend
+         * la valeur enregistrée.
+         */
+        if (
+            $existingType !== null
+            && $existingType !== ''
+            && !in_array($existingType, $choices, true)
+        ) {
+            $typeValue = 'autre';
+            $autreTypeValue = $type ?? '';
+        }
 
         $departements = [
             'Alpes-de-Haute-Provence' => '04',
@@ -44,126 +82,133 @@ class EvenementType extends AbstractType
             'Vaucluse' => '84',
         ];
 
-        $autreTypeValue = '';
-        $typeValue = $existingType;
-
-        // ✅ Si le type existant n'est pas dans la liste, il est considéré comme un type personnalisé
-        if (!in_array($existingType, $choices, true) && !empty($existingType)) {
-            $autreTypeValue = $existingType;
-            $typeValue = 'autre'; // Forcer la sélection de "Autre" si un type personnalisé est trouvé
-            $autreTypeValue = $options['data']?->getType() ?? ''; // Si pas de type, on initialise à vide
-        }
-
         $builder
-
             ->add('titre', TextType::class, [
                 'label' => 'Titre',
                 'attr' => [
-                    'maxlength' => 100 // 🔥 Empêche de taper plus de 100 caractères
-                ]
-            ])
-            ->add('organisateur', TextType::class, [
-                'label' => 'Organisateur',
-                'required' => false, // ✅ Mettre `false` pour désactiver le `required`
-                'attr' => [
-                    'maxlength' => 100 // 🔥 Empêche de taper plus de 100 caractères
-                ]
-            ])
-            ->add('ville', TextType::class, [
-                'label' => 'Ville',
-                'required' => false, // ✅ Mettre `false` pour désactiver le `required`
-
-                'attr' => [
-                    'maxlength' => 50 // 🔥 Empêche de taper plus de 50 caractères
-                ]
-            ])
-            ->add('departement', ChoiceType::class, [
-                'label' => 'Département',
-                'required' => false, // ✅ Mettre `false` pour désactiver le `required`
-                'choices' => $departements,
-                'placeholder' => 'Sélectionnez un département',
-                'data' => $options['data']?->getDepartement() ?? '', // ✅ Sélectionne correctement le département
-            ])
-            ->add('adresse', TextType::class, [
-                'required' => false, // ✅ Mettre `false` pour désactiver le `required`
-                'label' => 'Adresse',
-                'attr' => [
-                    'maxlength' => 50 // 🔥 Empêche de taper plus de 50 caractères
-                ]
-            ])
-             ->add('dateDebut', DateTimeType::class, [
-        'input' => 'datetime',
-        'label' => 'Date de début',
-        'widget' => 'single_text',
-        'html5' => false,
-        'format' => 'yyyy-MM-dd',
-        'attr' => [
-            'data-controller' => 'flatpickr',
-        ],
-    ])
-    ->add('dateFin', DateTimeType::class, [
-        'input' => 'datetime',
-        'label' => 'Date de fin',
-        'widget' => 'single_text',
-        'html5' => false,
-        'format' => 'yyyy-MM-dd',
-        'attr' => [
-            'data-controller' => 'flatpickr',
-        ],
-    ])
-            ->add('horaire', TextType::class, [
-                'required' => false, // ✅ Mettre `false` pour désactiver le `required`
-                'label' => 'Horaires',
-                'attr' => [
-                    'maxlength' => 50 // 🔥 Empêche de taper plus de 50 caractères
-                ]
-            ])
-            ->add('prix', TextType::class, [
-                'required' => false, // ✅ Mettre `false` pour désactiver le `required`
-                'label' => 'Prix',
-                'attr' => [
-                    'maxlength' => 50 // 🔥 Empêche de taper plus de 50 caractères
-                ]
-            ])
-            ->add('presentation', TextareaType::class, [
-                'label' => 'Présentation',
-                'empty_data' => '', // ✅ Remplit le champ avec une chaîne vide si null
-                'required' => false, // ✅ Mettre `false` pour désactiver le `required`
-                'attr' => [
-                    'class' => 'hidden-textarea', // 🔥 Cache le textarea sans display: none;
+                    'maxlength' => 100,
                 ],
             ])
+
+            ->add('organisateur', TextType::class, [
+                'label' => 'Organisateur',
+                'required' => false,
+                'attr' => [
+                    'maxlength' => 100,
+                ],
+            ])
+
+            ->add('ville', TextType::class, [
+                'label' => 'Ville',
+                'required' => false,
+                'attr' => [
+                    'maxlength' => 50,
+                ],
+            ])
+
+            ->add('departement', ChoiceType::class, [
+                'label' => 'Département',
+                'required' => false,
+                'choices' => $departements,
+                'placeholder' => 'Sélectionnez un département',
+                'data' => $evenement?->getDepartement() ?? '',
+            ])
+
+            ->add('adresse', TextType::class, [
+                'required' => false,
+                'label' => 'Adresse',
+                'attr' => [
+                    'maxlength' => 50,
+                ],
+            ])
+
+            ->add('dateDebut', DateTimeType::class, [
+                'input' => 'datetime',
+                'label' => 'Date de début',
+                'widget' => 'single_text',
+                'html5' => false,
+                'format' => 'yyyy-MM-dd',
+                'attr' => [
+                    'data-controller' => 'flatpickr',
+                ],
+            ])
+
+            ->add('dateFin', DateTimeType::class, [
+                'input' => 'datetime',
+                'label' => 'Date de fin',
+                'widget' => 'single_text',
+                'html5' => false,
+                'format' => 'yyyy-MM-dd',
+                'attr' => [
+                    'data-controller' => 'flatpickr',
+                ],
+            ])
+
+            ->add('horaire', TextType::class, [
+                'required' => false,
+                'label' => 'Horaires',
+                'attr' => [
+                    'maxlength' => 50,
+                ],
+            ])
+
+            ->add('prix', TextType::class, [
+                'required' => false,
+                'label' => 'Prix',
+                'attr' => [
+                    'maxlength' => 50,
+                ],
+            ])
+
+            ->add('presentation', TextareaType::class, [
+                'label' => 'Présentation',
+                'empty_data' => '',
+                'required' => false,
+                'attr' => [
+                    'class' => 'hidden-textarea',
+                ],
+            ])
+
             ->add('contact', TextType::class, [
-                'required' => false, // ✅ Mettre `false` pour désactiver le `required`
+                'required' => false,
                 'label' => 'Contact',
                 'attr' => [
-                    'maxlength' => 100 // 🔥 Empêche de taper plus de 100 caractères
-                ]
+                    'maxlength' => 100,
+                ],
             ])
 
             ->add('type', ChoiceType::class, [
                 'label' => 'Type',
                 'choices' => $choices,
                 'placeholder' => 'Sélectionnez un type d\'évènement',
-                'data' => $typeValue, // ✅ Sélectionne correctement "Autre" si besoin
+                'data' => $typeValue,
                 'choice_label' => fn($choice, $key, $value) => $key,
-                'choice_value' => fn ($choice) => $choice !== null ? strtolower($choice) : null,
+                'choice_value' => fn($choice) => $choice !== null
+                    ? strtolower($choice)
+                    : null,
                 'attr' => [
-                    'maxlength' => 50 // 🔥 Empêche de taper plus de 50 caractères
-                ]
+                    'maxlength' => 50,
+                ],
             ])
-            ->add(
-                'autreType',
-                TextType::class, [
-                    'label' => 'Autre type',
-                    'required' => false,
-                    'mapped' => false, // Ne lie pas cette propriété à l'entité
-                    'data' => $autreTypeValue, // ✅ Remplit l'input si un type personnalisé est déjà sélectionné
-                    'attr' => ['style' => ($autreTypeValue ? 'display:block;' : 'display:none;'), 'maxlength' => 50 // 🔥 Empêche de taper plus de 50 caractères
-                    ]
-                ], // Cache si pas nécessaire
-            )
 
+            ->add('autreType', TextType::class, [
+                'label' => 'Autre type',
+                'required' => false,
+                'mapped' => false,
+                'data' => $autreTypeValue,
+                'constraints' => [
+                    new Assert\Length(
+                        max: 50,
+                        maxMessage: 'Le type ne doit pas dépasser {{ limit }} caractères.'
+                    ),
+                ],
+                'attr' => [
+                    'style' => $autreTypeValue !== ''
+                        ? 'display:block;'
+                        : 'display:none;',
+                    'maxlength' => 50,
+                ],
+            ])
 
             ->add('thumbnailFile', FileType::class, [
                 'required' => false,
@@ -177,15 +222,53 @@ class EvenementType extends AbstractType
             ]);
         }
 
-
         $builder->add('Sauvegarder', SubmitType::class);
+
+        /*
+         * autreType est volontairement unmapped.
+         *
+         * Lors de la soumission, si "Autre" est sélectionné,
+         * sa valeur devient le véritable type de l'évènement.
+         *
+         * Cette logique étant dans le FormType, elle fonctionne
+         * aussi bien en création qu'en édition.
+         */
+        $builder->addEventListener(
+            FormEvents::SUBMIT,
+            function (FormEvent $event): void {
+                $evenement = $event->getData();
+                $form = $event->getForm();
+
+                if (!$evenement instanceof Evenement) {
+                    return;
+                }
+
+                if ($evenement->getType() !== 'autre') {
+                    return;
+                }
+
+                $autreType = $form->get('autreType')->getData();
+
+                if (!is_string($autreType)) {
+                    return;
+                }
+
+                $autreType = trim($autreType);
+
+                if ($autreType === '') {
+                    return;
+                }
+
+                $evenement->setType($autreType);
+            }
+        );
     }
+
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
             'data_class' => Evenement::class,
-            'show_valid' => false, // Option par défaut
-
+            'show_valid' => false,
         ]);
     }
 }

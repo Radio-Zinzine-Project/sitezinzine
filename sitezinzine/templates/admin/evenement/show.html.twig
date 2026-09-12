@@ -600,29 +600,30 @@
                     Modifier
                 </a>
                 <form action="{{ path(
-                'admin.evenement.softDelete',
-                {
-                    id: evenement.id
-                }
-            ) }}" method="post">
+        'admin.evenement.softDelete',
+        {
+            id: evenement.id
+        }
+    ) }}" method="post">
                     <input type="hidden" name="_method" value="DELETE">
-                        <button type="submit" class="btn btn-danger">
-                            Supprimer
-                        </button>
-                    </form>
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete_evenement_' ~ evenement.id) }}">
+                            <button type="submit" class="btn btn-danger">
+                                Supprimer
+                            </button>
+                        </form>
+                    </div>
                 </div>
-            </div>
-            {# =============================================================
-                MODAL IMAGE
-            ============================================================= #}
-            {% if evenement.thumbnail %}
-                <div id="evenementImageModal" class="evenement-modal">
-                    <span class="evenement-modal-close" onclick="closeEvenementModal()">
-                        &times;
-                    </span>
-                    <img class="evenement-modal-content" id="evenementModalImage" alt=""></div>
-                {% endif %}
-                <script>
+                {# =============================================================
+                    MODAL IMAGE
+                ============================================================= #}
+                {% if evenement.thumbnail %}
+                    <div id="evenementImageModal" class="evenement-modal">
+                        <span class="evenement-modal-close" onclick="closeEvenementModal()">
+                            &times;
+                        </span>
+                        <img class="evenement-modal-content" id="evenementModalImage" alt=""></div>
+                    {% endif %}
+                    <script>
     function openEvenementModal(imgSrc) {
 
         const modal =
@@ -683,5 +684,5 @@
         }
     );
 </script>
-            {% endblock %}
-            
+                {% endblock %}
+                

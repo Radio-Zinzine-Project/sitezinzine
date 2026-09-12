@@ -37,6 +37,3 @@ services:
             $mp3PublicBaseUrl: '%app.mp3_public_base_url%'
             $projectDir: '%kernel.project_dir%'
 
-    App\Service\LibreTime\LibreTimeWeekInfoClient:
-        arguments:
-            $weekInfoUrl: '%libretime_week_info_url%'

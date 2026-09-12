@@ -778,7 +778,7 @@ class Emission
     /**
      * Set the value of thumbnailFileMp3
      *
-     * @return self
+     * 
      */
     public function setThumbnailFileMp3(?File $file): static
     {

@@ -70,7 +70,7 @@ class EmissionType extends AbstractType
                 },
                 'choice_attr' => static function (Categories $categorie): array {
                     return [
-                        'data-editeur-id' => $categorie->getEditeur() ?? '',
+                        'data-editeur-id' => $categorie->getEditeur()?->getId() ?? '',
                         'data-duree' => $categorie->getDuree() ?? '',
                     ];
                 },
@@ -188,7 +188,10 @@ class EmissionType extends AbstractType
                 ]);
         }
 
-        if ($options['data'] instanceof Emission && $options['data']->isPendingCompletion()) {
+        if (
+            $options['data'] instanceof Emission
+            && $options['data']->isPendingCompletion()
+        ) {
             $builder->add('markAsCompleted', CheckboxType::class, [
                 'mapped' => false,
                 'required' => false,
@@ -221,70 +224,53 @@ class EmissionType extends AbstractType
             $form->get('inviteOldAnimateurs')->setData($anciens);
         });
 
-        $builder->addEventListener(FormEvents::SUBMIT, function (FormEvent $event) {
-            $emission = $event->getData();
-            $form = $event->getForm();
+        $builder->addEventListener(
+            FormEvents::PRE_SUBMIT,
+            $this->autoKeyword(...)
+        );
 
-            if (!$emission instanceof Emission) {
-                return;
+        $builder->addEventListener(
+            FormEvents::SUBMIT,
+            function (FormEvent $event) use ($options) {
+                $emission = $event->getData();
+                $form = $event->getForm();
+
+                if (!$emission instanceof Emission) {
+                    return;
+                }
+
+                foreach ($emission->getInviteOldAnimateurs()->toArray() as $person) {
+                    $emission->removeInviteOldAnimateur($person);
+                }
+
+                $invites = $form->get('invites')->getData() ?? [];
+                $anciens = $form->get('inviteOldAnimateurs')->getData() ?? [];
+
+                foreach ($invites as $person) {
+                    $emission->addInviteOldAnimateur($person);
+                }
+
+                foreach ($anciens as $person) {
+                    $emission->addInviteOldAnimateur($person);
+                }
+
+                /*
+                 * Lors de la création, si aucun utilisateur n'a été sélectionné,
+                 * l'utilisateur connecté devient automatiquement propriétaire.
+                 *
+                 * Le listener SUBMIT intervient après le mapping des champs
+                 * mais avant la validation de l'entité.
+                 */
+                $currentUser = $options['current_user'];
+
+                if (
+                    $currentUser instanceof User
+                    && $emission->getUsers()->isEmpty()
+                ) {
+                    $emission->addUser($currentUser);
+                }
             }
-
-            foreach ($emission->getInviteOldAnimateurs()->toArray() as $person) {
-                $emission->removeInviteOldAnimateur($person);
-            }
-
-            $invites = $form->get('invites')->getData() ?? [];
-            $anciens = $form->get('inviteOldAnimateurs')->getData() ?? [];
-
-            foreach ($invites as $p) {
-                $emission->addInviteOldAnimateur($p);
-            }
-
-            foreach ($anciens as $p) {
-                $emission->addInviteOldAnimateur($p);
-            }
-        });
-
-        $builder->addEventListener(FormEvents::PRE_SUBMIT, $this->autoKeyword(...));
-        $builder->addEventListener(FormEvents::SUBMIT, function (FormEvent $event) use ($options) {
-            $emission = $event->getData();
-            $form = $event->getForm();
-
-            if (!$emission instanceof Emission) {
-                return;
-            }
-
-            foreach ($emission->getInviteOldAnimateurs()->toArray() as $person) {
-                $emission->removeInviteOldAnimateur($person);
-            }
-
-            $invites = $form->get('invites')->getData() ?? [];
-            $anciens = $form->get('inviteOldAnimateurs')->getData() ?? [];
-
-            foreach ($invites as $p) {
-                $emission->addInviteOldAnimateur($p);
-            }
-
-            foreach ($anciens as $p) {
-                $emission->addInviteOldAnimateur($p);
-            }
-
-            /*
-     * Lors de la création, si aucun utilisateur n'a été sélectionné,
-     * l'utilisateur connecté devient automatiquement propriétaire.
-     *
-     * Le listener SUBMIT intervient après le mapping des champs
-     * mais avant la validation de l'entité.
-     */
-            $currentUser = $options['current_user'];
-
-            if (
-                $currentUser instanceof User
-                && $emission->getUsers()->isEmpty()
-            ) {
-                $emission->addUser($currentUser);
-            }
-        });
+        );
     }
 
     public function autoKeyword(PreSubmitEvent $event): void

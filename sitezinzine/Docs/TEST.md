@@ -3,6 +3,1158 @@
 Ce document décrit la stratégie de tests automatisés du projet Radio Zinzine,
 les services actuellement couverts et les principaux scénarios sécurisés.
 
+## 11 septembre 2026 — Tests et couverture technique
+
+### LiveEmissionCreator
+
+Ajout et finalisation de la couverture de `LiveEmissionCreator`.
+
+Tests ajoutés pour couvrir notamment :
+
+- création automatique d'une émission depuis un `ProgrammationRuleSlot` ;
+- durée par défaut de 15 minutes lorsqu'aucune durée n'est définie sur le créneau ;
+- récupération des utilisateurs associés à une catégorie ;
+- suppression des doublons d'utilisateurs ;
+- absence de règle ou de catégorie ;
+- création manuelle d'une émission pour une catégorie ;
+- durée manuelle par défaut de 60 minutes ;
+- rejet des catégories inactives ;
+- rejet des catégories supprimées logiquement ;
+- absence du thème par défaut ;
+- catégorie sans éditeur ;
+- catégorie possédant un éditeur.
+
+Couverture obtenue :
+
+```text
+App\Service\LiveEmissionCreator
+Methods: 90.00% (9/10)
+Lines:   99.00% (99/100)
+```
+
+### Correction détectée grâce aux tests
+
+Les tests de `LiveEmissionCreator` ont mis en évidence une incohérence dans la gestion de l'éditeur d'une catégorie.
+
+`Categories::getEditeur()` retourne directement une entité `Editeur`, alors que le service traitait cette valeur comme un identifiant et tentait de rechercher à nouveau l'éditeur avec `EditeurRepository`.
+
+Correction effectuée :
+
+- utilisation directe de la relation `Categories::getEditeur()` ;
+- suppression de `EditeurRepository` dans `LiveEmissionCreator` ;
+- simplification de `resolveEditorForCategory()`.
+
+### Nettoyage des tests
+
+Nettoyage de `LiveEmissionCreatorTest` :
+
+- suppression de l'ancien mock `EditeurRepository` devenu inutile ;
+- typage des mocks PHPUnit avec `MockObject` ;
+- adaptation des fixtures `Categories` aux types réellement attendus par l'entité ;
+- conservation des tests sur les valeurs de durée par défaut.
+
+### Suppression de LibreTime
+
+Suppression du code `LibreTime`, qui n'était pas utilisé par l'application et n'avait pas vocation à être développé actuellement.
+
+Nettoyage de la déclaration de service Symfony restante après suppression de la classe `LibreTimeWeekInfoClient`.
+
+La suite complète reste verte après cette suppression.
+
+### État final de la suite de tests
+
+```text
+OK (1302 tests, 6147 assertions)
+```
+
+Aucune régression détectée après :
+
+- l'ajout des tests `LiveEmissionCreator` ;
+- la correction de la gestion de l'éditeur ;
+- la suppression du code LibreTime.
+
+### À suivre
+
+La couverture globale du projet sera recalculée après ces modifications afin d'établir le bilan final de la couverture technique avant de passer à la couche de tests fonctionnels/métier.
+
+# Tests PHPUnit — avancement du 09/09/2026
+
+## Tests et couverture du code
+
+### Services
+
+- Finalisation de la couverture des services.
+- `GridConflictDetector` : couverture des comportements utiles, hors branche d’overlap structurellement inaccessible.
+- `GridOccurrenceProjectionService` : 96,05 %.
+- `Mp3Processor` : 95,80 %.
+- `GridAssignmentService` : 100 %.
+- `GridPublicationService` : 92,31 %.
+- `GridRebroadcastCoverageService` : 82,70 %.
+- `GridUnpublicationService` : 93,96 %.
+- `GridViewBuilder` : 90,61 %.
+- `InfosSoirRssService` : 100 %.
+- `ProgrammationGridBuilder` : 94,36 %.
+- `PublicScheduleBuilder` : 100 %.
+- `SafeFilenameNamer` : 100 %.
+- `WeeklyAnnouncementPrintBuilder` : 100 %.
+- Correction de `SafeFilenameNamer` avec `AsciiSlugger` de Symfony à la place de `iconv`.
+
+### Contrôleurs publics
+
+- `EmissionController` : 99,47 % des lignes.
+- `HomeController` : 100 %.
+- `RegistrationController` : 100 %.
+- Ajout de tests sur les affichages, recherches, filtres, validations et cas d’erreur.
+- Normalisation des filtres catégorie et thème dans `EmissionController`.
+- Correction de `Emission::$ref` pour accepter une valeur `null`.
+
+### Contrôleurs d’administration
+
+- `CategorieController` : 98,15 % des lignes.
+- `DiffusionController` : 100 %.
+- `CategorieTagImageController` : 100 %.
+- `EditeurController` : 100 %.
+- `EvenementController` : 100 %.
+- `GridDraftController` : 100 %.
+- `InviteOldAnimateurController` : 100 %.
+- `PageController` : 100 %.
+- `ProfileController` : 100 %.
+- `ProgrammationRuleController` : 100 %.
+- `ProgrammationRuleSlotController` : 92,62 %.
+- `TestLibreTimeController` : 100 %.
+- `ThemeController` : 100 %.
+- `TinyMCEController` : 100 %.
+- `UserController` : 100 %.
+- Les 9 nouvelles suites d’administration totalisent 108 tests et 754 assertions.
+- Les 9 nouvelles suites couvrent 390 lignes sur 399, soit 97,74 %.
+- Les lignes restantes de `ProgrammationRuleSlotController` correspondent à des valeurs invalides déjà bloquées par les setters de l’entité.
+- Suppression de branches défensives mortes dans `GridDraftController`.
+- Suppression du traitement de formulaire devenu inutile dans l’index de `EvenementController`.
+- Correction de `Evenement::setDepartement()` pour accepter une valeur `null`.
+
+### Grille de programmation
+
+- Extension importante de `GrilleControllerTest`.
+- 98 tests et 286 assertions passent sur `GrilleController`.
+- `GrilleController` atteint 93,22 % de couverture des lignes.
+- 894 lignes sur 959 sont couvertes dans `GrilleController`.
+- 18 méthodes sur 25 sont entièrement couvertes, soit 72 %.
+- `candidates()` : 100 %.
+- `specialCandidates()` : 100 %.
+- `assign()` : 100 %.
+- `createLive()` : 100 %.
+- `remove()` : 100 %.
+- `rescheduleWeek()` : 98 %.
+- `rescheduleCustom()` : 86,11 %.
+- `cancelOccurrence()` : 98,73 %.
+- `clearReschedule()` : 100 %.
+- `restoreOccurrence()` : 100 %.
+- `linkedRebroadcasts()` : 100 %.
+- `gotoWeek()` : 100 %.
+- Ajout de tests sur les rediffusions liées.
+- Ajout de tests sur les stratégies de déplacement, conservation et annulation.
+- Ajout de tests sur les déplacements personnalisés des rediffusions.
+- Ajout de tests sur la restauration des groupes d’arbitrage.
+- Ajout de tests sur les catégories de remplacement et les recherches de candidats.
+- Ajout de tests sur les émissions automatiques et leur déduplication.
+- Les principaux chemins restant à couvrir concernent `publishWeek()`, `unpublishWeek()` et certaines branches de `renderGrid()` et `rescheduleCustom()`.
+
+### Formulaires
+
+- Début de la couverture des 18 formulaires de l’application.
+- Ajout de tests sur les soumissions réelles et les validations.
+- Ajout de tests sur les transformations de données.
+- Ajout de tests sur les champs conditionnels.
+- Ajout de tests sur les formulaires d’inscription, de mot de passe, de profil, de rôles et d’invités.
+- Ajout de tests sur les formulaires liés aux pages.
+- Ajout de tests sur les formulaires de programmation.
+- Ajout de tests sur les choix invalides.
+- Ajout de tests sur les champs devant rester verrouillés en édition.
+- Ajout de tests sur les catégories, les émissions et la recherche.
+- Ajout de tests sur les filtres de choix et les propriétaires d’émissions.
+- Ajout de tests sur la séparation entre invités et anciens animateurs.
+- Ajout de tests sur les doublons lors de l’inscription.
+- Identification d’une incohérence existante dans `CategorieType` : le champ description est déclaré facultatif mais une valeur vide provoque une erreur lors du mapping vers l’entité.
+- L’incohérence de `CategorieType` est actuellement documentée par un test sans modification du formulaire.
+
+### Qualité des tests
+
+- Utilisation de Xdebug pour mesurer la couverture réelle des lignes exécutées.
+- Conservation des protections métier existantes au lieu de les contourner artificiellement pour atteindre 100 %.
+- Les branches structurellement inaccessibles ou purement défensives ne sont pas forcées uniquement pour améliorer le pourcentage de couverture.
+- Les tests privilégient les comportements utiles, les validations, les erreurs et les chemins métier réels.
+
+# Tests PHPUnit — avancement du 09/09/2026
+
+## Contexte
+
+Objectif actuel : couvrir techniquement le code avant de passer à la couche fonctionnelle / métier.
+
+Ordre de travail retenu :
+
+1. Repositories ✅
+2. Services ✅
+3. Controllers 🔄
+4. Forms
+5. Autres classes si nécessaire
+6. Tests fonctionnels / workflows métier uniquement après la couverture technique
+
+Pour les contrôleurs, on avance fichier par fichier avec PHPUnit, en visant la couverture utile maximale sans forcer artificiellement des branches impossibles.
+
+---
+
+# Contrôleurs déjà terminés
+
+## `EmissionController`
+
+Couverture technique terminée.
+
+- Methods : 85,71 %
+- Lines : 99,47 %
+
+Corrections faites :
+
+- normalisation des filtres catégorie / thème
+- `Emission::$ref` rendu nullable côté Doctrine
+- `setRef(?string)`
+
+Pas besoin de forcer la dernière ligne défensive.
+
+---
+
+## `HomeController`
+
+100 %.
+
+---
+
+## `RegistrationController`
+
+100 %.
+
+Le service `EmailVerifier` a pu être remplacé dans le container de test.
+
+---
+
+## `Admin/CategorieController`
+
+Couverture technique considérée terminée.
+
+- Lines : 98,15 %
+- Methods : 80 %
+
+La branche Vich restante n’a pas été forcée artificiellement.
+
+---
+
+## `Admin/DiffusionController`
+
+100 %.
+
+`DiffusionType` : 100 %.
+
+---
+
+## `Admin/CategorieTagImageController`
+
+100 %.
+
+`CategorieTagImageType` reste à revoir plus tard avec les Forms.
+
+---
+
+## `Admin/EditeurController`
+
+100 %.
+
+`EditeurType` : 100 %.
+
+---
+
+## `Admin/EvenementController`
+
+100 %.
+
+Correction production :
+
+- `Evenement::setDepartement(?string)`
+
+Le code mort de gestion de formulaire dans `index()` a été retiré.
+
+---
+
+# Contrôleur actuel : `Admin/GridDraftController`
+
+Fichier :
+
+    src/Controller/Admin/GridDraftController.php
+
+Test :
+
+    tests/Controller/Admin/GridDraftControllerTest.php
+
+Commande de test :
+
+    docker exec -it symfony_app php bin/phpunit tests/Controller/Admin/GridDraftControllerTest.php --stop-on-error --stop-on-failure
+
+Commande couverture texte :
+
+    docker exec -e XDEBUG_MODE=coverage -it symfony_app php bin/phpunit tests/Controller/Admin/GridDraftControllerTest.php --coverage-text --coverage-filter=src/Controller/Admin/GridDraftController.php
+
+Commande couverture HTML :
+
+    docker exec -e XDEBUG_MODE=coverage -it symfony_app php bin/phpunit tests/Controller/Admin/GridDraftControllerTest.php --coverage-html var/coverage --coverage-filter=src/Controller/Admin/GridDraftController.php
+
+---
+
+# État actuel de `GridDraftController`
+
+Suite PHPUnit verte.
+
+Dernière couverture HTML :
+
+- Lines : 97,31 %
+- 578 / 594 lignes
+- Methods : 53,85 %
+- 7 / 13 méthodes entièrement couvertes
+
+Important : le faible pourcentage `Methods` vient surtout du fait que PHPUnit ne considère une méthode comme entièrement couverte que si toutes ses lignes le sont.
+
+Il ne reste plus que 16 lignes non couvertes.
+
+---
+
+# Couverture par méthode
+
+## `createManual`
+
+100,00 %
+
+106 / 106 lignes
+
+✅ Terminée.
+
+---
+
+## `createManualLive`
+
+98,91 %
+
+91 / 92 lignes
+
+Il reste uniquement le fallback de durée :
+
+    $duration = (int) ($emission->getDuree() ?? 0);
+
+    if ($duration < 1) {
+        $duration = 60;
+    }
+
+La seule ligne encore rouge est :
+
+    $duration = 60;
+
+À vérifier demain si cet état est réellement atteignable avec les contraintes actuelles de l’entité `Emission`.
+
+---
+
+## `filterBlockingDraftOverlaps`
+
+100,00 %
+
+21 / 21 lignes
+
+100 % méthode.
+
+✅ Terminée.
+
+C’est une grosse partie du travail fait aujourd’hui.
+
+---
+
+# Travail effectué sur `filterBlockingDraftOverlaps`
+
+Le helper suivant a été ajouté dans `GridDraftControllerTest.php` afin de pouvoir tester directement la méthode privée sans dépendre du comportement du repository Doctrine dans une requête HTTP :
+
+    private function invokeFilterBlockingDraftOverlaps(
+        array $drafts,
+        GridSlotArbitrationRepository $arbitrationRepository
+    ): array {
+        $controller = static::getContainer()->get(
+            \App\Controller\Admin\GridDraftController::class
+        );
+
+        $reflection = new \ReflectionMethod(
+            \App\Controller\Admin\GridDraftController::class,
+            'filterBlockingDraftOverlaps'
+        );
+
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke(
+            $controller,
+            $drafts,
+            $arbitrationRepository
+        );
+    }
+
+Tests actuels utiles pour cette partie :
+
+    testCreateManualTreatsRegularDraftWithoutSlotAsBlocking()
+
+    testFilterBlockingDraftOverlapsKeepsRegularDraftWithoutArbitration()
+
+    testFilterBlockingDraftOverlapsIgnoresCancelledRegularDraft()
+
+    testFilterBlockingDraftOverlapsIgnoresRescheduledRegularDraft()
+
+    testFilterBlockingDraftOverlapsKeepsRegularDraftWhenArbitrationDoesNotCancelOrReschedule()
+
+Ces tests couvrent désormais toutes les branches de :
+
+    private function filterBlockingDraftOverlaps(
+        array $drafts,
+        GridSlotArbitrationRepository $arbitrationRepository
+    ): array {
+        return array_values(array_filter(
+            $drafts,
+            static function (DiffusionDraft $draft) use ($arbitrationRepository): bool {
+                if (DiffusionDraft::TYPE_REGULAR !== $draft->getDraftType()) {
+                    return true;
+                }
+
+                $slot = $draft->getSlot();
+                $startsAt = $draft->getHoraireDiffusion();
+
+                if (!$slot || !$slot->getId() || !$startsAt instanceof \DateTimeImmutable) {
+                    return true;
+                }
+
+                $arbitration = $arbitrationRepository->findOneBy([
+                    'slot' => $slot,
+                    'originalStartsAt' => $startsAt,
+                ]);
+
+                if (!$arbitration instanceof GridSlotArbitration) {
+                    return true;
+                }
+
+                return !(
+                    $arbitration->isCancelAction()
+                    || $arbitration->isRescheduleAction()
+                );
+            }
+        ));
+    }
+
+Cette méthode est maintenant entièrement verte dans le rapport HTML.
+
+---
+
+# Tests remplacés aujourd’hui
+
+Les premiers tests HTTP destinés à couvrir les arbitrages ne fonctionnaient pas correctement, car le mock de `DiffusionDraftRepository` injecté dans le container n’était pas celui réellement utilisé dans ce chemin HTTP.
+
+Symptôme observé :
+
+- le test attendait HTTP 409
+- le contrôleur répondait HTTP 200
+- un nouveau `manual_special` était réellement créé
+
+Les tests suivants ont donc été supprimés :
+
+    testCreateManualIgnoresCancelledRegularDraftOverlap()
+
+    testCreateManualIgnoresRescheduledRegularDraftOverlap()
+
+    testCreateManualKeepsRegularDraftBlockingWhenArbitrationDoesNotCancelOrReschedule()
+
+Ils ont été remplacés par :
+
+    testFilterBlockingDraftOverlapsIgnoresCancelledRegularDraft()
+
+    testFilterBlockingDraftOverlapsIgnoresRescheduledRegularDraft()
+
+    testFilterBlockingDraftOverlapsKeepsRegularDraftWhenArbitrationDoesNotCancelOrReschedule()
+
+Le test :
+
+    testCreateManualTreatsRegularDraftWithoutSlotAsBlocking()
+
+a été conservé, mais corrigé pour utiliser un vrai `DiffusionDraft` enregistré en base au lieu du mock du repository.
+
+Le test :
+
+    testCreateManualTreatsRegularDraftWithoutArbitrationAsBlocking()
+
+a été remplacé par :
+
+    testFilterBlockingDraftOverlapsKeepsRegularDraftWithoutArbitration()
+
+---
+
+# Correction de code mort dans `createManualLive`
+
+Il existait dans `GridDraftController::createManualLive()` :
+
+    if (!$emission instanceof Emission) {
+        return $this->json([
+            'success' => false,
+            'error' => 'Impossible de créer le direct.',
+        ], 500);
+    }
+
+Un test avait été créé :
+
+    testCreateManualLiveReturns500WhenCreatorDoesNotReturnEmission()
+
+Le mock essayait de faire :
+
+    ->willReturn(null)
+
+Mais PHPUnit a répondu :
+
+    PHPUnit\Framework\MockObject\IncompatibleReturnValueException:
+    Method createManualForCategory may not return value of type NULL,
+    its declared return type is "App\Entity\Emission"
+
+La raison est que :
+
+    LiveEmissionCreator::createManualForCategory()
+
+est explicitement typé pour retourner :
+
+    App\Entity\Emission
+
+Le `if (!$emission instanceof Emission)` était donc structurellement inatteignable avec le contrat actuel du service.
+
+Décision prise :
+
+- suppression du test `testCreateManualLiveReturns500WhenCreatorDoesNotReturnEmission`
+- suppression du bloc mort dans `GridDraftController::createManualLive()`
+
+Le contrôleur enchaîne maintenant directement après le `try/catch` avec le calcul de la durée.
+
+---
+
+# `delete`
+
+Couverture actuelle :
+
+93,33 %
+
+70 / 75 lignes
+
+Il reste 5 lignes.
+
+Premier bloc restant :
+
+    if ([] === $draftsToDelete) {
+        return $this->json([
+            'success' => false,
+            'error' => 'Aucun draft à supprimer.',
+        ], 400);
+    }
+
+Ce bloc représente 4 lignes rouges dans le rapport.
+
+À analyser demain pour déterminer si `draftsToDelete === []` peut réellement se produire avec les modes de suppression actuellement autorisés :
+
+- `single`
+- `rebroadcasts`
+- `group`
+
+Si cette situation est atteignable, ajouter un test.
+
+Si la logique précédente garantit qu’au moins un draft existe toujours dans `$draftsToDelete`, il s’agit potentiellement d’une garde morte.
+
+Deuxième ligne restante :
+
+    foreach ($remainingDrafts as $remainingDraft) {
+        if (!$remainingDraft instanceof DiffusionDraft) {
+            continue;
+        }
+
+Le `continue` est rouge.
+
+À vérifier demain si :
+
+    $draftRepository->findBy(...)
+
+peut réellement retourner autre chose que des objets `DiffusionDraft`.
+
+Si Doctrine garantit le type des entités retournées par ce repository, cette garde pourrait être inutile.
+
+---
+
+# `move`
+
+Couverture actuelle :
+
+97,14 %
+
+68 / 70 lignes
+
+Il reste 2 lignes.
+
+Code concerné :
+
+    $duration = $draft->getDurationMinutes()
+        ?? $draft->getEmission()?->getDuree()
+        ?? 15;
+
+La ligne rouge est le fallback :
+
+    ?? 15;
+
+Deuxième branche :
+
+    if ($duration < 1) {
+        $duration = 15;
+    }
+
+La ligne rouge est :
+
+    $duration = 15;
+
+À vérifier demain avec les contraintes actuelles de `DiffusionDraft` et `Emission`.
+
+On sait déjà que :
+
+    DiffusionDraft::setDurationMinutes()
+
+refuse une durée non nulle inférieure à 1.
+
+Et :
+
+    DiffusionDraft::setSchedule()
+
+refuse également une durée inférieure à 1.
+
+Il faut donc déterminer si un draft existant peut réellement arriver dans `move()` avec :
+
+- `durationMinutes === null`
+- et `Emission::duree === null`
+
+ou avec une durée `< 1`.
+
+Si ces états sont impossibles avec le modèle actuel, il ne faudra pas inventer un test artificiel uniquement pour obtenir 100 %.
+
+---
+
+# Helpers de conflit avec programmation régulière
+
+Les méthodes suivantes sont maintenant entièrement couvertes :
+
+## `hasRegularBlockingOverlap`
+
+100 %
+
+7 / 7 lignes.
+
+✅ Terminée.
+
+## `findRegularBlockingOverlaps`
+
+100 %
+
+9 / 9 lignes.
+
+✅ Terminée.
+
+## `getRadioWeekStart`
+
+100 %
+
+5 / 5 lignes.
+
+✅ Terminée.
+
+---
+
+# Signatures vérifiées pour la gestion des conflits réguliers
+
+## `ProgrammationGridBuilder`
+
+Signature :
+
+    public function buildForWeek(
+        \DateTimeImmutable $startOfWeek,
+        \DateTimeImmutable $endOfWeek
+    ): array
+
+La méthode construit les segments de programmation régulière sur la semaine radio.
+
+---
+
+## `GridOccurrenceProjectionService`
+
+Signature :
+
+    public function applyForWeek(
+        array $daySegments,
+        \DateTimeImmutable $startOfWeek,
+        \DateTimeImmutable $endOfWeek
+    ): array
+
+Elle applique les arbitrages de type annulation / déplacement aux segments de programmation.
+
+---
+
+## `GridConflictDetector`
+
+Signature :
+
+    public function findBlockingOverlapsForRange(
+        array $daySegments,
+        \DateTimeImmutable $startsAt,
+        \DateTimeImmutable $endsAt
+    ): array
+
+Elle retourne les segments bloquants qui chevauchent la plage demandée.
+
+Ces trois services sont déjà couverts indépendamment dans leurs propres tests.
+
+Dans `GridDraftControllerTest`, leur rôle est uniquement de vérifier que le contrôleur réagit correctement lorsqu’un conflit régulier lui est signalé.
+
+---
+
+# `createRebroadcasts`
+
+Couverture actuelle :
+
+94,96 %
+
+113 / 119 lignes
+
+Il reste 6 lignes.
+
+Premier bloc restant :
+
+    $emission = $parentDraft->getEmission();
+
+    if (!$emission instanceof Emission) {
+        return $this->json([
+            'success' => false,
+            'error' => 'Émission introuvable.',
+        ], 404);
+    }
+
+Le corps du `if` est rouge.
+
+À analyser demain.
+
+`DiffusionDraft` possède normalement une relation obligatoire vers `Emission`.
+
+Si `getEmission()` ne peut jamais retourner autre chose qu’une `Emission` dans un draft valide, cette garde est probablement du même type que celle supprimée aujourd’hui dans `createManualLive()`.
+
+Il ne faudra pas essayer de fabriquer artificiellement un état impossible juste pour couvrir ces lignes.
+
+Deuxième partie restante :
+
+    $duration = $parentDraft->getDurationMinutes()
+        ?? $emission->getDuree()
+        ?? 15;
+
+La ligne rouge est :
+
+    ?? 15;
+
+Puis :
+
+    if ($duration < 1) {
+        $duration = 15;
+    }
+
+La ligne rouge est :
+
+    $duration = 15;
+
+Même analyse que pour `move()` :
+
+- vérifier les contraintes de `DiffusionDraft`
+- vérifier les contraintes de `Emission::duree`
+- déterminer si ces fallbacks sont réellement atteignables
+
+---
+
+# Conflit régulier dans `createRebroadcasts`
+
+La branche suivante faisait partie des lignes rouges précédemment observées :
+
+    if (\count($regularOverlaps) > 0) {
+        return $this->json([
+            'success' => false,
+            'conflict' => true,
+            'error' => 'Une rediffusion chevauche déjà une programmation régulière.',
+            'debug' => $regularOverlaps,
+        ], 409);
+    }
+
+Après les nouveaux tests, cette partie est maintenant couverte.
+
+Elle n’apparaît plus parmi les 16 lignes restantes.
+
+---
+
+# `listRebroadcasts`
+
+100 %
+
+31 / 31 lignes.
+
+100 % méthode.
+
+✅ Terminée.
+
+---
+
+# `group`
+
+Couverture actuelle :
+
+97,62 %
+
+41 / 42 lignes
+
+Il reste une seule ligne.
+
+Code concerné :
+
+    foreach ($groupDrafts as $item) {
+        if (!$item instanceof DiffusionDraft) {
+            continue;
+        }
+
+La ligne rouge est :
+
+    continue;
+
+Le reste de la construction du tableau `$items` est couvert :
+
+    $items[] = [
+        'id' => $item->getId(),
+        'label' => $this->buildDraftGroupLabel($item),
+        'draftType' => $item->getDraftType(),
+        'nombreDiffusion' => $item->getNombreDiffusion(),
+        'startsAt' => $item->getHoraireDiffusion()?->format('Y-m-d H:i:s'),
+        'endsAt' => $item->getEndsAt()?->format('Y-m-d H:i:s'),
+    ];
+
+À vérifier demain si le repository Doctrine peut réellement retourner autre chose qu’un `DiffusionDraft`.
+
+Très probablement, cette garde est inutile.
+
+---
+
+# `buildDraftGroupLabel`
+
+100 %
+
+7 / 7 lignes.
+
+100 % méthode.
+
+✅ Terminée.
+
+Les deux branches sont couvertes :
+
+    $nombreDiffusion = (int) ($draft->getNombreDiffusion() ?? 1);
+
+    if ($nombreDiffusion <= 1) {
+        return '1re diffusion';
+    }
+
+et :
+
+    return sprintf(
+        'Rediffusion %d',
+        $nombreDiffusion - 1
+    );
+
+---
+
+# `renumberDraftGroupChronologically`
+
+Couverture actuelle :
+
+90 %
+
+9 / 10 lignes
+
+Il reste une seule ligne.
+
+Code concerné :
+
+    $groupDrafts = $draftRepository->findBy(
+        ['assignmentGroupKey' => $assignmentGroupKey],
+        ['horaireDiffusion' => 'ASC']
+    );
+
+    $rank = 1;
+
+    foreach ($groupDrafts as $groupDraft) {
+        if (!$groupDraft instanceof DiffusionDraft) {
+            continue;
+        }
+
+La ligne rouge est :
+
+    continue;
+
+Le reste de la renumérotation est couvert.
+
+À vérifier demain si le résultat de :
+
+    DiffusionDraftRepository::findBy()
+
+peut contenir autre chose que des `DiffusionDraft`.
+
+Si ce n’est pas possible, le `instanceof` est une garde inutile et pourra probablement être retiré.
+
+---
+
+# Les 16 lignes restantes au 09/09/2026
+
+Répartition exacte :
+
+## `createManualLive`
+
+1 ligne :
+
+    $duration = 60;
+
+---
+
+## `delete`
+
+5 lignes :
+
+    return $this->json([
+        'success' => false,
+        'error' => 'Aucun draft à supprimer.',
+    ], 400);
+
+et :
+
+    continue;
+
+dans la vérification :
+
+    if (!$remainingDraft instanceof DiffusionDraft)
+
+---
+
+## `move`
+
+2 lignes :
+
+    ?? 15;
+
+et :
+
+    $duration = 15;
+
+---
+
+## `createRebroadcasts`
+
+6 lignes :
+
+Bloc :
+
+    return $this->json([
+        'success' => false,
+        'error' => 'Émission introuvable.',
+    ], 404);
+
+plus :
+
+    ?? 15;
+
+et :
+
+    $duration = 15;
+
+---
+
+## `group`
+
+1 ligne :
+
+    continue;
+
+dans :
+
+    if (!$item instanceof DiffusionDraft)
+
+---
+
+## `renumberDraftGroupChronologically`
+
+1 ligne :
+
+    continue;
+
+dans :
+
+    if (!$groupDraft instanceof DiffusionDraft)
+
+---
+
+Total :
+
+    1 + 5 + 2 + 6 + 1 + 1 = 16 lignes
+
+Ce qui correspond bien au rapport :
+
+    578 / 594 lignes couvertes
+    97,31 %
+
+---
+
+# État global à la fin de la journée
+
+`GridDraftControllerTest` :
+
+✅ VERT
+
+Nombre de tests lors des derniers runs : environ 65 tests après les ajouts de la journée.
+
+Le nombre exact pourra évoluer légèrement selon les tests supprimés/remplacés, mais la suite actuelle est verte.
+
+Couverture actuelle de `GridDraftController` :
+
+    Lines:   97,31 % — 578 / 594
+    Methods: 53,85 % — 7 / 13
+
+Méthodes totalement terminées :
+
+    createManual
+    filterBlockingDraftOverlaps
+    hasRegularBlockingOverlap
+    findRegularBlockingOverlaps
+    getRadioWeekStart
+    listRebroadcasts
+    buildDraftGroupLabel
+
+Méthodes presque terminées :
+
+    createManualLive       98,91 %
+    delete                 93,33 %
+    move                   97,14 %
+    createRebroadcasts     94,96 %
+    group                  97,62 %
+    renumberDraftGroupChronologically 90 %
+
+---
+
+# À faire demain
+
+Reprendre directement les 16 lignes restantes.
+
+Pour chacune, décider entre trois cas :
+
+1. La branche est réellement atteignable dans l’application.
+   → écrire un test utile.
+
+2. La branche est impossible à cause du typage PHP, des relations Doctrine ou des contraintes des entités.
+   → supprimer le code mort si cela est confirmé.
+
+3. La branche est une garde défensive volontaire mais difficile/impossible à provoquer normalement.
+   → décider si elle mérite d’être conservée sans forcer artificiellement la couverture.
+
+Ordre conseillé demain :
+
+    1. createManualLive : fallback durée 60
+    2. move : fallbacks durée
+    3. createRebroadcasts : Emission + fallbacks durée
+    4. delete : draftsToDelete vide
+    5. delete/group/renumber : instanceof sur résultats Doctrine
+
+Pour les fallbacks de durée, regarder précisément :
+
+    Emission::$duree
+    Emission::getDuree()
+    Emission::setDuree()
+    DiffusionDraft::$durationMinutes
+    DiffusionDraft::getDurationMinutes()
+    DiffusionDraft::setDurationMinutes()
+    DiffusionDraft::setSchedule()
+
+Pour les gardes `instanceof`, vérifier les contrats de :
+
+    DiffusionDraftRepository::findBy()
+
+et éventuellement les annotations/types PHPStan/PHPDoc du repository.
+
+---
+
+# Important pour la suite
+
+Ne pas revenir sur les parties déjà à 100 % sauf régression.
+
+Ne pas chercher le 100 % uniquement pour obtenir un chiffre.
+
+Une branche structurellement impossible doit être identifiée comme telle et, si elle n’a aucune utilité défensive, supprimée plutôt que testée avec des hacks.
+
+La priorité reste la couverture du code utile et réellement exécutable.
+
+---
+
+# Règle de travail pour les prochaines corrections
+
+Quand un test doit être remplacé, toujours indiquer explicitement :
+
+    TEST À SUPPRIMER :
+    nomExactDuTest()
+
+puis :
+
+    TEST À METTRE À LA PLACE :
+    nouveauNomExactDuTest()
+
+Et fournir ensuite la méthode de test complète.
+
+Quand un nouveau test doit simplement être ajouté, indiquer :
+
+    TEST À AJOUTER :
+    nomExactDuTest()
+
+et fournir la méthode complète.
+
+Quand du code du contrôleur doit être supprimé, indiquer :
+
+    FICHIER :
+    src/Controller/Admin/GridDraftController.php
+
+    MÉTHODE :
+    nomDeLaMethode()
+
+    BLOC À SUPPRIMER :
+    ...
+
+Ne pas donner plusieurs petits bouts de code dispersés sans préciser exactement où ils vont.
+
+Préférence générale : méthodes complètes corrigées ou fichier complet lorsque nécessaire.
+
+---
+
+# Prochaine étape après `GridDraftController`
+
+Une fois `GridDraftController` considéré techniquement terminé, continuer les autres Controllers.
+
+Ne pas commencer encore les tests fonctionnels métier.
+
+Ordre général toujours en vigueur :
+
+    Repositories ✅
+    Services ✅
+    Controllers 🔄
+    Forms
+    autres classes utiles
+    couche fonctionnelle / workflows métier en dernier
+
 # Tests — 09/09/2026
 
 ## Repositories

@@ -47,6 +47,7 @@ class Categories
     private ?int $duree = null;
 
     #[ORM\Column(type: Types::TEXT)]
+    #[Assert\NotBlank(message: 'Le descriptif de la catégorie est obligatoire.')]
     #[Groups(['categories.index'])]
     private ?string $descriptif = null;
 

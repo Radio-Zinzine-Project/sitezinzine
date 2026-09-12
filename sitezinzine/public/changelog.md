@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.114] - 2026-09-12
+### Ajout
+- Ajout de l'extension Codex (oui je suis faible...mais les tests c'est long -_- ).
+- Ajout des tests unitaires et début de tests fonctionnel.
+- Début de la doc technique.
+
+
 ## [1.0.113] - 2026-09-09
 ### Correction
 - Correction de l'entity emission qui n'autoriseait pas la ref nullable alors que le form le rend ainsi.

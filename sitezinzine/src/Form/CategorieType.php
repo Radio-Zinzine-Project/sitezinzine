@@ -12,7 +12,6 @@ use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
@@ -94,11 +93,13 @@ class CategorieType extends AbstractType
             ])
 
             ->add('descriptif', TextareaType::class, [
-                'required' => false,
+                'required' => true,
+                'label' => 'Descriptif',
+                'empty_data' => '',
                 'attr' => [
                     'class' => 'form-control tinymce',
-                    'rows' => 10
-                ]
+                    'rows' => 10,
+                ],
             ])
 
             // ✅ Users (ManyToMany)

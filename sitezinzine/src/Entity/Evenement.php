@@ -22,12 +22,12 @@ class Evenement
     #[ORM\Column]
     #[Assert\NotBlank]
     #[Assert\Length(max: 100, maxMessage: "Le titre ne doit pas dépasser {{ limit }} caractères.")]
-   
+
     private ?string $titre = null;
 
     #[ORM\Column(nullable: true)]
     #[Assert\Length(max: 100, maxMessage: "L'organisateur ne doit pas dépasser {{ limit }} caractères.")]
-   
+
     private ?string $organisateur = null;
 
     #[ORM\Column(length: 50, nullable: true)]
@@ -51,6 +51,10 @@ class Evenement
     private ?\DateTime $dateDebut = null;
 
     #[ORM\Column]
+    #[Assert\GreaterThanOrEqual(
+        propertyPath: 'dateDebut',
+        message: 'La date de fin doit être postérieure ou égale à la date de début.'
+    )]
     private ?\DateTime $dateFin = null;
 
     #[ORM\Column(length: 50, nullable: true)]
@@ -78,6 +82,10 @@ class Evenement
     private ?string $contact = null;
 
     #[ORM\Column(length: 50, nullable: true)]
+    #[Assert\Length(
+        max: 50,
+        maxMessage: 'Le type ne doit pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $type = null;
 
     #[ORM\Column(nullable: true)]
@@ -90,10 +98,11 @@ class Evenement
     private ?string $thumbnail = null;
 
     #[Vich\UploadableField(mapping: 'evenements', fileNameProperty: 'thumbnail')]
-   /*  #[Assert\Image(
+    #[Assert\Image(
         maxWidth: 650,
         maxHeight: 500,
-    )] */
+        mimeTypesMessage: 'Le fichier sélectionné doit être une image valide.'
+    )]
     private ?File $thumbnailFile = null;
 
     #[ORM\Column(nullable: true)]
@@ -148,7 +157,7 @@ class Evenement
         return $this->departement;
     }
 
-    public function setDepartement(string $departement): static
+    public function setDepartement(?string $departement): static
     {
         $this->departement = $departement;
 
@@ -275,10 +284,10 @@ class Evenement
         return $this;
     }
 
-    
+
     /**
      * Get the value of thumbnail
-     */ 
+     */
     public function getThumbnail(): ?string
     {
         return $this->thumbnail;
@@ -286,7 +295,7 @@ class Evenement
 
     /**
      * Set the value of thumbnail
-    */ 
+     */
     public function setThumbnail(?string $thumbnail): static
     {
         $this->thumbnail = $thumbnail !== null ? trim($thumbnail) : null;
@@ -296,7 +305,7 @@ class Evenement
 
     /**
      * Get the value of thumbnailFile
-     */ 
+     */
     public function getThumbnailFile(): ?File
     {
         return $this->thumbnailFile;
@@ -305,7 +314,7 @@ class Evenement
     /**
      * Set the value of thumbnailFile
      *
-     */ 
+     */
     public function setThumbnailFile(?File $thumbnailFile): static
     {
         $this->thumbnailFile = $thumbnailFile;
@@ -342,5 +351,4 @@ class Evenement
 
         return $this;
     }
-
 }
