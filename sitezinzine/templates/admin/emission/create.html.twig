@@ -242,15 +242,24 @@
       Créer une nouvelle émission
     </h1>
     {{ form_start(form, {
-      attr: {
+    attr: {
         'data-turbo': 'false',
-        'data-controller': 'emission-form'
-      }
-    }) }}
+        'data-controller': 'emission-form',
+        'data-emission-form-users-url-value': path(
+            'admin.emission.users_for_category',
+            { id: 0 }
+        )
+    }
+}) }}
     {# Ligne 1 : Catégorie / Thème / Durée / Éditeur #}
     <div class="grid-4">
       <div class="field">
-        {{ form_row(form.categorie) }}
+        {{ form_row(form.categorie, {
+        attr: {
+            'data-emission-form-target': 'categorie',
+            'data-action': 'change->emission-form#categoryChanged'
+        }
+    }) }}
       </div>
       <div class="field">
         {{ form_row(form.theme) }}
@@ -279,8 +288,12 @@
     </div>
     {# Ligne 3 : 3 listes sur une ligne #}
     <div class="grid-3-lists">
-      <div class="field">
-        {{ form_row(form.users) }}
+      <div class="field" data-emission-form-target="usersField">
+        {{ form_row(form.users, {
+    attr: {
+      'data-emission-form-target': 'users'
+    }
+  }) }}
       </div>
       <div class="field">
         {{ form_row(form.invites) }}

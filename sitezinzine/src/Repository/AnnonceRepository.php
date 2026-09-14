@@ -2,6 +2,8 @@
 
 namespace App\Repository;
 
+use SortDirection;
+
 use App\Entity\Annonce;
 use Doctrine\ORM\Query;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -27,7 +29,7 @@ class AnnonceRepository extends ServiceEntityRepository
             ->orWhere('(:today BETWEEN a.dateDebut AND a.dateFin)') // Événements en cours
             ->andWhere('a.valid = 1')
             ->setParameter('today', new \DateTimeImmutable('today'))
-            ->orderBy('a.dateDebut', 'ASC');
+            ->orderBy('a.dateDebut', SortDirection::Ascending);
 
         return $qb->getQuery()->getResult();
     }
@@ -40,7 +42,7 @@ class AnnonceRepository extends ServiceEntityRepository
             )
             ->andWhere('a.valid = 1')
             ->setParameter('today', new \DateTimeImmutable('today'))
-            ->orderBy('a.dateDebut', 'ASC')
+            ->orderBy('a.dateDebut', SortDirection::Ascending)
             ->getQuery();
     }
 
@@ -49,7 +51,7 @@ class AnnonceRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('a')
             ->where('a.softDelete = 0')
-            ->orderBy('a.id', 'DESC')
+            ->orderBy('a.id', SortDirection::Descending)
             ->getQuery()
             ->getResult();
     }
@@ -61,8 +63,8 @@ public function findAllDescQuery(): Query
     return $this->createQueryBuilder('a')
         ->andWhere('a.softDelete = :softDelete')
         ->setParameter('softDelete', false)
-        ->orderBy('a.updateAt', 'DESC')
-        ->addOrderBy('a.id', 'DESC')
+        ->orderBy('a.updateAt', SortDirection::Descending)
+        ->addOrderBy('a.id', SortDirection::Descending)
         ->getQuery();
 }
 

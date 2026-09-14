@@ -1,0 +1,29 @@
+{% extends 'bundles/TwigBundle/Exception/error.html.twig' %}
+
+{% block title %}
+    Page introuvable | Radio Zinzine
+{% endblock %}
+
+{% block error_code %}
+    404
+{% endblock %}
+
+{% block error_title %}
+    Cette page est introuvable
+{% endblock %}
+
+{% block error_heading %}
+    Impossible de trouver la page demandée
+{% endblock %}
+
+{% block error_message %}
+    <p>
+        La page que vous cherchez n'existe pas, </br>
+        a été déplacée ou n'est plus disponible.
+    </p>
+
+    <p>
+        Vous pouvez retourner à l'accueil et reprendre </br>
+        votre navigation sur Radio Zinzine.
+    </p>
+{% endblock %}

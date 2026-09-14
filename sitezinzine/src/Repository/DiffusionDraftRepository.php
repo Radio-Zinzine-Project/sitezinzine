@@ -2,6 +2,8 @@
 
 namespace App\Repository;
 
+use SortDirection;
+
 use App\Entity\DiffusionDraft;
 use App\Entity\ProgrammationRuleSlot;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -34,7 +36,7 @@ class DiffusionDraftRepository extends ServiceEntityRepository
             ->andWhere('d.horaireDiffusion < :end')
             ->setParameter('start', $start)
             ->setParameter('end', $end)
-            ->orderBy('d.horaireDiffusion', 'ASC')
+            ->orderBy('d.horaireDiffusion', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }
@@ -49,7 +51,7 @@ class DiffusionDraftRepository extends ServiceEntityRepository
             ->andWhere('d.endsAt > :startsAt')
             ->setParameter('startsAt', $startsAt)
             ->setParameter('endsAt', $endsAt)
-            ->orderBy('d.horaireDiffusion', 'ASC');
+            ->orderBy('d.horaireDiffusion', SortDirection::Ascending);
 
         if (null !== $excludeDraftId) {
             $qb
@@ -65,7 +67,7 @@ class DiffusionDraftRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('d')
             ->andWhere('d.assignmentGroupKey = :assignmentGroupKey')
             ->setParameter('assignmentGroupKey', $assignmentGroupKey)
-            ->orderBy('d.horaireDiffusion', 'ASC')
+            ->orderBy('d.horaireDiffusion', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }
@@ -143,8 +145,8 @@ class DiffusionDraftRepository extends ServiceEntityRepository
             ->setParameter('start', $start)
             ->setParameter('end', $end)
             ->setParameter('status', DiffusionDraft::STATUS_DRAFT)
-            ->orderBy('d.horaireDiffusion', 'ASC')
-            ->addOrderBy('d.id', 'ASC')
+            ->orderBy('d.horaireDiffusion', SortDirection::Ascending)
+            ->addOrderBy('d.id', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }
@@ -180,8 +182,8 @@ class DiffusionDraftRepository extends ServiceEntityRepository
             ->setParameter('groupKeys', $assignmentGroupKeys)
             ->setParameter('from', $from)
             ->setParameter('status', DiffusionDraft::STATUS_DRAFT)
-            ->orderBy('d.horaireDiffusion', 'ASC')
-            ->addOrderBy('d.id', 'ASC')
+            ->orderBy('d.horaireDiffusion', SortDirection::Ascending)
+            ->addOrderBy('d.id', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }
@@ -225,7 +227,7 @@ class DiffusionDraftRepository extends ServiceEntityRepository
             ->leftJoin('d.publishedDiffusion', 'pd')
             ->andWhere('IDENTITY(d.publishedDiffusion) IN (:diffusionIds)')
             ->setParameter('diffusionIds', $diffusionIds)
-            ->orderBy('d.horaireDiffusion', 'ASC')
+            ->orderBy('d.horaireDiffusion', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }

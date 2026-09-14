@@ -2,6 +2,8 @@
 
 namespace App\Repository;
 
+use SortDirection;
+
 use App\Entity\Editeur;
 use App\Entity\Emission;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -47,8 +49,8 @@ class EditeurRepository extends ServiceEntityRepository
         }
 
         $qb
-            ->orderBy('emission.datepub', 'DESC')
-            ->addOrderBy('emission.titre', 'ASC');
+            ->orderBy('emission.datepub', SortDirection::Descending)
+            ->addOrderBy('emission.titre', SortDirection::Ascending);
 
         return $this->paginator->paginate(
             $qb,

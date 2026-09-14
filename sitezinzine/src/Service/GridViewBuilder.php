@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use SortDirection;
+
 use App\Entity\DiffusionDraft;
 use App\Entity\Emission;
 use App\Entity\ProgrammationRuleSlot;
@@ -426,7 +428,7 @@ final class GridViewBuilder
             ->andWhere('c.softDelete = :softDelete')
             ->setParameter('active', true)
             ->setParameter('softDelete', false)
-            ->orderBy('c.titre', 'ASC')
+            ->orderBy('c.titre', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }

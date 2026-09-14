@@ -1,0 +1,28 @@
+{% extends 'bundles/TwigBundle/Exception/error.html.twig' %}
+
+{% block title %}
+    Accès interdit | Radio Zinzine
+{% endblock %}
+
+{% block error_code %}
+    403
+{% endblock %}
+
+{% block error_title %}
+    Accès interdit
+{% endblock %}
+
+{% block error_heading %}
+    Cette partie du site ne vous est pas accessible
+{% endblock %}
+
+{% block error_message %}
+    <p>
+        Vous n'avez pas les droits nécessaires pour consulter cette page.
+    </p>
+
+    <p>
+        Si vous pensez qu'il s'agit d'une erreur, vérifiez que vous êtes
+        connecté avec le bon compte.
+    </p>
+{% endblock %}

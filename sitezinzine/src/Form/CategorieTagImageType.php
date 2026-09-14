@@ -3,8 +3,9 @@
 namespace App\Form;
 
 use App\Entity\CategorieTagImage;
-use App\Repository\CategoriesRepository;
 use App\Entity\Categories;
+use App\Repository\CategoriesRepository;
+use SortDirection;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
@@ -24,7 +25,7 @@ class CategorieTagImageType extends AbstractType
                 'placeholder' => 'Choisir une catégorie',
                 'query_builder' => function (CategoriesRepository $repo) {
                     return $repo->createQueryBuilder('c')
-                        ->orderBy('c.titre', 'ASC');
+                        ->orderBy('c.titre', SortDirection::Ascending);
                 },
                 'choice_attr' => function ($categorie) {
                     if (!$categorie->isActive()) {
@@ -46,14 +47,13 @@ class CategorieTagImageType extends AbstractType
                 'required' => false,
                 'mapped' => true,
                 'constraints' => [
-                    new File([
-                        'maxSize' => '2M',
-                        'mimeTypes' => ['image/jpeg', 'image/png', 'image/webp'],
-                        'mimeTypesMessage' => 'Formats autorisés : JPG, PNG, WEBP.',
-                    ]),
+                    new File(
+                        maxSize: '2M',
+                        mimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+                        mimeTypesMessage: 'Formats autorisés : JPG, PNG, WEBP.',
+                    ),
                 ],
-            ])
-        ;
+            ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

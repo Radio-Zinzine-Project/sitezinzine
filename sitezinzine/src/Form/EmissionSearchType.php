@@ -2,6 +2,8 @@
 
 namespace App\Form;
 
+use SortDirection;
+
 use App\Entity\Categories;
 use App\Entity\Theme;
 use App\Repository\CategoriesRepository;
@@ -68,7 +70,7 @@ class EmissionSearchType extends AbstractType
                 'choice_label' => 'titre',
                 'label' => 'Catégorie',
                 'query_builder' => fn (CategoriesRepository $er): QueryBuilder =>
-                    $er->createQueryBuilder('c')->orderBy('c.titre', 'ASC'),
+                    $er->createQueryBuilder('c')->orderBy('c.titre', SortDirection::Ascending),
             ])
 
             ->add('theme', EntityType::class, [
@@ -78,7 +80,7 @@ class EmissionSearchType extends AbstractType
                 'choice_label' => 'name',
                 'label' => 'Thème',
                 'query_builder' => fn (ThemeRepository $er): QueryBuilder =>
-                    $er->createQueryBuilder('t')->orderBy('t.name', 'ASC'),
+                    $er->createQueryBuilder('t')->orderBy('t.name', SortDirection::Ascending),
             ])
 
             ->add('personne', ChoiceType::class, [
@@ -102,7 +104,7 @@ class EmissionSearchType extends AbstractType
 
         // USERS
         $users = $this->userRepository->createQueryBuilder('u')
-            ->orderBy('u.username', 'ASC')
+            ->orderBy('u.username', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
 
@@ -112,7 +114,7 @@ class EmissionSearchType extends AbstractType
 
         // ANCIENS ANIMATEURS
         $olds = $this->inviteOldAnimateurRepository->createQueryBuilder('o')
-            ->orderBy('o.firstName', 'ASC')
+            ->orderBy('o.firstName', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
 

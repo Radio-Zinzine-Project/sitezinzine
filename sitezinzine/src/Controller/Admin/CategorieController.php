@@ -2,6 +2,8 @@
 
 namespace App\Controller\Admin;
 
+use SortDirection;
+
 use App\Entity\Categories;
 use App\Form\CategorieType;
 use App\Repository\CategoriesRepository;
@@ -76,7 +78,7 @@ class CategorieController extends AbstractController
         $qb = $emissionRepository->createQueryBuilder('e')
             ->andWhere('e.categorie = :categorie')
             ->setParameter('categorie', $categorie)
-            ->orderBy('e.datepub', 'DESC');
+            ->orderBy('e.datepub', SortDirection::Descending);
 
         $emissions = $paginator->paginate($qb, $page, $limit);
 

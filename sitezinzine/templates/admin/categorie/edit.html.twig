@@ -1,5 +1,5 @@
 {% extends 'admin/admin.html.twig' %}
-{% form_theme form 'form_div_layout.html.twig' %}
+
 
 {% block title 'Éditer la catégorie ' ~ categorie.titre %}
 
@@ -369,7 +369,7 @@
     <div class="field">
       <div class="checkline centered">
         {{ form_widget(form.active) }}
-        {{ form_label(form.active) }}
+        {{ form_label(form.active, 'Cocher si la catégorie est active') }}
       </div>
       {{ form_errors(form.active) }}
     </div>

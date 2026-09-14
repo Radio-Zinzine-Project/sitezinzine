@@ -2,6 +2,8 @@
 
 namespace App\Repository;
 
+use SortDirection;
+
 use App\Entity\Evenement;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -28,7 +30,7 @@ class EvenementRepository extends ServiceEntityRepository
             ->orWhere('(:today BETWEEN a.dateDebut AND a.dateFin)')
             ->andWhere('a.valid = 1')
             ->setParameter('today', new \DateTimeImmutable('today'))
-            ->orderBy('a.dateDebut', 'ASC')
+            ->orderBy('a.dateDebut', SortDirection::Ascending)
             ->setMaxResults(3)
             ->getQuery()
             ->getResult();
@@ -47,8 +49,8 @@ class EvenementRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('a')
             ->where('a.valid = 1')
             ->andWhere('a.softDelete = 0')
-            ->orderBy('a.dateDebut', 'DESC')
-            ->addOrderBy('a.id', 'DESC')
+            ->orderBy('a.dateDebut', SortDirection::Descending)
+            ->addOrderBy('a.id', SortDirection::Descending)
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
@@ -58,7 +60,7 @@ class EvenementRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('a')
             ->where('a.softDelete = 0')
-            ->orderBy('a.id', 'DESC')
+            ->orderBy('a.id', SortDirection::Descending)
             ->getQuery()
             ->getResult();
     }

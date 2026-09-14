@@ -1,0 +1,27 @@
+{% extends 'bundles/TwigBundle/Exception/error.html.twig' %}
+
+{% block title %}
+    Problème technique | Radio Zinzine
+{% endblock %}
+
+{% block error_code %}
+    500
+{% endblock %}
+
+{% block error_title %}
+    Petit problème technique
+{% endblock %}
+
+{% block error_heading %}
+    Il y a un peu de friture sur la ligne
+{% endblock %}
+
+{% block error_message %}
+    <p>
+        Une erreur technique empêche momentanément l'affichage de cette page.
+    </p>
+
+    <p>
+        Vous pouvez réessayer un peu plus tard ou retourner à l'accueil.
+    </p>
+{% endblock %}

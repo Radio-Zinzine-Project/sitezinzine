@@ -2,6 +2,8 @@
 
 namespace App\Repository;
 
+use SortDirection;
+
 use App\Entity\Categories;
 use App\Entity\Emission;
 use App\Entity\ProgrammationRuleSlot;
@@ -118,8 +120,8 @@ class EmissionRepository extends ServiceEntityRepository
      * dernière diffusion la plus récente.
      */
         $qb
-            ->orderBy('lastDiffusion', 'DESC')
-            ->addOrderBy('e.titre', 'ASC')
+            ->orderBy('lastDiffusion', SortDirection::Descending)
+            ->addOrderBy('e.titre', SortDirection::Ascending)
             ->distinct();
 
         $pagination = $this->paginator->paginate(
@@ -162,7 +164,7 @@ class EmissionRepository extends ServiceEntityRepository
             ->andWhere('e.deletedAt IS NULL')
             ->setParameter('excludeUrl', $excludeUrl)
             ->groupBy('e.id')
-            ->orderBy('lastDiffusion', 'DESC');
+            ->orderBy('lastDiffusion', SortDirection::Descending);
 
         return $this->paginator->paginate($qb, $page, 20, [
             'distinct' => true,
@@ -180,7 +182,7 @@ class EmissionRepository extends ServiceEntityRepository
             ->join('e.diffusions', 'd')
             ->leftJoin('e.categorie', 'c')
             ->where('d.horaireDiffusion BETWEEN :start AND :end')
-            ->orderBy('d.horaireDiffusion', 'ASC')
+            ->orderBy('d.horaireDiffusion', SortDirection::Ascending)
             ->setParameter('start', $start)
             ->setParameter('end', $end)
             ->getQuery()
@@ -224,7 +226,7 @@ class EmissionRepository extends ServiceEntityRepository
             ->where('e.theme IN (:themeIds)')
             ->setParameter('themeIds', $themeIds)
             ->setParameter('now', $now)
-            ->orderBy('lastDiffusion', 'DESC');
+            ->orderBy('lastDiffusion', SortDirection::Descending);
 
         $results = $qb->getQuery()->getResult();
 
@@ -266,7 +268,7 @@ class EmissionRepository extends ServiceEntityRepository
             ->setParameter('empty', '')
             ->setParameter('themeIds', $themeIds)
             ->groupBy('e.id')
-            ->orderBy('e.datepub', 'DESC');
+            ->orderBy('e.datepub', SortDirection::Descending);
 
         $pagination = $this->paginator->paginate($qb, max(1, $page), 12);
 
@@ -525,10 +527,10 @@ class EmissionRepository extends ServiceEntityRepository
         );
 
         if ($initiale !== null && $initiale !== '') {
-            $qb->orderBy('e.titre', 'ASC');
+            $qb->orderBy('e.titre', SortDirection::Ascending);
         } else {
-            $qb->orderBy('lastDiff', 'DESC')
-                ->addOrderBy('e.id', 'DESC');
+            $qb->orderBy('lastDiff', SortDirection::Descending)
+                ->addOrderBy('e.id', SortDirection::Descending);
         }
 
         $pagination = $this->paginator->paginate(
@@ -724,10 +726,10 @@ class EmissionRepository extends ServiceEntityRepository
         );
 
         if ($initiale !== null && $initiale !== '') {
-            $qb->orderBy('e.titre', 'ASC');
+            $qb->orderBy('e.titre', SortDirection::Ascending);
         } else {
-            $qb->orderBy('lastDiff', 'DESC')
-                ->addOrderBy('e.id', 'DESC');
+            $qb->orderBy('lastDiff', SortDirection::Descending)
+                ->addOrderBy('e.id', SortDirection::Descending);
         }
 
         $pagination = $this->paginator->paginate(
@@ -791,7 +793,7 @@ class EmissionRepository extends ServiceEntityRepository
             ->setParameter('cat', $categoryId)
             ->setParameter('now', $now)
             ->groupBy('e.id')
-            ->orderBy('lastDiffusion', 'DESC')
+            ->orderBy('lastDiffusion', SortDirection::Descending)
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult(Query::HYDRATE_ARRAY);
@@ -817,7 +819,7 @@ class EmissionRepository extends ServiceEntityRepository
             ->leftJoin('e.categorie', 'c')
             ->where('e.duree < :duree')
             ->setParameter('duree', $duree)
-            ->orderBy('e.duree', 'ASC')
+            ->orderBy('e.duree', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }
@@ -829,7 +831,7 @@ class EmissionRepository extends ServiceEntityRepository
             ->addSelect('c')
             ->andWhere('c.id = :catId')
             ->setParameter('catId', $categoryId)
-            ->orderBy('e.id', 'DESC');
+            ->orderBy('e.id', SortDirection::Descending);
     }
 
     public function findAssignableForCategory(Categories $category): array
@@ -843,7 +845,7 @@ class EmissionRepository extends ServiceEntityRepository
             ->setParameter('category', $category)
             ->setParameter('active', true)
             ->setParameter('softDelete', false)
-            ->orderBy('e.titre', 'ASC')
+            ->orderBy('e.titre', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }
@@ -860,8 +862,8 @@ class EmissionRepository extends ServiceEntityRepository
             ->setParameter('category', $category)
             ->setParameter('active', true)
             ->setParameter('softDelete', false)
-            ->orderBy('e.datepub', 'DESC')
-            ->addOrderBy('e.titre', 'ASC')
+            ->orderBy('e.datepub', SortDirection::Descending)
+            ->addOrderBy('e.titre', SortDirection::Ascending)
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
@@ -893,9 +895,8 @@ class EmissionRepository extends ServiceEntityRepository
             ->setParameter('softDelete', false)
             ->setParameter('isAutoGenerated', false)
             ->groupBy('e.id')
-            ->having('COUNT(d.id) < 3')
-            ->orderBy('e.datepub', 'DESC')
-            ->addOrderBy('e.titre', 'ASC');
+            ->orderBy('e.datepub', SortDirection::Descending)
+            ->addOrderBy('e.titre', SortDirection::Ascending);
 
         if ('' !== $search) {
             $qb
@@ -929,8 +930,7 @@ class EmissionRepository extends ServiceEntityRepository
             ->setParameter('active', true)
             ->setParameter('softDelete', false)
             ->setParameter('isAutoGenerated', false)
-            ->groupBy('e.id')
-            ->having('COUNT(d.id) < 3');
+            ->groupBy('e.id');
 
         if ('' !== $search) {
             $qb
@@ -969,8 +969,8 @@ class EmissionRepository extends ServiceEntityRepository
             ->setParameter('softDelete', false)
             ->setParameter('isAutoGenerated', false)
             ->groupBy('e.id')
-            ->orderBy('e.datepub', 'DESC')
-            ->addOrderBy('e.titre', 'ASC');
+            ->orderBy('e.datepub', SortDirection::Descending)
+            ->addOrderBy('e.titre', SortDirection::Ascending);
 
         if ('' !== $search) {
             $qb
@@ -1089,8 +1089,8 @@ class EmissionRepository extends ServiceEntityRepository
             ->andWhere('e.deletedAt IS NULL')
             ->setParameter('user', $user)
             ->setParameter('pending', true)
-            ->orderBy('e.datepub', 'DESC')
-            ->addOrderBy('e.id', 'DESC')
+            ->orderBy('e.datepub', SortDirection::Descending)
+            ->addOrderBy('e.id', SortDirection::Descending)
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
@@ -1120,8 +1120,8 @@ class EmissionRepository extends ServiceEntityRepository
             ->andWhere('e.isPendingCompletion = :pending')
             ->andWhere('e.deletedAt IS NULL')
             ->setParameter('pending', true)
-            ->orderBy('e.datepub', 'DESC')
-            ->addOrderBy('e.id', 'DESC')
+            ->orderBy('e.datepub', SortDirection::Descending)
+            ->addOrderBy('e.id', SortDirection::Descending)
             ->getQuery()
             ->getResult();
     }
@@ -1201,9 +1201,9 @@ class EmissionRepository extends ServiceEntityRepository
         }
 
         $qb
-            ->orderBy('e.datepub', 'DESC')
-            ->addOrderBy('e.id', 'DESC')
-            ->addOrderBy('e.titre', 'ASC')
+            ->orderBy('e.datepub', SortDirection::Descending)
+            ->addOrderBy('e.id', SortDirection::Descending)
+            ->addOrderBy('e.titre', SortDirection::Ascending)
             ->setMaxResults($limit);
 
         return $qb->getQuery()->getResult();
@@ -1242,7 +1242,7 @@ class EmissionRepository extends ServiceEntityRepository
             ->andWhere('d.horaireDiffusion < :end')
             ->setParameter('start', $start)
             ->setParameter('end', $end)
-            ->orderBy('d.horaireDiffusion', 'ASC')
+            ->orderBy('d.horaireDiffusion', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
 
@@ -1393,12 +1393,12 @@ class EmissionRepository extends ServiceEntityRepository
             ->createQueryBuilder()
             ->select('DISTINCT c')
             ->from(\App\Entity\Categories::class, 'c')
-            ->innerJoin(\App\Entity\Emission::class, 'e', 'WITH', 'e.categorie = c')
+            ->innerJoin(\App\Entity\Emission::class, 'e', 'ON', 'e.categorie = c')
             ->innerJoin('e.users', 'u')
             ->andWhere('u = :user')
             ->andWhere('c.id != 0')
             ->setParameter('user', $user)
-            ->orderBy('c.titre', 'ASC')
+            ->orderBy('c.titre', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }
@@ -1409,11 +1409,11 @@ class EmissionRepository extends ServiceEntityRepository
             ->createQueryBuilder()
             ->select('DISTINCT t')
             ->from(\App\Entity\Theme::class, 't')
-            ->innerJoin(\App\Entity\Emission::class, 'e', 'WITH', 'e.theme = t')
+            ->innerJoin(\App\Entity\Emission::class, 'e', 'ON', 'e.theme = t')
             ->innerJoin('e.users', 'u')
             ->andWhere('u = :user')
             ->setParameter('user', $user)
-            ->orderBy('t.name', 'ASC')
+            ->orderBy('t.name', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }

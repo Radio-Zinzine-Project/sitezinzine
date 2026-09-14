@@ -2,6 +2,8 @@
 
 namespace App\Controller\Admin;
 
+use SortDirection;
+
 use App\Entity\Emission;
 
 use App\Form\EmissionType;
@@ -24,6 +26,10 @@ use Vich\UploaderBundle\Storage\StorageInterface;
 use Vich\UploaderBundle\Mapping\PropertyMappingFactory;
 use App\Entity\User;
 use App\Service\Mp3Processor;
+use App\Entity\Categories;
+use App\Repository\CategoriesRepository;
+use App\Service\EmissionUserChoicesProvider;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 
 
@@ -127,7 +133,7 @@ class EmissionController extends AbstractController
                 ->andWhere('e != :current')
                 ->setParameter('categorie', $emission->getCategorie())
                 ->setParameter('current', $emission)
-                ->orderBy('e.datepub', 'DESC')
+                ->orderBy('e.datepub', SortDirection::Descending)
                 ->getQuery();
 
             $emissions = $paginator->paginate(
@@ -158,26 +164,24 @@ class EmissionController extends AbstractController
         /** @var User|null $user */
         $user = $security->getUser();
 
-        /*
-     * Lors d'une création, si aucun utilisateur n'est envoyé
-     * dans le formulaire, l'utilisateur connecté devient
-     * automatiquement propriétaire.
-     *
-     * Cela doit être fait AVANT handleRequest(), car Symfony
-     * déclenche la validation pendant la soumission du formulaire.
-     */
-        if ($request->isMethod('POST') && $user !== null) {
-            $submittedData = $request->request->all('emission');
-            $submittedUsers = $submittedData['users'] ?? [];
-
-            if (empty($submittedUsers)) {
-                $emission->addUser($user);
-            }
-        }
-
         $form = $this->createForm(EmissionType::class, $emission, [
             'current_user_identifier' => $user?->getUserIdentifier(),
             'current_user' => $user,
+
+            /*
+         * ADMIN et SUPER_ADMIN peuvent sélectionner
+         * toutes les catégories actives/non supprimées.
+         */
+            'can_manage_all_categories' => $this->isGranted('ROLE_ADMIN'),
+
+            /*
+         * Seul SUPER_ADMIN peut associer librement
+         * n'importe quel utilisateur à une émission.
+         *
+         * USER / EDITOR / ADMIN restent limités aux utilisateurs
+         * actuellement rattachés à la catégorie sélectionnée.
+         */
+            'can_manage_all_users' => $this->isGranted('ROLE_SUPER_ADMIN'),
         ]);
 
         $form->handleRequest($request);
@@ -185,6 +189,15 @@ class EmissionController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $now = new \DateTime();
 
+            /*
+         * Le champ ref reste conservé temporairement pour les anciennes
+         * données. Lors d'une création, s'il est vide, on mémorise
+         * l'identifiant de la personne ayant créé la fiche.
+         *
+         * Cette information est indépendante de Emission.users :
+         * ref = créateur/trice de la fiche
+         * users = personnes associées à l'émission
+         */
             if (empty($emission->getRef())) {
                 $emission->setRef($user?->getUserIdentifier() ?? '');
             }
@@ -239,6 +252,9 @@ class EmissionController extends AbstractController
         // Création et gestion du formulaire
         $form = $this->createForm(EmissionType::class, $emission, [
             'current_user_identifier' => $user?->getUserIdentifier(),
+            'current_user' => $user,
+            'can_manage_all_categories' => $this->isGranted('ROLE_ADMIN'),
+            'can_manage_all_users' => $this->isGranted('ROLE_SUPER_ADMIN'),
             'with_mp3' => true,
         ]);
         $form->handleRequest($request);
@@ -406,5 +422,222 @@ class EmissionController extends AbstractController
         $this->addFlash('success', 'L’émission a été retirée de la liste des fiches à finaliser.');
 
         return $this->redirectToRoute('admin.index');
+    }
+
+    #[Route(
+        '/users-for-category/{id}',
+        name: 'users_for_category',
+        methods: ['GET'],
+        requirements: ['id' => Requirement::DIGITS]
+    )]
+    public function usersForCategory(
+        int $id,
+        Request $request,
+        Security $security,
+        CategoriesRepository $categoriesRepository,
+        EmissionRepository $emissionRepository,
+        EmissionUserChoicesProvider $userChoicesProvider
+    ): JsonResponse {
+        /** @var User|null $user */
+        $user = $security->getUser();
+
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException(
+                'Vous devez être connecté·e pour accéder à cette ressource.'
+            );
+        }
+
+        $categorie = $categoriesRepository->find($id);
+
+        if (!$categorie instanceof Categories) {
+            throw $this->createNotFoundException(
+                'Cette catégorie n’existe pas.'
+            );
+        }
+
+        /*
+     * emissionId est envoyé uniquement lorsque le formulaire
+     * correspond à l'édition d'une émission existante.
+     *
+     * En création, il est absent.
+     */
+        $emissionId = $request->query->getInt('emissionId');
+
+        $emission = null;
+
+        if ($emissionId > 0) {
+            $emission = $emissionRepository->find($emissionId);
+
+            if (!$emission instanceof Emission) {
+                throw $this->createNotFoundException(
+                    'Cette émission n’existe pas.'
+                );
+            }
+
+            /*
+         * Même règle que pour edit() :
+         *
+         * - ADMIN et SUPER_ADMIN peuvent modifier toutes les émissions ;
+         * - USER et EDITOR uniquement celles auxquelles ils sont associés.
+         */
+            if (
+                !$this->isGranted('ROLE_ADMIN')
+                && !$emission->getUsers()->contains($user)
+            ) {
+                throw $this->createAccessDeniedException(
+                    'Vous n’avez pas les droits pour modifier cette émission.'
+                );
+            }
+        }
+
+        /*
+     * En édition, la catégorie actuellement enregistrée sur l'émission
+     * reste autorisée même si elle est devenue inactive, supprimée
+     * ou si le user n'y est plus rattaché.
+     *
+     * C'est la même règle que celle appliquée dans EmissionType.
+     */
+        $isCurrentEmissionCategory = (
+            $emission instanceof Emission
+            && $emission->getCategorie()?->getId() === $categorie->getId()
+        );
+
+        if (!$isCurrentEmissionCategory) {
+            /*
+         * Une nouvelle catégorie sélectionnée doit toujours être
+         * active et non supprimée.
+         */
+            if (
+                !$categorie->isActive()
+                || $categorie->isSoftDelete()
+            ) {
+                throw $this->createAccessDeniedException(
+                    'Cette catégorie ne peut pas être utilisée.'
+                );
+            }
+
+            /*
+         * ADMIN et SUPER_ADMIN peuvent utiliser toutes les catégories
+         * actives/non supprimées.
+         *
+         * USER et EDITOR doivent actuellement appartenir à la catégorie.
+         */
+            if (
+                !$this->isGranted('ROLE_ADMIN')
+                && !$categorie->getUsers()->contains($user)
+            ) {
+                throw $this->createAccessDeniedException(
+                    'Vous n’avez pas accès à cette catégorie.'
+                );
+            }
+        }
+
+        /*
+     * Pour une création, on utilise une émission temporaire vide.
+     * Elle permet au provider d'utiliser exactement la même logique
+     * que le formulaire sans inventer une seconde règle métier.
+     */
+        $contextEmission = $emission ?? new Emission();
+
+        $canManageAllUsers = $this->isGranted('ROLE_SUPER_ADMIN');
+
+        $choices = $userChoicesProvider->getChoices(
+            $categorie,
+            $contextEmission,
+            $canManageAllUsers
+        );
+
+        /*
+     * En édition :
+     * seuls les utilisateurs déjà associés à l'émission
+     * sont sélectionnés.
+     *
+     * On ne rattache donc jamais automatiquement les nouveaux membres
+     * actuels de la catégorie à une ancienne émission.
+     */
+        $selectedUserIds = [];
+
+        if ($emission instanceof Emission) {
+            foreach ($emission->getUsers() as $emissionUser) {
+                if (
+                    $emissionUser instanceof User
+                    && $emissionUser->getId() !== null
+                ) {
+                    $selectedUserIds[] = $emissionUser->getId();
+                }
+            }
+        } elseif ($this->isGranted('ROLE_ADMIN')) {
+            /*
+         * Création ADMIN / SUPER_ADMIN :
+         * tous les utilisateurs actuellement rattachés à la catégorie
+         * sont sélectionnés par défaut.
+         *
+         * Pour SUPER_ADMIN, les autres utilisateurs restent visibles
+         * mais ne sont pas sélectionnés automatiquement.
+         */
+            foreach ($categorie->getUsers() as $categoryUser) {
+                if (
+                    $categoryUser instanceof User
+                    && $categoryUser->getId() !== null
+                ) {
+                    $selectedUserIds[] = $categoryUser->getId();
+                }
+            }
+        } elseif (
+            $userChoicesProvider->isCurrentCategoryUser(
+                $user,
+                $categorie
+            )
+            && $user->getId() !== null
+        ) {
+            /*
+         * Création USER / EDITOR :
+         * le user connecté est sélectionné par défaut uniquement
+         * s'il appartient actuellement à la catégorie.
+         */
+            $selectedUserIds[] = $user->getId();
+        }
+
+        $selectedUserIds = array_values(
+            array_unique($selectedUserIds)
+        );
+
+        $users = [];
+
+        foreach ($choices as $choice) {
+            if (!$choice instanceof User || $choice->getId() === null) {
+                continue;
+            }
+
+            $users[] = [
+                'id' => $choice->getId(),
+                'label' => $userChoicesProvider->getLabel(
+                    $choice,
+                    $categorie,
+                    $contextEmission
+                ),
+                'group' => $userChoicesProvider->getGroupLabel(
+                    $choice,
+                    $categorie,
+                    $contextEmission
+                ),
+                'status' => $userChoicesProvider->getStatus(
+                    $choice,
+                    $categorie,
+                    $contextEmission
+                ),
+                'selected' => in_array(
+                    $choice->getId(),
+                    $selectedUserIds,
+                    true
+                ),
+            ];
+        }
+
+        return $this->json([
+            'categoryId' => $categorie->getId(),
+            'emissionId' => $emission?->getId(),
+            'users' => $users,
+        ]);
     }
 }

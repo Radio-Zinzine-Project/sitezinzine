@@ -2,6 +2,8 @@
 
 namespace App\Repository;
 
+use SortDirection;
+
 use App\Entity\Categories;
 use App\Entity\ProgrammationRule;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -53,9 +55,9 @@ class ProgrammationRuleRepository extends ServiceEntityRepository
         return $this->createNotDeletedQueryBuilder('r')
             ->leftJoin('r.category', 'c')
             ->addSelect('c')
-            ->orderBy('c.titre', 'ASC')
-            ->addOrderBy('r.ruleNumber', 'ASC')
-            ->addOrderBy('r.id', 'ASC')
+            ->orderBy('c.titre', SortDirection::Ascending)
+            ->addOrderBy('r.ruleNumber', SortDirection::Ascending)
+            ->addOrderBy('r.id', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }
@@ -66,10 +68,10 @@ class ProgrammationRuleRepository extends ServiceEntityRepository
             ->leftJoin('r.category', 'c')
             ->addSelect('c')
             ->andWhere('r.deletedAt IS NOT NULL')
-            ->orderBy('c.titre', 'ASC')
-            ->addOrderBy('r.ruleNumber', 'ASC')
-            ->addOrderBy('r.deletedAt', 'DESC')
-            ->addOrderBy('r.id', 'DESC')
+            ->orderBy('c.titre', SortDirection::Ascending)
+            ->addOrderBy('r.ruleNumber', SortDirection::Ascending)
+            ->addOrderBy('r.deletedAt', SortDirection::Descending)
+            ->addOrderBy('r.id', SortDirection::Descending)
             ->getQuery()
             ->getResult();
     }
@@ -79,9 +81,9 @@ class ProgrammationRuleRepository extends ServiceEntityRepository
         return $this->createActiveQueryBuilder('r')
             ->leftJoin('r.category', 'c')
             ->addSelect('c')
-            ->orderBy('c.titre', 'ASC')
-            ->addOrderBy('r.ruleNumber', 'ASC')
-            ->addOrderBy('r.id', 'ASC')
+            ->orderBy('c.titre', SortDirection::Ascending)
+            ->addOrderBy('r.ruleNumber', SortDirection::Ascending)
+            ->addOrderBy('r.id', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }
@@ -94,9 +96,9 @@ class ProgrammationRuleRepository extends ServiceEntityRepository
             ->andWhere('(r.validFrom IS NULL OR r.validFrom <= :date)')
             ->andWhere('(r.validUntil IS NULL OR r.validUntil >= :date)')
             ->setParameter('date', $date->format('Y-m-d'))
-            ->orderBy('c.titre', 'ASC')
-            ->addOrderBy('r.ruleNumber', 'ASC')
-            ->addOrderBy('r.id', 'ASC')
+            ->orderBy('c.titre', SortDirection::Ascending)
+            ->addOrderBy('r.ruleNumber', SortDirection::Ascending)
+            ->addOrderBy('r.id', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }

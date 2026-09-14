@@ -3,6 +3,838 @@
 Ce document décrit la stratégie de tests automatisés du projet Radio Zinzine,
 les services actuellement couverts et les principaux scénarios sécurisés.
 
+# Changelog — Tests du 13 septembre 2026
+
+## Formulaire Emission — gestion des catégories
+
+Poursuite de la couverture de `EmissionType` afin de sécuriser les catégories accessibles selon le rôle de l'utilisateur.
+
+### Règles couvertes
+
+- USER / EDITOR :
+  - ne peuvent sélectionner que les catégories actives et non supprimées auxquelles ils sont actuellement associés ;
+  - en édition, la catégorie déjà enregistrée sur l'émission reste disponible même si l'utilisateur n'y est plus associé ;
+  - la catégorie courante reste également disponible si elle est devenue inactive ou soft-deleted.
+
+- ADMIN / SUPER_ADMIN :
+  - peuvent sélectionner toutes les catégories actives et non supprimées ;
+  - en édition, la catégorie actuelle de l'émission reste disponible même si elle est devenue inactive ou soft-deleted.
+
+- Vérification qu'une catégorie non autorisée ne peut pas être imposée simplement par un POST forgé.
+
+Les tests correspondants ont été ajoutés à `tests/Form/EmissionTypeTest.php` et sont passés au vert.
+
+
+## Formulaire Emission — gestion des utilisateurs
+
+Mise en place et couverture de la nouvelle règle métier concernant les utilisateurs associés aux émissions.
+
+### Règle métier retenue
+
+L'association entre une catégorie et ses utilisateurs représente la responsabilité actuelle de la catégorie.
+
+Elle ne doit pas effacer l'historique des émissions déjà réalisées.
+
+En conséquence :
+
+- un utilisateur qui n'est plus associé à une catégorie peut rester associé aux anciennes émissions qu'il a réalisées ;
+- changer les utilisateurs d'une catégorie ne doit pas supprimer automatiquement les utilisateurs historiques des émissions existantes ;
+- changer la catégorie d'une émission existante ne doit pas supprimer automatiquement ses utilisateurs historiques.
+
+
+## Règles selon les rôles
+
+### ROLE_USER / ROLE_EDITOR
+
+Les utilisateurs sélectionnables dans une émission sont :
+
+- les utilisateurs actuellement associés à la catégorie sélectionnée ;
+- les utilisateurs déjà associés à l'émission lorsqu'elle est éditée.
+
+À la création, si aucun utilisateur n'est explicitement sélectionné, l'utilisateur connecté est ajouté automatiquement uniquement s'il appartient actuellement à la catégorie.
+
+### ROLE_ADMIN
+
+L'ADMIN peut modifier toutes les émissions mais ne peut pas associer arbitrairement n'importe quel utilisateur.
+
+Les utilisateurs disponibles sont :
+
+- les utilisateurs actuellement associés à la catégorie ;
+- les utilisateurs historiques déjà associés à l'émission.
+
+À la création, si aucune sélection explicite n'est faite, tous les utilisateurs actuellement associés à la catégorie sont ajoutés par défaut.
+
+Une sélection explicite d'un sous-ensemble reste prioritaire et doit être respectée.
+
+### ROLE_SUPER_ADMIN
+
+Le SUPER_ADMIN peut sélectionner n'importe quel utilisateur.
+
+Tous les utilisateurs sont donc disponibles dans le formulaire.
+
+À la création, seuls les utilisateurs actuellement associés à la catégorie sont néanmoins sélectionnés automatiquement par défaut.
+
+Les utilisateurs extérieurs à la catégorie restent disponibles mais ne sont jamais ajoutés automatiquement.
+
+
+## Statut des utilisateurs dans le formulaire
+
+Introduction d'une distinction entre trois situations :
+
+- `current` : utilisateur actuellement associé à la catégorie ;
+- `historical` : utilisateur déjà associé à l'émission mais plus à la catégorie ;
+- `outside` : utilisateur sans lien avec la catégorie ni avec l'émission.
+
+Les libellés permettent notamment d'afficher :
+
+- `— catégorie actuelle`
+- `— ancienne association`
+- `— hors catégorie`
+
+Les utilisateurs hors catégorie ne sont proposés qu'au SUPER_ADMIN.
+
+
+## Service EmissionUserChoicesProvider
+
+Ajout/utilisation du service :
+
+`src/Service/EmissionUserChoicesProvider.php`
+
+Il centralise la détermination :
+
+- des utilisateurs autorisés ;
+- de leur statut ;
+- de leur libellé ;
+- de leur groupe d'affichage ;
+- de l'appartenance actuelle à une catégorie.
+
+Cela évite de disperser les règles d'autorisation entre le formulaire, le contrôleur et le futur comportement JavaScript.
+
+
+## Tests EmissionType ajoutés
+
+Ajout de tests spécifiques concernant le comportement ADMIN / SUPER_ADMIN :
+
+- `testAdminAndSuperAdminDefaultToAllCategoryUsersOnCreation()`
+- `testAdminExplicitUserSelectionOverridesCategoryDefault()`
+- `testAdminCannotSelectUserOutsideCategory()`
+- `testSuperAdminCanExplicitlySelectUserOutsideCategory()`
+
+Un premier problème de fixture a été identifié : les tests utilisaient une association ne mettant pas à jour la collection `Categories::getUsers()` en mémoire alors que la nouvelle logique s'appuie directement dessus.
+
+Les tests ont été corrigés en utilisant :
+
+`$categorie->addUser(...)`
+
+Un second problème concernait le test du fallback USER : l'émission utilisée était déjà persistée et possédait donc un ID, alors que le fallback ne doit fonctionner qu'à la création.
+
+Le test a été corrigé pour utiliser une nouvelle instance non persistée de `Emission`.
+
+### Résultat obtenu
+
+`tests/Form/EmissionTypeTest.php`
+
+Résultat :
+
+`OK (19 tests, 112 assertions)`
+
+
+## Suppression des dépréciations Doctrine
+
+Les tests du formulaire étaient verts mais produisaient quatre dépréciations Doctrine.
+
+Origine identifiée dans `EmissionUserChoicesProvider` :
+
+ancienne utilisation de la direction de tri sous forme de chaîne.
+
+Correction avec :
+
+`SortDirection::Ascending`
+
+Après correction :
+
+- tests `EmissionTypeTest` verts ;
+- plus de dépréciation sur ce fichier de tests.
+
+
+## Endpoint dynamique utilisateurs / catégorie
+
+Préparation de l'endpoint destiné au futur contrôleur Stimulus :
+
+`admin.emission.users_for_category`
+
+Route confirmée par Symfony :
+
+`GET /admin/emission/users-for-category/{id}`
+
+L'objectif de cet endpoint est de fournir au formulaire les utilisateurs autorisés lorsqu'une catégorie est changée dynamiquement.
+
+Il doit appliquer les mêmes règles que `EmissionUserChoicesProvider` et ne pas confier les décisions d'autorisation au JavaScript.
+
+
+## Nouveau fichier de tests fonctionnels
+
+Ajout de :
+
+`tests/Functional/EmissionUsersForCategoryTest.php`
+
+11 scénarios ont été préparés pour couvrir notamment :
+
+- accès d'un USER aux utilisateurs de sa propre catégorie ;
+- refus d'accès à une catégorie étrangère ;
+- comportement EDITOR ;
+- comportement ADMIN ;
+- comportement SUPER_ADMIN ;
+- présélection automatique des utilisateurs de catégorie en création ADMIN / SUPER_ADMIN ;
+- conservation d'un utilisateur historique en édition ;
+- absence de sélection automatique des nouveaux utilisateurs de catégorie en édition ;
+- conservation de l'accès d'un ancien responsable à une émission historique ;
+- impossibilité d'utiliser un `emissionId` appartenant à un autre utilisateur pour récupérer ses associations ;
+- accès ADMIN aux émissions des autres utilisateurs ;
+- catégories et émissions inexistantes.
+
+
+## État actuel des tests fonctionnels de l'endpoint
+
+Premier lancement :
+
+`Tests: 11, Assertions: 13, Failures: 9`
+
+La majorité des tests reçoit actuellement une page HTTP 404 au lieu de la réponse JSON attendue.
+
+La route a été vérifiée avec `debug:router` et existe bien :
+
+`admin.emission.users_for_category`
+`GET /admin/emission/users-for-category/{id}`
+
+Le problème n'est donc pas simplement une route absente.
+
+
+## Isolation du premier échec
+
+Le test suivant a été lancé seul :
+
+`testUserGetsUsersFromOwnCategory`
+
+Résultat :
+
+`Tests: 1, Assertions: 1, Failures: 1`
+
+La requête reçoit une vraie page 404 personnalisée Radio Zinzine.
+
+Le fichier `var/log/test.log` consulté ensuite ne contient pas d'entrée correspondant à ce test récent et n'a donc pas permis d'identifier l'origine de cette 404.
+
+
+## Diagnostic prévu pour la reprise
+
+Avant de modifier le contrôleur ou les tests, vérifier directement dans le premier test que la catégorie créée par la fixture est retrouvée par Doctrine avant l'appel HTTP.
+
+Contrôle prévu :
+
+`$this->entityManager->getRepository(Categories::class)->find($categoryId)`
+
+Cela permettra de distinguer :
+
+- un problème de fixture / transaction / EntityManager ;
+- d'un problème déclenché uniquement pendant le traitement HTTP de l'endpoint.
+
+Aucune correction définitive n'a encore été appliquée sur ce point.
+
+Le diagnostic des 9 échecs fonctionnels reprendra à partir de ce test isolé.
+
+
+## État en fin de session
+
+### Vert
+
+- règles de catégories dans `EmissionType` ;
+- règles de sélection des utilisateurs dans `EmissionType` ;
+- fallback USER en création ;
+- fallback ADMIN / SUPER_ADMIN vers tous les utilisateurs actuels de la catégorie ;
+- sélection explicite ADMIN respectée ;
+- interdiction ADMIN d'ajouter un utilisateur hors catégorie ;
+- possibilité SUPER_ADMIN d'ajouter un utilisateur hors catégorie ;
+- conservation conceptuelle des associations historiques ;
+- `EmissionTypeTest` : 19 tests / 112 assertions ;
+- dépréciations Doctrine du provider supprimées.
+
+### À reprendre
+
+- diagnostic de la 404 sur `EmissionUsersForCategoryTest` ;
+- faire passer les tests fonctionnels de l'endpoint ;
+- vérifier ensuite l'ensemble du fichier fonctionnel sans dépréciation ;
+- seulement après, brancher le comportement dynamique dans `emission_form_controller.js`.
+
+# Changelog Tests — 12 septembre 2026
+
+## État de départ
+
+La couverture technique du projet Radio Zinzine est désormais considérée comme terminée.
+
+État connu avant le lancement de la nouvelle campagne fonctionnelle :
+
+- 1327 tests
+- 6418 assertions
+- 97,25 % des lignes couvertes
+- aucune dépréciation connue à ce stade
+- API volontairement peu couverte car elle n'est pas encore utilisée
+
+Décision prise :
+
+- ne pas chercher artificiellement 100 % de couverture ;
+- considérer la couverture technique actuelle comme suffisante ;
+- passer aux tests fonctionnels orientés parcours utilisateur.
+
+---
+
+## Pages d'erreur personnalisées
+
+Création et finalisation des pages d'erreur Symfony personnalisées dans :
+
+templates/bundles/TwigBundle/Exception/
+
+Fichiers concernés :
+
+- error.html.twig
+- error403.html.twig
+- error404.html.twig
+- error500.html.twig
+
+Les pages conservent la structure graphique générale du site :
+
+- navbar ;
+- lecteur ;
+- footer ;
+- bandeau rouge ;
+- déchirure graphique ;
+- zone blanche jusqu'au footer.
+
+La route utilisée pour revenir à l'accueil est :
+
+home
+
+URL correspondante :
+
+/
+
+La page 404 a notamment été adaptée avec :
+
+- code 404 ;
+- titre explicite indiquant que la page est introuvable ;
+- message utilisateur sans information technique ;
+- bouton permettant de revenir à l'accueil.
+
+---
+
+## Tests Twig des pages d'erreur
+
+Création de :
+
+tests/Twig/ErrorPagesTest.php
+
+Type :
+
+KernelTestCase
+
+Couverture fonctionnelle :
+
+- erreur générique ;
+- erreur 403 ;
+- erreur 404 ;
+- erreur 500 ;
+- présence de la structure navbar / main / footer ;
+- absence d'exposition du message technique d'une exception 500.
+
+Résultat :
+
+- 6 tests
+- 25 assertions
+- VERT
+
+Les pages d'erreur sont donc couvertes au niveau du rendu Twig.
+
+---
+
+## Test HTTP réel de la page 404
+
+Création de :
+
+tests/Twig/ErrorPagesHttpTest.php
+
+Type :
+
+WebTestCase
+
+Objectif :
+
+Vérifier que Symfony utilise réellement la page d'erreur personnalisée lors d'une requête HTTP produisant une 404.
+
+Configuration particulière du KernelBrowser :
+
+static::createClient([
+    'environment' => 'test',
+    'debug' => false,
+]);
+
+Le mode debug est volontairement désactivé afin de ne pas obtenir la page d'exception de développement Symfony à la place de la vraie page d'erreur destinée à l'utilisateur.
+
+Résultat :
+
+- 1 test
+- 8 assertions
+- VERT
+
+Bilan pages d'erreur :
+
+- 6 tests Twig
+- 1 test HTTP
+- 7 tests au total
+- 33 assertions
+
+Les pages d'erreur sont considérées comme techniquement terminées.
+
+---
+
+## Réflexion sur les URLs d'administration
+
+Question étudiée :
+
+Faut-il masquer des URLs explicites comme :
+
+/admin/theme/
+
+Décision :
+
+NON.
+
+Une URL lisible n'est pas considérée comme un problème de sécurité.
+
+La sécurité doit être assurée par :
+
+- security.yaml ;
+- les rôles ;
+- les contrôleurs ;
+- les attributs IsGranted éventuels ;
+- les voters éventuels ;
+- les contrôles métier sur les ressources.
+
+Configuration générale actuellement identifiée :
+
+ROLE_SUPER_ADMIN
+→ ROLE_ADMIN
+→ ROLE_EDITOR
+→ ROLE_USER
+
+La zone :
+
+/admin
+
+est accessible à partir de ROLE_USER selon l'access_control général.
+
+Les autorisations plus fines doivent ensuite être contrôlées par l'application.
+
+---
+
+## Définition des règles métier pour les émissions
+
+Une distinction importante a été formalisée entre :
+
+- visibilité d'une émission ;
+- droit de modification ;
+- droit de suppression.
+
+### ROLE_USER
+
+Dans « Mes émissions » :
+
+- voit uniquement ses propres émissions.
+
+Dans la recherche globale admin :
+
+- voit toutes les émissions.
+
+Permissions :
+
+- peut modifier ses propres émissions ;
+- peut supprimer ses propres émissions ;
+- ne doit pas voir les actions Modifier/Supprimer sur les émissions d'autrui ;
+- ne doit pas pouvoir contourner cette restriction en appelant directement les routes d'édition ou de suppression.
+
+### ROLE_ADMIN
+
+Dans « Mes émissions » :
+
+- voit uniquement ses propres émissions.
+
+Dans la recherche globale admin :
+
+- voit toutes les émissions.
+
+Permissions :
+
+- peut modifier ses propres émissions ;
+- peut supprimer ses propres émissions ;
+- ne doit pas automatiquement disposer de droits globaux sur les émissions ;
+- ne doit pas modifier ou supprimer les émissions d'autres utilisateurs.
+
+ROLE_ADMIN ne doit donc pas être assimilé à ROLE_SUPER_ADMIN pour la gestion des émissions.
+
+### ROLE_SUPER_ADMIN
+
+Dans « Mes émissions » :
+
+- voit toujours uniquement ses propres émissions.
+
+Dans la recherche globale admin :
+
+- voit toutes les émissions.
+
+Permissions :
+
+- voit Modifier/Supprimer sur toutes les émissions ;
+- peut modifier les émissions d'autres utilisateurs ;
+- peut supprimer les émissions d'autres utilisateurs.
+
+Décision importante :
+
+La disparition d'un bouton dans Twig ne constitue pas une sécurité.
+
+Les autorisations doivent également être vérifiées par des appels HTTP directs aux routes protégées.
+
+---
+
+## Préparation de la première campagne de tests fonctionnels
+
+Décision de créer une première campagne limitée à :
+
+tests/Functional/AuthenticationTest.php
+tests/Functional/AuthorizationTest.php
+tests/Functional/PublicEmissionWorkflowTest.php
+
+La deuxième campagne est volontairement reportée.
+
+Elle concernera ultérieurement :
+
+- EmissionWorkflowTest.php
+- UploadWorkflowTest.php
+- GridWorkflowTest.php
+- GridPublicationWorkflowTest.php
+
+Aucun test responsive visuel ne sera réalisé avec PHPUnit.
+
+---
+
+## Mission Codex
+
+Une mission spécifique a été préparée pour Codex.
+
+Contraintes imposées :
+
+- WebTestCase / KernelBrowser ;
+- vraie base Doctrine de test ;
+- vraies routes du projet ;
+- données de test indépendantes ;
+- ne jamais supposer la base vide ;
+- valeurs uniques ;
+- réutilisation des helpers existants ;
+- transaction/rollback selon les conventions du projet ;
+- aucun mock inutile ;
+- aucun Panther ;
+- aucun Playwright ;
+- aucun Selenium ;
+- aucune route artificielle de test.
+
+Codex devait impérativement inspecter avant de coder :
+
+- security.yaml ;
+- contrôleurs ;
+- routes ;
+- IsGranted ;
+- voters ;
+- tests existants ;
+- tests/Support ;
+- relations User / Emission ;
+- fonctionnement réel des recherches et filtres.
+
+Interdiction de modifier :
+
+- src/
+- contrôleurs
+- services
+- repositories
+- entités
+- security.yaml
+- templates
+- routes
+- documentation
+- Docs/TEST.md
+
+En cas d'incohérence fonctionnelle :
+
+- ne pas modifier l'application ;
+- conserver ou signaler le test concerné ;
+- documenter précisément l'écart constaté.
+
+---
+
+## Première campagne fonctionnelle générée par Codex
+
+Codex a créé uniquement :
+
+tests/Functional/AuthenticationTest.php
+tests/Functional/AuthorizationTest.php
+tests/Functional/PublicEmissionWorkflowTest.php
+tests/Support/FunctionalTestCase.php
+
+FunctionalTestCase.php sert de helper commun pour :
+
+- fixtures ;
+- préparation des données fonctionnelles ;
+- rollback/nettoyage selon les conventions retenues.
+
+Aucun fichier métier, template, configuration ou documentation n'a été modifié.
+
+---
+
+## AuthenticationTest
+
+Nombre de tests :
+
+6
+
+Nombre d'assertions :
+
+24
+
+Les assertions fonctionnelles réussissent.
+
+Scénarios couverts notamment :
+
+- affichage de la page de connexion ;
+- connexion valide ;
+- mauvais mot de passe ;
+- accès admin sans authentification ;
+- logout ;
+- accès admin après authentification.
+
+Une dépréciation liée à :
+
+User::eraseCredentials()
+
+entraîne cependant un code de sortie PHPUnit 1 lors de l'exécution de ce fichier.
+
+Cette dépréciation devra être étudiée séparément avant la mise en production.
+
+Elle ne correspond pas à un échec des assertions fonctionnelles d'AuthenticationTest.
+
+---
+
+## AuthorizationTest
+
+Nombre de tests :
+
+36
+
+Nombre d'assertions :
+
+126
+
+Résultat :
+
+- 30 tests réussis
+- 6 tests en échec
+
+Ces échecs ont volontairement été conservés par Codex car ils correspondent à des différences entre les règles métier demandées et le comportement actuel de l'application.
+
+### Anomalie 1 — ROLE_ADMIN et modification des émissions d'autrui
+
+Comportement attendu :
+
+ROLE_ADMIN ne doit pouvoir modifier que ses propres émissions.
+
+Comportement constaté :
+
+- ROLE_ADMIN voit actuellement le bouton Modifier sur une émission appartenant à un autre utilisateur ;
+- ROLE_ADMIN peut accéder directement au formulaire d'édition de cette émission.
+
+Cette règle devra être vérifiée dans :
+
+- le Twig concerné ;
+- la sécurité serveur de la route d'édition ;
+- les éventuels IsGranted/voters/contrôles de propriété.
+
+ROLE_ADMIN ne doit pas être assimilé à ROLE_SUPER_ADMIN.
+
+### Anomalie 2 — Bouton Supprimer absent pour le propriétaire
+
+Comportement attendu :
+
+ROLE_USER et ROLE_ADMIN doivent pouvoir supprimer leurs propres émissions.
+
+Comportement constaté :
+
+- ROLE_USER ne voit pas le bouton Supprimer sur sa propre émission ;
+- ROLE_ADMIN ne voit pas le bouton Supprimer sur sa propre émission.
+
+Il faudra vérifier si cette absence est :
+
+- volontaire dans le template actuel ;
+- due à une condition Twig incorrecte ;
+- ou liée à une autre règle actuellement implémentée.
+
+Aucune correction n'a encore été décidée.
+
+### Anomalie 3 — Suppression directe d'une émission appartenant à autrui
+
+Comportement attendu :
+
+ROLE_USER et ROLE_ADMIN ne doivent pas pouvoir supprimer l'émission d'un autre utilisateur.
+
+Comportement constaté :
+
+ROLE_USER et ROLE_ADMIN peuvent appeler directement la route de suppression d'une émission appartenant à un autre utilisateur lorsque la requête contient un token CSRF valide.
+
+Ce comportement constitue une incohérence importante avec les règles métier définies.
+
+Le CSRF ne remplace pas le contrôle d'autorisation sur la ressource.
+
+La route de suppression devra donc être examinée afin de vérifier le contrôle de propriété et l'exception accordée à ROLE_SUPER_ADMIN.
+
+Aucune correction du code métier n'a été réalisée pendant la campagne Codex.
+
+---
+
+## PublicEmissionWorkflowTest
+
+Nombre de tests :
+
+9
+
+Nombre d'assertions :
+
+66
+
+Résultat :
+
+VERT
+
+Les parcours publics testés concernent notamment :
+
+- accueil ;
+- fiche publique d'une émission ;
+- émission inexistante ;
+- vraie réponse HTTP 404 ;
+- intégration de la page 404 personnalisée ;
+- recherche publique ;
+- filtres ;
+- pagination lorsque applicable.
+
+Aucune anomalie fonctionnelle n'a été remontée sur cette partie.
+
+---
+
+## Résultat global de la première campagne fonctionnelle
+
+Total :
+
+- 51 tests
+- 216 assertions
+
+Résultat :
+
+- 45 tests réussis
+- 6 tests en échec
+
+Répartition :
+
+Authentication :
+- 6 tests
+- 24 assertions
+- assertions réussies
+- dépréciation User::eraseCredentials() à examiner
+
+Authorization :
+- 36 tests
+- 126 assertions
+- 6 échecs fonctionnels conservés
+
+PublicEmissionWorkflow :
+- 9 tests
+- 66 assertions
+- VERT
+
+Les trois fichiers ont été exécutés séparément dans Docker.
+
+Puis :
+
+php bin/phpunit tests/Functional
+
+a été exécuté.
+
+La suite PHPUnit complète du projet n'a volontairement pas encore été relancée.
+
+Il ne faut donc pas considérer à ce stade que les nouveaux tests sont intégrés à une suite globale entièrement verte.
+
+---
+
+## Points à traiter lors de la prochaine session
+
+Avant de commencer la deuxième campagne fonctionnelle :
+
+1. vérifier les six tests rouges de AuthorizationTest ;
+2. confirmer que chaque échec représente bien la règle métier souhaitée ;
+3. corriger en priorité la sécurité serveur de la suppression des émissions d'autrui ;
+4. corriger la sécurité serveur de l'édition des émissions d'autrui pour ROLE_ADMIN ;
+5. aligner ensuite les boutons Modifier/Supprimer dans Twig sur les mêmes règles ;
+6. vérifier le comportement ROLE_SUPER_ADMIN après les corrections ;
+7. examiner la dépréciation User::eraseCredentials() ;
+8. relancer AuthenticationTest ;
+9. relancer AuthorizationTest ;
+10. relancer PublicEmissionWorkflowTest ;
+11. relancer tests/Functional ;
+12. lorsque la première campagne sera entièrement validée, relancer la suite PHPUnit complète avant mise en production.
+
+---
+
+## .gitignore
+
+Codex a signalé que les nouveaux fichiers sont actuellement concernés par une règle existante :
+
+tests/
+
+dans .gitignore.
+
+Ce point doit être vérifié avant le prochain commit.
+
+Ne pas modifier la règle à l'aveugle.
+
+Il faut d'abord comprendre comment les tests existants du projet sont actuellement suivis par Git et pourquoi cette règle est présente.
+
+Les nouveaux fichiers fonctionnels ne doivent pas rester uniquement sur la machine locale.
+
+---
+
+## État en fin de session
+
+Couverture technique historique :
+
+- 1327 tests
+- 6418 assertions
+- 97,25 % des lignes couvertes
+
+Nouveaux tests fonctionnels ajoutés :
+
+- 51 tests
+- 216 assertions
+
+Les résultats de cette première campagne ont permis d'identifier plusieurs incohérences d'autorisation qui n'avaient pas été mises en évidence par la couverture technique précédente.
+
+La deuxième campagne fonctionnelle n'est pas commencée.
+
+Prochaine priorité :
+
+stabiliser complètement AuthenticationTest, AuthorizationTest et PublicEmissionWorkflowTest avant de poursuivre la préparation de la mise en production.
+
 ## 11 septembre 2026 — Tests et couverture technique
 
 ### LiveEmissionCreator

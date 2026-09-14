@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.115] - 2026-09-14
+Montée vers symfony 7.4
+### Ajout
+- Début des tests fonctionnels.
+- Changement du fonctionnement des forumlaires d'émissions (création et édition). À présent, seul les admin et super admin voient la totalités des animateurices, les autres rôles ne voient que les utilisateurices reliées à la catégorie choisie.
+### Correction
+- Correction des alertes alertes sécurités et dépréciations du code.
+- Correction du code afin de permettre la montée en symfony 7.4.
+- Correction d'emissionRepository pour que la liste d'émissions régulières et non régulières soient identiques.
+- Correction de la checkbox du formulaire catégorie dont le label n'apparaissait plus.
+- Modification de logique sur le formulaire émission : en création et en édition, les users ne peuvent choisir que parmi les catégories auxquelles ils sont associés ;
+
+
 ## [1.0.114] - 2026-09-12
 ### Ajout
 - Ajout de l'extension Codex (oui je suis faible...mais les tests c'est long -_- ).

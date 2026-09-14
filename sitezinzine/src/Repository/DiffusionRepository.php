@@ -2,6 +2,8 @@
 
 namespace App\Repository;
 
+use SortDirection;
+
 use App\Entity\Diffusion;
 use App\Entity\Emission;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -21,7 +23,7 @@ class DiffusionRepository extends ServiceEntityRepository
     public function findLatest(int $limit = 10): array
     {
         return $this->createQueryBuilder('d')
-            ->orderBy('d.id', 'DESC')
+            ->orderBy('d.id', SortDirection::Descending)
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
@@ -36,7 +38,7 @@ class DiffusionRepository extends ServiceEntityRepository
             ->andWhere('d.horaireDiffusion < :end')
             ->setParameter('start', $start)
             ->setParameter('end', $end)
-            ->orderBy('d.horaireDiffusion', 'ASC')
+            ->orderBy('d.horaireDiffusion', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }
@@ -72,7 +74,7 @@ class DiffusionRepository extends ServiceEntityRepository
             ->join('d.emission', 'e')
             ->andWhere('d.horaireDiffusion = :horaire')
             ->setParameter('horaire', $horaire)
-            ->orderBy('d.id', 'ASC')
+            ->orderBy('d.id', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }
@@ -140,7 +142,7 @@ class DiffusionRepository extends ServiceEntityRepository
             ->setParameter('start', $start)
             ->setParameter('end', $end)
             ->setParameter('status', Diffusion::STATUS_PUBLISHED)
-            ->orderBy('d.horaireDiffusion', 'ASC')
+            ->orderBy('d.horaireDiffusion', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }
@@ -157,7 +159,7 @@ class DiffusionRepository extends ServiceEntityRepository
             ->andWhere('d.publicationStatus = :status')
             ->setParameter('emission', $emission)
             ->setParameter('status', Diffusion::STATUS_PUBLISHED)
-            ->orderBy('d.horaireDiffusion', 'DESC')
+            ->orderBy('d.horaireDiffusion', SortDirection::Descending)
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
@@ -171,7 +173,7 @@ public function findAllByEmission(Emission $emission): array
     return $this->createQueryBuilder('d')
         ->andWhere('d.emission = :emission')
         ->setParameter('emission', $emission)
-        ->orderBy('d.horaireDiffusion', 'DESC')
+        ->orderBy('d.horaireDiffusion', SortDirection::Descending)
         ->getQuery()
         ->getResult();
 }

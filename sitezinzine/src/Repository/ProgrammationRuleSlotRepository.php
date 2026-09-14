@@ -2,6 +2,8 @@
 
 namespace App\Repository;
 
+use SortDirection;
+
 use App\Entity\ProgrammationRule;
 use App\Entity\ProgrammationRuleSlot;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -53,9 +55,9 @@ class ProgrammationRuleSlotRepository extends ServiceEntityRepository
         return $this->createNotDeletedQueryBuilder('s')
             ->andWhere('s.rule = :rule')
             ->setParameter('rule', $rule)
-            ->orderBy('s.broadcastRank', 'ASC')
-            ->addOrderBy('s.dayOfWeek', 'ASC')
-            ->addOrderBy('s.startTime', 'ASC')
+            ->orderBy('s.broadcastRank', SortDirection::Ascending)
+            ->addOrderBy('s.dayOfWeek', SortDirection::Ascending)
+            ->addOrderBy('s.startTime', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }
@@ -65,10 +67,10 @@ public function findActiveByRule(ProgrammationRule $rule): array
     return $this->createActiveQueryBuilder('s')
         ->andWhere('s.rule = :rule')
         ->setParameter('rule', $rule)
-        ->orderBy('s.broadcastRank', 'ASC')
-        ->addOrderBy('s.weekOffset', 'ASC')
-        ->addOrderBy('s.dayOfWeek', 'ASC')
-        ->addOrderBy('s.startTime', 'ASC')
+        ->orderBy('s.broadcastRank', SortDirection::Ascending)
+        ->addOrderBy('s.weekOffset', SortDirection::Ascending)
+        ->addOrderBy('s.dayOfWeek', SortDirection::Ascending)
+        ->addOrderBy('s.startTime', SortDirection::Ascending)
         ->getQuery()
         ->getResult();
 }
@@ -83,8 +85,8 @@ public function findActiveByRule(ProgrammationRule $rule): array
             ->andWhere('r.isActive = :ruleActive')
             ->setParameter('dayOfWeek', $dayOfWeek)
             ->setParameter('ruleActive', true)
-            ->orderBy('s.startTime', 'ASC')
-            ->addOrderBy('s.broadcastRank', 'ASC')
+            ->orderBy('s.startTime', SortDirection::Ascending)
+            ->addOrderBy('s.broadcastRank', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }

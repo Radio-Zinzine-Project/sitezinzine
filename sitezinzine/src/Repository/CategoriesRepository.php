@@ -2,6 +2,8 @@
 
 namespace App\Repository;
 
+use SortDirection;
+
 use App\Entity\Categories;
 use App\Entity\Emission;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -29,7 +31,7 @@ class CategoriesRepository extends ServiceEntityRepository
             ->leftJoin('c.emissions', 'r')
             ->andWhere('c.softDelete = false')
             ->groupBy('c.id')
-            ->orderBy('c.titre', 'ASC');
+            ->orderBy('c.titre', SortDirection::Ascending);
 
         if ($initiale !== null && $initiale !== '') {
             if ($initiale === '0-9') {
@@ -62,7 +64,7 @@ class CategoriesRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('c')
             ->andWhere('c.softDelete = false')
-            ->orderBy('c.titre', 'ASC')
+            ->orderBy('c.titre', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }
@@ -86,7 +88,7 @@ class CategoriesRepository extends ServiceEntityRepository
             ->from(Emission::class, 'e')
             ->andWhere('e.categorie = :categoryId')
             ->setParameter('categoryId', $categoryId)
-            ->orderBy('e.datepub', 'DESC')
+            ->orderBy('e.datepub', SortDirection::Descending)
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
@@ -97,7 +99,7 @@ class CategoriesRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('c')
             ->select('DISTINCT e.id AS id, e.name AS name')
             ->join('c.editeur', 'e')
-            ->orderBy('e.name', 'ASC')
+            ->orderBy('e.name', SortDirection::Ascending)
             ->getQuery()
             ->getArrayResult();
     }
@@ -114,7 +116,7 @@ class CategoriesRepository extends ServiceEntityRepository
             $qb->where('c.active = true');
         }
 
-        return $qb->orderBy('c.titre', 'ASC');
+        return $qb->orderBy('c.titre', SortDirection::Ascending);
     }
     
 }

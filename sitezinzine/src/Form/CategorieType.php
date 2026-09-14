@@ -2,6 +2,8 @@
 
 namespace App\Form;
 
+use SortDirection;
+
 use App\Entity\Categories;
 use App\Entity\User;
 use App\Entity\InviteOldAnimateur;
@@ -85,7 +87,7 @@ class CategorieType extends AbstractType
                 'choice_label' => 'name',
                 'query_builder' => fn(EditeurRepository $er) => $er
                     ->createQueryBuilder('e')
-                    ->orderBy('e.name', 'ASC'),
+                    ->orderBy('e.name', SortDirection::Ascending),
             ])
 
             ->add('duree', IntegerType::class, [
@@ -123,7 +125,7 @@ class CategorieType extends AbstractType
                 'query_builder' => fn(InviteOldAnimateurRepository $repo): QueryBuilder
                 => $repo->createQueryBuilder('a')
                     ->andWhere('a.ancienanimateur = 1')
-                    ->orderBy('a.lastName', 'ASC'),
+                    ->orderBy('a.lastName', SortDirection::Ascending),
             ])
 
 

@@ -249,7 +249,7 @@
     </button>
     <ul class="nav-menu" id="adminMenu">
       <li>
-        <a class="nav-link {{ app.request.get('_route') == 'admin.index' ? 'active' : '' }}" href="{{ path('admin.index') }}">
+        <a class="nav-link {{ app.request.attributes.get('_route') == 'admin.index' ? 'active' : '' }}" href="{{ path('admin.index') }}">
           Accueil
         </a>
       </li>
@@ -264,20 +264,20 @@
             Gestion des émissions
           </button>
           <div class="dropdown-content">
-            <a class="nav-link {{ app.request.get('_route') starts with 'admin.emission.' ? 'active' : '' }}" href="{{ path('admin.emission.index') }}">
+            <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.emission.' ? 'active' : '' }}" href="{{ path('admin.emission.index') }}">
               Émissions
             </a>
-            <a class="nav-link {{ app.request.get('_route') starts with 'admin.InviteOldAnimateur.' ? 'active' : '' }}" href="{{ path('admin.InviteOldAnimateur.index') }}">
+            <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.InviteOldAnimateur.' ? 'active' : '' }}" href="{{ path('admin.InviteOldAnimateur.index') }}">
               Invité/animateur
             </a>
-            <a class="nav-link {{ app.request.get('_route') starts with 'admin.categorie.' ? 'active' : '' }}" href="{{ path('admin.categorie.index') }}">
+            <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.categorie.' ? 'active' : '' }}" href="{{ path('admin.categorie.index') }}">
               Catégories
             </a>
             {% if is_granted('ROLE_ADMIN') %}
-              <a class="nav-link {{ app.request.get('_route') starts with 'admin.theme.' ? 'active' : '' }}" href="{{ path('admin.theme.index') }}">
+              <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.theme.' ? 'active' : '' }}" href="{{ path('admin.theme.index') }}">
                 Thèmes
               </a>
-              <a class="nav-link {{ app.request.get('_route') starts with 'admin.editeur.' ? 'active' : '' }}" href="{{ path('admin.editeur.index') }}">
+              <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.editeur.' ? 'active' : '' }}" href="{{ path('admin.editeur.index') }}">
                 Éditeurs
               </a>
             {% endif %}
@@ -287,21 +287,21 @@
           <li class="sep" aria-hidden="true">
             <img src="/images/puce-rond-rouge.gif" alt=""></li>
             <li>
-              <a class="nav-link {{ app.request.get('_route') starts with 'admin.annonce.' ? 'active' : '' }}" href="{{ path('admin.annonce.index') }}">
+              <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.annonce.' ? 'active' : '' }}" href="{{ path('admin.annonce.index') }}">
                 Annonces
               </a>
             </li>
             <li class="sep" aria-hidden="true">
               <img src="/images/puce-rond-rouge.gif" alt=""></li>
               <li>
-                <a class="nav-link {{ app.request.get('_route') starts with 'admin.evenement.' ? 'active' : '' }}" href="{{ path('admin.evenement.index') }}">
+                <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.evenement.' ? 'active' : '' }}" href="{{ path('admin.evenement.index') }}">
                   Évènements
                 </a>
               </li>
               <li class="sep" aria-hidden="true">
                 <img src="/images/puce-rond-rouge.gif" alt=""></li>
                 <li>
-                  <a class="nav-link {{ app.request.get('_route') starts with 'admin.page.' ? 'active' : '' }}" href="{{ path('admin.page.index') }}">
+                  <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.page.' ? 'active' : '' }}" href="{{ path('admin.page.index') }}">
                     Pages
                   </a>
                 </li>
@@ -318,16 +318,16 @@
                       Administration
                     </button>
                     <div class="dropdown-content">
-                      <a class="nav-link {{ app.request.get('_route') starts with 'admin.user.' ? 'active' : '' }}" href="{{ path('admin.user.index') }}">
+                      <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.user.' ? 'active' : '' }}" href="{{ path('admin.user.index') }}">
                         Utilisateurices
                       </a>
-                      <a class="nav-link {{ app.request.get('_route') starts with 'admin.grille.' ? 'active' : '' }}" href="{{ path('admin.grille.index_current') }}">
+                      <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.grille.' ? 'active' : '' }}" href="{{ path('admin.grille.index_current') }}">
                         Grille
                       </a>
-                      <a class="nav-link {{ app.request.get('_route') starts with 'admin_categorieTagImage_' ? 'active' : '' }}" href="{{ path('admin_categorieTagImage_index') }}">
+                      <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_categorieTagImage_' ? 'active' : '' }}" href="{{ path('admin_categorieTagImage_index') }}">
                         Images tags MP3
                       </a>
-                      <a class="nav-link {{ app.request.get('_route') starts with 'admin_programmationRule_' ? 'active' : '' }}" href="{{ path('admin_programmationRule_index') }}">
+                      <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_programmationRule_' ? 'active' : '' }}" href="{{ path('admin_programmationRule_index') }}">
                         Règles de programmation
                       </a>
                     </div>
@@ -336,7 +336,7 @@
                 <li class="sep" aria-hidden="true">
                   <img src="/images/puce-rond-rouge.gif" alt=""></li>
                   <li>
-                    <a class="{{ app.request.get('_route') == 'admin.emission.rechercheadmin' ? 'active' : '' }}" href="{{ path('admin.emission.rechercheadmin') }}">
+                    <a class="{{ app.request.attributes.get('_route') == 'admin.emission.rechercheadmin' ? 'active' : '' }}" href="{{ path('admin.emission.rechercheadmin') }}">
                       <img src="/images/ico-recherche.gif" alt="Recherche"></a>
                     </li>
                   </ul>

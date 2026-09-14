@@ -27,12 +27,12 @@ class ProgrammationRuleSlotType extends AbstractType
                 'placeholder' => false,
                 'constraints' => [
                     new Assert\NotBlank(),
-                    new Assert\Choice([
-                        'choices' => [
+                    new Assert\Choice(
+                        choices: [
                             ProgrammationRuleSlot::RECURRENCE_WEEKLY,
                             ProgrammationRuleSlot::RECURRENCE_MONTHLY,
                         ],
-                    ]),
+                    ),
                 ],
             ])
 
@@ -76,10 +76,10 @@ class ProgrammationRuleSlotType extends AbstractType
                 ],
                 'constraints' => [
                     new Assert\NotBlank(),
-                    new Assert\Range([
-                        'min' => 1,
-                        'max' => 7,
-                    ]),
+                    new Assert\Range(
+                        min: 1,
+                        max: 7,
+                    ),
                 ],
                 'help' => 'Affichage en semaine radio : mardi → lundi.',
             ])
@@ -119,9 +119,9 @@ class ProgrammationRuleSlotType extends AbstractType
                 'constraints' => [
                     new Assert\NotBlank(),
                     new Assert\Positive(),
-                    new Assert\Choice([
-                        'choices' => [1, 2, 3, 4],
-                    ]),
+                    new Assert\Choice(
+                        choices: [1, 2, 3, 4],
+                    ),
                 ],
             ])
 
@@ -138,9 +138,9 @@ class ProgrammationRuleSlotType extends AbstractType
                 'help' => 'Choisis à combien de semaines radio de distance cette diffusion doit être placée.',
                 'constraints' => [
                     new Assert\NotBlank(),
-                    new Assert\Choice([
-                        'choices' => [0, 1, 2, 3, 4],
-                    ]),
+                    new Assert\Choice(
+                        choices: [0, 1, 2, 3, 4],
+                    ),
                 ],
             ])
 
@@ -154,13 +154,13 @@ class ProgrammationRuleSlotType extends AbstractType
                 ],
                 'help' => 'Laisser vide pour une diffusion toutes les semaines.',
                 'constraints' => [
-                    new Assert\Choice([
-                        'choices' => [
+                    new Assert\Choice(
+                        choices: [
                             ProgrammationRuleSlot::WEEK_PARITY_EVEN,
                             ProgrammationRuleSlot::WEEK_PARITY_ODD,
                             null,
                         ],
-                    ]),
+                    ),
                 ],
             ])
 

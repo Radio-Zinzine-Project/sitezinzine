@@ -6,13 +6,13 @@ use App\Repository\ProgrammationRuleRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use SortDirection;
 
 #[ORM\Entity(repositoryClass: ProgrammationRuleRepository::class)]
-#[ORM\Table(
-    name: 'programmation_rule',
-    uniqueConstraints: [
-        new ORM\UniqueConstraint(name: 'uniq_programmation_rule_category_number', columns: ['category_id', 'rule_number'])
-    ]
+#[ORM\Table(name: 'programmation_rule')]
+#[ORM\UniqueConstraint(
+    name: 'uniq_programmation_rule_category_number',
+    columns: ['category_id', 'rule_number']
 )]
 #[ORM\Index(columns: ['is_active'], name: 'idx_programmation_rule_active')]
 #[ORM\Index(columns: ['deleted_at'], name: 'idx_programmation_rule_deleted')]
@@ -52,8 +52,17 @@ class ProgrammationRule
     /**
      * @var Collection<int, ProgrammationRuleSlot>
      */
-    #[ORM\OneToMany(mappedBy: 'rule', targetEntity: ProgrammationRuleSlot::class, orphanRemoval: false, cascade: ['persist'])]
-    #[ORM\OrderBy(['broadcastRank' => 'ASC', 'dayOfWeek' => 'ASC', 'startTime' => 'ASC'])]
+    #[ORM\OneToMany(
+        mappedBy: 'rule',
+        targetEntity: ProgrammationRuleSlot::class,
+        orphanRemoval: false,
+        cascade: ['persist']
+    )]
+    #[ORM\OrderBy([
+        'broadcastRank' => SortDirection::Ascending,
+        'dayOfWeek' => SortDirection::Ascending,
+        'startTime' => SortDirection::Ascending,
+    ])]
     private Collection $slots;
 
     public function __construct()
@@ -288,7 +297,7 @@ class ProgrammationRule
     public function getActiveSlotsCount(): int
     {
         return $this->slots->filter(
-            fn(ProgrammationRuleSlot $slot) => $slot->getDeletedAt() === null
+            fn (ProgrammationRuleSlot $slot) => $slot->getDeletedAt() === null
         )->count();
     }
 }

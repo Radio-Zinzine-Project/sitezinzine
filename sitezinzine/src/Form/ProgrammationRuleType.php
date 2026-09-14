@@ -2,6 +2,8 @@
 
 namespace App\Form;
 
+use SortDirection;
+
 use App\Entity\Categories;
 use App\Entity\ProgrammationRule;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
@@ -34,7 +36,7 @@ class ProgrammationRuleType extends AbstractType
                         ->andWhere('c.active = :active')
                         ->setParameter('softDelete', false)
                         ->setParameter('active', true)
-                        ->orderBy('c.titre', 'ASC');
+                        ->orderBy('c.titre', SortDirection::Ascending);
                 },
             ])
             ->add('validFrom', DateType::class, [

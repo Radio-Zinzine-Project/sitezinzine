@@ -2,7 +2,6 @@
 
 namespace App\Entity;
 
-use Symfony\Component\Validator\Constraints as Assert;
 use App\Repository\CategoriesRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -11,16 +10,14 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Serializer\Annotation\Groups;
-use Vich\UploaderBundle\Mapping\Annotation as Vich;
-use App\Entity\InviteOldAnimateur;
+use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
-
-
+use Vich\UploaderBundle\Mapping\Attribute as Vich;
 
 #[ORM\Entity(repositoryClass: CategoriesRepository::class)]
 #[UniqueEntity('titre')]
 #[UniqueEntity('slug')]
-#[Vich\Uploadable()]
+#[Vich\Uploadable]
 class Categories
 {
     #[ORM\Id]
@@ -62,7 +59,7 @@ class Categories
     private ?string $thumbnail = null;
 
     #[Vich\UploadableField(mapping: 'categories', fileNameProperty: 'thumbnail')]
-    #[Assert\Image()] //ajouter les contraintes d'image ici voir doc
+    #[Assert\Image]
     #[Groups(['categories.index'])]
     private ?File $thumbnailFile = null;
 
@@ -98,7 +95,6 @@ class Categories
     #[ORM\OneToMany(mappedBy: 'categorie', targetEntity: CategorieTagImage::class, orphanRemoval: true)]
     private Collection $tagImages;
 
-
     public function __construct()
     {
         $this->emissions = new ArrayCollection();
@@ -106,9 +102,6 @@ class Categories
         $this->inviteOldAnimateurs = new ArrayCollection();
         $this->tagImages = new ArrayCollection();
     }
-
-
-
 
     public function getId(): ?int
     {
@@ -196,7 +189,6 @@ class Categories
     public function removeEmission(Emission $emission): static
     {
         if ($this->emissions->removeElement($emission)) {
-            // set the owning side to null (unless already changed)
             if ($emission->getCategorie() === $this) {
                 $emission->setCategorie(null);
             }
@@ -227,8 +219,6 @@ class Categories
         $this->thumbnailFile = $thumbnailFile;
 
         if (null !== $thumbnailFile) {
-            // It is required that at least one field changes if you are using doctrine
-            // otherwise the event listeners won't be called and the file is lost
             $this->updatedAt = new \DateTime();
         }
 
@@ -325,16 +315,14 @@ class Categories
         $hasUsers = !$this->getUsers()->isEmpty();
 
         $hasAnciens = !$this->getInviteOldAnimateurs()
-            ->filter(fn($a) => (bool) $a->isAncienanimateur())
+            ->filter(fn ($a) => (bool) $a->isAncienanimateur())
             ->isEmpty();
 
         if (!$hasUsers && !$hasAnciens) {
             $message = 'Vous devez sélectionner au moins un·e utilisateurice OU un·e ancien·ne animateur·ice.';
 
-            // erreur globale (bandeau)
             $context->buildViolation($message)->addViolation();
 
-            // erreurs sous les champs
             $context->buildViolation($message)->atPath('users')->addViolation();
             $context->buildViolation($message)->atPath('inviteOldAnimateurs')->addViolation();
         }

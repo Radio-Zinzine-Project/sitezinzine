@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use SortDirection;
+
 use App\Entity\GridSlotArbitration;
 use App\Entity\ProgrammationRuleSlot;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -35,7 +37,7 @@ class GridSlotArbitrationRepository extends ServiceEntityRepository
             ->setParameter('cancelled', GridSlotArbitration::STATUS_CANCELLED)
             ->setParameter('start', $startOfWeek)
             ->setParameter('end', $endOfWeek)
-            ->orderBy('a.originalStartsAt', 'ASC')
+            ->orderBy('a.originalStartsAt', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }

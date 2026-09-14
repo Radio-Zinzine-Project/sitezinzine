@@ -583,9 +583,15 @@
   ============================================================ #}
   {{ form_start(formEmission, {
     attr: {
-      'data-turbo': 'false'
+        'data-turbo': 'false',
+        'data-controller': 'emission-form',
+        'data-emission-form-users-url-value': path(
+            'admin.emission.users_for_category',
+            { id: 0 }
+        ),
+        'data-emission-form-emission-id-value': emission.id
     }
-  }) }}
+}) }}
   {{ form_errors(formEmission) }}
   {# ==========================================================
     INFORMATIONS PRINCIPALES
@@ -593,7 +599,12 @@
   ========================================================== #}
   <div class="grid-4">
     <div class="field">
-      {{ form_row(formEmission.categorie) }}
+      {{ form_row(formEmission.categorie, {
+        attr: {
+            'data-emission-form-target': 'categorie',
+            'data-action': 'change->emission-form#categoryChanged'
+        }
+    }) }}
     </div>
     <div class="field">
       {{ form_row(formEmission.theme) }}
@@ -629,9 +640,13 @@
   ========================================================== #}
   <div class="grid-3">
     {# Utilisateurs / animateurs enregistrés #}
-    <div class="field">
+    <div class="field" data-emission-form-target="usersField">
       {{ form_label(formEmission.users) }}
-      {{ form_widget(formEmission.users) }}
+      {{ form_widget(formEmission.users, {
+    attr: {
+      'data-emission-form-target': 'users'
+    }
+  }) }}
       {% if formEmission.vars.submitted %}
         {% for error in formEmission.users.vars.errors %}
           <div class="field-error" role="alert">

@@ -2,6 +2,8 @@
 
 namespace App\Repository;
 
+use SortDirection;
+
 use App\Entity\Emission;
 use App\Entity\InviteOldAnimateur;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -26,8 +28,8 @@ class InviteOldAnimateurRepository extends ServiceEntityRepository
         string $type = ''
     ): array {
         $qb = $this->createQueryBuilder('i')
-            ->orderBy('i.lastName', 'ASC')
-            ->addOrderBy('i.firstName', 'ASC');
+            ->orderBy('i.lastName', SortDirection::Ascending)
+            ->addOrderBy('i.firstName', SortDirection::Ascending);
 
         if ($initiale !== '') {
             if ($initiale === '0-9') {
@@ -86,8 +88,8 @@ class InviteOldAnimateurRepository extends ServiceEntityRepository
         }
 
         $qb
-            ->orderBy('emission.datepub', 'DESC')
-            ->addOrderBy('emission.titre', 'ASC');
+            ->orderBy('emission.datepub', SortDirection::Descending)
+            ->addOrderBy('emission.titre', SortDirection::Ascending);
 
         return $this->paginator->paginate(
             $qb,

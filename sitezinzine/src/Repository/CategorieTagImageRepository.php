@@ -2,6 +2,8 @@
 
 namespace App\Repository;
 
+use SortDirection;
+
 use App\Entity\CategorieTagImage;
 use App\Entity\Categories;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -36,8 +38,8 @@ class CategorieTagImageRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('cti')
             ->andWhere('cti.categorie = :categorie')
             ->setParameter('categorie', $categorie)
-            ->orderBy('cti.annee', 'DESC')
-            ->addOrderBy('cti.id', 'DESC')
+            ->orderBy('cti.annee', SortDirection::Descending)
+            ->addOrderBy('cti.id', SortDirection::Descending)
             ->getQuery()
             ->getResult();
     }
@@ -50,8 +52,8 @@ class CategorieTagImageRepository extends ServiceEntityRepository
     return $this->createQueryBuilder('cti')
         ->leftJoin('cti.categorie', 'c')
         ->addSelect('c')
-        ->orderBy('c.titre', 'ASC')     // 🔥 tri alpha catégorie
-        ->addOrderBy('cti.annee', 'DESC') // optionnel mais logique
+        ->orderBy('c.titre', SortDirection::Ascending)     // 🔥 tri alpha catégorie
+        ->addOrderBy('cti.annee', SortDirection::Descending) // optionnel mais logique
         ->getQuery()
         ->getResult();
 }

@@ -1,0 +1,323 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+    Erreur {{ status_code|default('') }} | Radio Zinzine
+{% endblock %}
+
+{% block body %}
+<style>
+    .body > .error-page {
+        flex: 1 0 auto;
+    }
+
+    .error-page,
+    .error-page * {
+        box-sizing: border-box;
+    }
+
+    .error-page {
+        width: 100%;
+        min-width: 0;
+        min-height: 100%;
+
+        display: flex;
+        flex-direction: column;
+
+        font-family: "Montserrat Alternates", sans-serif;
+    }
+
+
+    /* =====================================================
+       ZONE ROUGE
+       ===================================================== */
+
+    .error-hero {
+        width: 100%;
+
+        margin: 0;
+        padding: 40px 20px 0;
+
+        text-align: center;
+        color: #fff;
+
+        overflow: hidden;
+    }
+
+    .error-code {
+        display: block;
+
+        margin: 0 0 8px;
+
+        font-family: "Montserrat", sans-serif;
+        font-size: clamp(70px, 12vw, 150px);
+        line-height: .9;
+
+        font-weight: 900;
+
+        opacity: .18;
+    }
+
+    .error-page-title {
+        margin: 0;
+
+        font-size: clamp(30px, 4vw, 46px);
+        line-height: 1.1;
+
+        font-weight: 900;
+    }
+
+    .error-hero .imgbottom {
+        display: block;
+
+        width: calc(100% + 40px);
+        max-width: none;
+        height: auto;
+
+        margin: 40px -20px -1px;
+        padding: 0;
+    }
+
+
+    /* =====================================================
+       ZONE BLANCHE
+       ===================================================== */
+
+    .error-content-wrapper {
+        width: 100%;
+
+        margin: 0;
+        padding: 0;
+
+        background: #fff;
+
+        flex: 1 0 auto;
+
+        display: flex;
+        flex-direction: column;
+    }
+
+    .error-white-zone {
+        width: 100%;
+        min-width: 0;
+
+        margin: 0;
+        padding: 48px 20px 72px;
+
+        background: #fff;
+        color: #1c1c1a;
+
+        flex: 1 0 auto;
+
+        display: flex;
+        justify-content: center;
+    }
+
+    .error-container {
+        width: min(100%, 760px);
+
+        margin: 0 auto;
+
+        text-align: center;
+    }
+
+
+    /* =====================================================
+       CONTENU
+       ===================================================== */
+
+    .error-heading {
+        margin: 0 0 20px;
+
+        color: #1c1c1a;
+
+        font-size: clamp(24px, 3vw, 34px);
+        line-height: 1.2;
+
+        font-weight: 900;
+    }
+
+    .error-message {
+        margin: 0 auto 32px;
+
+        max-width: 650px;
+
+        color: #5c5660;
+
+        font-family: "Montserrat", sans-serif;
+        font-size: 17px;
+        line-height: 1.7;
+    }
+
+    .error-actions {
+        display: flex;
+        flex-wrap: wrap;
+
+        justify-content: center;
+        align-items: center;
+
+        gap: 14px;
+    }
+
+    .error-button {
+        display: inline-flex;
+
+        align-items: center;
+        justify-content: center;
+
+        min-height: 46px;
+
+        padding: 10px 22px;
+
+        border: 3px solid #1c1c1a;
+        border-radius: 999px;
+
+        background: #fff;
+        color: #1c1c1a;
+
+        text-decoration: none;
+
+        font-size: 15px;
+        font-weight: 800;
+
+        box-shadow: 0 8px 20px rgba(0, 0, 0, .12);
+
+        transition:
+            transform .2s ease,
+            box-shadow .2s ease,
+            background .2s ease,
+            color .2s ease;
+    }
+
+    .error-button:hover {
+        transform: translateY(-2px);
+
+        background: #f5edf8;
+        color: #E40039;
+
+        box-shadow: 0 12px 26px rgba(0, 0, 0, .17);
+    }
+
+    .error-button--primary {
+        background: #E40039;
+        color: #fff;
+
+        border-color: #E40039;
+    }
+
+    .error-button--primary:hover {
+        background: #B81C61;
+        color: #fff;
+
+        border-color: #B81C61;
+    }
+
+
+    /* =====================================================
+       RESPONSIVE
+       ===================================================== */
+
+    @media (max-width: 768px) {
+        .error-hero {
+            padding: 32px 16px 0;
+        }
+
+        .error-hero .imgbottom {
+            width: calc(100% + 32px);
+
+            margin: 34px -16px -1px;
+        }
+
+        .error-white-zone {
+            padding: 40px 16px 56px;
+        }
+
+        .error-message {
+            font-size: 16px;
+        }
+    }
+
+    @media (max-width: 560px) {
+        .error-hero {
+            padding: 26px 12px 0;
+        }
+
+        .error-hero .imgbottom {
+            width: calc(100% + 24px);
+
+            margin: 28px -12px -1px;
+        }
+
+        .error-white-zone {
+            padding: 34px 16px 48px;
+        }
+
+        .error-actions {
+            flex-direction: column;
+        }
+
+        .error-button {
+            width: min(100%, 290px);
+        }
+    }
+</style>
+
+<div class="error-page">
+
+    <section class="error-hero">
+
+        <span class="error-code">
+            {% block error_code %}
+                {{ status_code|default('Erreur') }}
+            {% endblock %}
+        </span>
+
+        <h1 class="error-page-title">
+            {% block error_title %}
+                Une erreur est survenue
+            {% endblock %}
+        </h1>
+
+        <img
+            class="imgbottom"
+            src="/images/top-content-dechire-D.gif"
+            alt=""
+        >
+    </section>
+
+    <div class="error-content-wrapper">
+        <section class="error-white-zone">
+
+            <div class="error-container">
+
+                <h2 class="error-heading">
+                    {% block error_heading %}
+                        Oups, quelque chose ne s'est pas passé comme prévu.
+                    {% endblock %}
+                </h2>
+
+                <div class="error-message">
+                    {% block error_message %}
+                        <p>
+                            La page demandée ne peut pas être affichée pour le moment.
+                        </p>
+                    {% endblock %}
+                </div>
+
+                <div class="error-actions">
+                    {% block error_actions %}
+                        <a
+                            class="error-button error-button--primary"
+                            href="{{ path('home') }}"
+                        >
+                            Retour à l'accueil
+                        </a>
+                    {% endblock %}
+                </div>
+
+            </div>
+
+        </section>
+    </div>
+
+</div>
+{% endblock %}
