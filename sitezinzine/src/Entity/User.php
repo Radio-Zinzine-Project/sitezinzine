@@ -72,6 +72,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\ManyToMany(targetEntity: Categories::class, mappedBy: 'users')]
     private Collection $categories;
 
+    #[ORM\Column]
+    private bool $isApproved = false;
+
 
     public function __construct()
     {
@@ -153,11 +156,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @see UserInterface
      */
-    public function eraseCredentials(): void
-    {
-        // If you store any temporary, sensitive data on the user, clear it here
-        // $this->plainPassword = null;
-    }
+    #[\Deprecated]
+    public function eraseCredentials(): void {}
 
     public function getEmail(): ?string
     {
@@ -296,6 +296,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPendingEmail(?string $pendingEmail): static
     {
         $this->pendingEmail = $pendingEmail !== null ? trim($pendingEmail) : null;
+        return $this;
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->isApproved;
+    }
+
+    public function setApproved(bool $isApproved): static
+    {
+        $this->isApproved = $isApproved;
+
         return $this;
     }
 }

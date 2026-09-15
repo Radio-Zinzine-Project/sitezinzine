@@ -655,12 +655,6 @@
                         Partager cette émission
                       </span>
                       <div class="emission-share__buttons">
-                        <a class="emission-share__button emission-share__button--facebook" href="https://www.facebook.com/sharer/sharer.php?u={{ shareUrl|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="Partager {{ emission.titre }} sur Facebook">
-                          Facebook
-                        </a>
-                        <a class="emission-share__button emission-share__button--bluesky" href="https://bsky.app/intent/compose?text={{ (shareText ~ ' ' ~ shareUrl)|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="Partager {{ emission.titre }} sur Bluesky">
-                          Bluesky
-                        </a>
                         <button type="button" class="emission-share__button emission-share__button--copy" data-share-url="{{ shareUrl }}" onclick="
                             navigator.clipboard.writeText(this.dataset.shareUrl).then(() => {
                             const originalText = this.textContent;

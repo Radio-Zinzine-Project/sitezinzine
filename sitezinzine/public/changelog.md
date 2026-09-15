@@ -1,10 +1,22 @@
 # Changelog
 
+## [1.0.116] - 2026-09-xx
+### Ajout
+- Feature qui permet de rajouter une diffusion ponctuelle à un créneau régulier (2e redif).
+- Ajout de la procédure de création d'une compte : créer son compte, envois d'un mail de validation, valider son mail, demande de validation d'un admin, authorisation d'un admin, compte validé, la personne peut se connecter. Attention, le server mail maljet est bloqué pour l'instant, les mail du site ne fonctionnent pas.
+- Ajout de la logique d'atribution des rôles: on ne peut pas promouvoir quelqu'un à un rang supérieur au sien propre. Seul un super_admin peut dégrader un super admin. Les admin peuvent changer les rôles des users et editeurs.
+### Correction
+- Retrait des boutons partager facebook et bluesky.
+- Correction du nom des grilles à imprimer qui ne contenaient pas le format papier.
+
+
+
 ## [1.0.115] - 2026-09-14
 Montée vers symfony 7.4
 ### Ajout
 - Début des tests fonctionnels.
 - Changement du fonctionnement des forumlaires d'émissions (création et édition). À présent, seul les admin et super admin voient la totalités des animateurices, les autres rôles ne voient que les utilisateurices reliées à la catégorie choisie.
+- Ajout des pages d'erreurs personnalisées (403, 404, 500).
 ### Correction
 - Correction des alertes alertes sécurités et dépréciations du code.
 - Correction du code afin de permettre la montée en symfony 7.4.

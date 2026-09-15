@@ -16,11 +16,13 @@ class EmailVerifier
         private VerifyEmailHelperInterface $verifyEmailHelper,
         private MailerInterface $mailer,
         private EntityManagerInterface $entityManager
-    ) {}
+    ) {
+    }
 
     /**
-     * @param string|null $emailToVerify L’email qui doit être signé/validé.
-     *                                  Si null, on utilise $user->getEmail() (comportement actuel).
+     * @param string|null $emailToVerify
+     * L'adresse e-mail qui doit être signée/validée.
+     * Si null, on utilise l'adresse actuelle du User.
      */
     public function sendEmailConfirmation(
         string $verifyEmailRouteName,
@@ -30,10 +32,25 @@ class EmailVerifier
     ): void {
         $emailToVerify = $emailToVerify ?? $user->getEmail();
 
+        if ($user->getId() === null) {
+            throw new \LogicException(
+                'Le compte doit être enregistré avant l’envoi de l’e-mail de confirmation.'
+            );
+        }
+
+        if ($emailToVerify === null) {
+            throw new \LogicException(
+                'Aucune adresse e-mail à vérifier n’est définie.'
+            );
+        }
+
         $signatureComponents = $this->verifyEmailHelper->generateSignature(
             $verifyEmailRouteName,
             (string) $user->getId(),
-            $emailToVerify
+            $emailToVerify,
+            [
+                'id' => $user->getId(),
+            ]
         );
 
         $context = $email->getContext();
@@ -43,8 +60,7 @@ class EmailVerifier
 
         $email
             ->from('mc.glasson@free.fr')
-            ->context($context)
-        ;
+            ->context($context);
 
         $this->mailer->send($email);
     }
@@ -52,9 +68,24 @@ class EmailVerifier
     /**
      * @throws VerifyEmailExceptionInterface
      */
-    public function handleEmailConfirmation(Request $request, User $user, ?string $emailToVerify = null): void
-    {
+    public function handleEmailConfirmation(
+        Request $request,
+        User $user,
+        ?string $emailToVerify = null
+    ): void {
         $emailToVerify = $emailToVerify ?? $user->getEmail();
+
+        if ($user->getId() === null) {
+            throw new \LogicException(
+                'Impossible de vérifier un compte qui n’est pas enregistré.'
+            );
+        }
+
+        if ($emailToVerify === null) {
+            throw new \LogicException(
+                'Aucune adresse e-mail à vérifier n’est définie.'
+            );
+        }
 
         $this->verifyEmailHelper->validateEmailConfirmationFromRequest(
             $request,
@@ -64,7 +95,6 @@ class EmailVerifier
 
         $user->setVerified(true);
 
-        $this->entityManager->persist($user);
         $this->entityManager->flush();
     }
 }
