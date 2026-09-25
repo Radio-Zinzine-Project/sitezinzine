@@ -131,11 +131,16 @@ class GrilleController extends AbstractController
             );
         }
 
+        $playlistWeek = $this->getPlaylistWeekNumber(
+            $startImmutable
+        );
+
         return $this->render(
             'admin/grille/print.html.twig',
             [
                 'startOfWeek' => $startOfWeekDate,
                 'jours' => $jours,
+                'playlistWeek' => $playlistWeek,
                 ...$gridView,
             ]
         );
@@ -1676,5 +1681,37 @@ class GrilleController extends AbstractController
         return $this->redirectToRoute('admin.grille.index', [
             'startOfWeek' => $result['weekStart']->format('Y-m-d'),
         ]);
+    }
+
+    private function getPlaylistWeekNumber(
+        \DateTimeImmutable $radioWeekStart
+    ): int {
+        /*
+     * Référence connue :
+     * la semaine radio commençant le mardi 08/09/2026
+     * correspond à la semaine playlist n°2.
+     *
+     * Le cycle est :
+     * 1 -> 2 -> 3 -> 4 -> 1...
+     */
+        $referenceWeekStart = new \DateTimeImmutable('2026-09-08');
+        $referencePlaylistWeek = 2;
+
+        $daysDifference = (int) $referenceWeekStart
+            ->diff($radioWeekStart)
+            ->format('%r%a');
+
+        $weeksDifference = intdiv($daysDifference, 7);
+
+        /*
+     * Double modulo pour gérer également correctement
+     * les semaines antérieures à la semaine de référence.
+     */
+        return (
+            (
+                ($referencePlaylistWeek - 1 + $weeksDifference) % 4
+                + 4
+            ) % 4
+        ) + 1;
     }
 }

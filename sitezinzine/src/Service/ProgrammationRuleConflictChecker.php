@@ -12,8 +12,7 @@ final class ProgrammationRuleConflictChecker
 {
     public function __construct(
         private readonly ProgrammationRuleSlotRepository $slotRepository
-    ) {
-    }
+    ) {}
 
     /**
      * Recherche les conflits structurels d'un créneau.
@@ -289,10 +288,52 @@ final class ProgrammationRuleConflictChecker
         ProgrammationRuleSlot $existing
     ): bool {
         /*
-         * Une rediffusion est positionnée relativement à la première
-         * diffusion de sa règle. Sa propre récurrence n'est donc pas
-         * utilisée comme cycle indépendant.
-         */
+     * Deux créneaux mensuels conservent une position explicite dans leur
+     * cycle mensuel, y compris lorsqu'un des deux est une rediffusion.
+     */
+        if ($candidate->isMonthly() && $existing->isMonthly()) {
+            return $this->monthlyCyclesCanCoincide(
+                $candidate,
+                $existing
+            );
+        }
+
+        /*
+     * Deux rediffusions peuvent être techniquement enregistrées comme
+     * hebdomadaires alors que leur cycle réel dépend de la première
+     * diffusion de leur règle.
+     *
+     * Si leurs deux premières diffusions sont mensuelles, on compare donc
+     * les cycles mensuels d'origine avant de comparer la position des
+     * rediffusions elles-mêmes.
+     */
+        if (
+            $this->isRebroadcast($candidate)
+            && $this->isRebroadcast($existing)
+        ) {
+            $candidateOrigin = $this->findOriginSlot($candidate);
+            $existingOrigin = $this->findOriginSlot($existing);
+
+            if (
+                $candidateOrigin !== null
+                && $existingOrigin !== null
+                && $candidateOrigin->isMonthly()
+                && $existingOrigin->isMonthly()
+            ) {
+                return $this->monthlyCyclesCanCoincide(
+                    $candidateOrigin,
+                    $existingOrigin
+                );
+            }
+
+            return true;
+        }
+
+        /*
+     * Lorsqu'un seul des deux créneaux est une rediffusion, sa position
+     * dépend de la première diffusion de sa règle. On conserve ici le
+     * comportement structurel existant.
+     */
         if (
             $this->isRebroadcast($candidate)
             || $this->isRebroadcast($existing)
@@ -301,18 +342,17 @@ final class ProgrammationRuleConflictChecker
         }
 
         if ($candidate->isWeekly() && $existing->isWeekly()) {
-            return $this->weeklyCyclesCanCoincide($candidate, $existing);
-        }
-
-        if ($candidate->isMonthly() && $existing->isMonthly()) {
-            return $this->monthlyCyclesCanCoincide($candidate, $existing);
+            return $this->weeklyCyclesCanCoincide(
+                $candidate,
+                $existing
+            );
         }
 
         /*
-         * Hebdomadaire + mensuel :
-         * la collision dépend d'une date concrète du calendrier.
-         * Elle reste donc gérée par les arbitrages de grille.
-         */
+     * Hebdomadaire + mensuel :
+     * la collision dépend d'une date concrète du calendrier.
+     * Elle reste donc gérée par les arbitrages de grille.
+     */
         return false;
     }
 
@@ -488,6 +528,28 @@ final class ProgrammationRuleConflictChecker
 
         return ((int) $time->format('H') * 60)
             + (int) $time->format('i');
+    }
+
+    private function findOriginSlot(
+        ProgrammationRuleSlot $slot
+    ): ?ProgrammationRuleSlot {
+        $rule = $slot->getRule();
+
+        if ($rule === null) {
+            return null;
+        }
+
+        foreach ($rule->getSlots() as $ruleSlot) {
+            if (
+                !$ruleSlot->isDeleted()
+                && $ruleSlot->isActive()
+                && $ruleSlot->getBroadcastRank() === 1
+            ) {
+                return $ruleSlot;
+            }
+        }
+
+        return null;
     }
 
     private function isRebroadcast(

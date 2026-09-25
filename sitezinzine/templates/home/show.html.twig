@@ -117,6 +117,7 @@
 
 .bodyemission .table-infos {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   background-color: #f9f9f9;
   border-radius: 8px;
@@ -599,9 +600,9 @@
                           </strong>
                           {% set usernames = emission.users|map(u => u.username)|join(', ') %}
                           {% set anciens = emission.inviteOldAnimateurs
-                              |filter(a => a.ancienanimateur)
-                              |map(a => a ~ '')
-                              |join(', ') %}
+        |filter(a => a.ancienanimateur)
+        |map(a => a ~ '')
+        |join(', ') %}
                           {% if usernames %}
                             {{ usernames }}
                             {% if anciens %}
@@ -613,92 +614,104 @@
                           {% else %}
                             Utilisateur inconnu
                           {% endif %}
-                        </td>
-                        <td>
-                          {% if latestDiffusions is not empty %}
-                            {% for diffusion in latestDiffusions %}
-                              {{ diffusion.horaireDiffusion|format_datetime(
+                          {% set invites = emission.inviteOldAnimateurs
+        |filter(a => not a.ancienanimateur)
+        |map(a => a ~ '')
+        |join(', ') %}
+                          {% if invites %}
+                            <br>
+                              <strong>
+                                Invité·e·s :
+                              </strong>
+                              {{ invites }}
+                            {% endif %}
+                          </td>
+                          <td>
+                            {% if latestDiffusions is not empty %}
+                              {% for diffusion in latestDiffusions %}
+                                {{ diffusion.horaireDiffusion|format_datetime(
                 'long',
                 'short',
                 locale='fr'
             ) }}
-                              {% if not loop.last %}
-                                <br>
-                                {% endif %}
-                              {% endfor %}
-                            {% else %}
-                              Aucune diffusion enregistrée
-                            {% endif %}
-                          </td>
-                          <td>
-                            {% if emission.url %}
-                              <a href="{{ emission.url }}" target="_blank">
-                                🎧 Écouter
-                              </a>
-                              <br>
-                                <a href="{{ emission.url }}" download target="_blank">
-                                  ⬇ Télécharger
-                                </a>
+                                {% if not loop.last %}
+                                  <br>
+                                  {% endif %}
+                                {% endfor %}
                               {% else %}
-                                Aucun lien disponible
+                                Aucune diffusion enregistrée
                               {% endif %}
                             </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                    <!-- /.bloc-infos -->
-                    {% set shareUrl = url('emission.show', {'id': emission.id}) %}
-                    {% set shareText = 'Émission : ' ~ emission.titre ~ ' – Radio Zinzine' %}
-                    <div class="emission-share">
-                      <span class="emission-share__title">
-                        Partager cette émission
-                      </span>
-                      <div class="emission-share__buttons">
-                        <button type="button" class="emission-share__button emission-share__button--copy" data-share-url="{{ shareUrl }}" onclick="
-                            navigator.clipboard.writeText(this.dataset.shareUrl).then(() => {
-                            const originalText = this.textContent;
-                            this.textContent = 'Lien copié !';
-                            
-                            window.setTimeout(() => {
-                            this.textContent = originalText;
-                            }, 1800);
-                            });
-                          ">
-                          Copier le lien
-                        </button>
+                            <td>
+                              {% if emission.url %}
+                                <a href="{{ emission.url }}" target="_blank">
+                                  🎧 Écouter
+                                </a>
+                                <br>
+                                  <a href="{{ emission.url }}" download target="_blank">
+                                    ⬇ Télécharger
+                                  </a>
+                                {% else %}
+                                  Aucun lien disponible
+                                {% endif %}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
                       </div>
-                    </div>
-                    <div class="catemission">
-                      <div class="titre">
-                        <a href="{{ path('categorie.show', {'id': emission.categorie.id}) }}">
-                          <h1>
-                            {{ emission.categorie.titre }}
-                          </h1>
-                        </a>
-                      </div>
-                      {% if emission.categorie.thumbnail %}
-                        <img src="{{ vich_uploader_asset(emission.categorie, 'thumbnailFile') }}" alt="Photo de {{ emission.categorie.titre }}">
-                        {% endif %}
-                        <div class="descriptif">
-                          {{ emission.categorie.descriptif | raw }}
+                      <!-- /.bloc-infos -->
+                      {% set shareUrl = url('emission.show', {'id': emission.id}) %}
+                      {% set shareText = 'Émission : ' ~ emission.titre ~ ' – Radio Zinzine' %}
+                      <div class="emission-share">
+                        <span class="emission-share__title">
+                          Partager cette émission
+                        </span>
+                        <div class="emission-share__buttons">
+                          <button type="button" class="emission-share__button emission-share__button--copy" data-share-url="{{ shareUrl }}" onclick="
+                              navigator.clipboard.writeText(this.dataset.shareUrl).then(() => {
+                              const originalText = this.textContent;
+                              this.textContent = 'Lien copié !';
+                              
+                              window.setTimeout(() => {
+                              this.textContent = originalText;
+                              }, 1800);
+                              });
+                            ">
+                            Copier le lien
+                          </button>
                         </div>
                       </div>
-                    <!-- /.catemission -->
-                    </div>
-                    <!-- /.fiche-emission -->
-                    <img class="bottom" src="/images/top-content-dechire-D.gif">
-                      <div class="theme">
-                        {# On passe au composant la liste des IDs de thèmes du groupe #}
-                        {{ component('related_emissions', {
+                      <div class="catemission">
+                        <div class="titre">
+                          <a href="{{ path('categorie.show', {'id': emission.categorie.id}) }}">
+                            <h1>
+                              {{ emission.categorie.titre }}
+                            </h1>
+                          </a>
+                        </div>
+                        {% if emission.categorie.thumbnail %}
+                          <img src="{{ vich_uploader_asset(emission.categorie, 'thumbnailFile') }}" alt="Photo de {{ emission.categorie.titre }}">
+                          {% endif %}
+                          <div class="descriptif">
+                            {{ emission.categorie.descriptif | raw }}
+                          </div>
+                        </div>
+                      <!-- /.catemission -->
+                      </div>
+                      <!-- /.fiche-emission -->
+                      <img class="bottom" src="/images/top-content-dechire-D.gif">
+                        <div class="theme">
+                          {# On passe au composant la liste des IDs de thèmes du groupe #}
+                          {{ component('related_emissions', {
   groupIds: themesInGroup|map(t => t.id),
   selected: [],
   page: 1
 }) }}
+                        </div>
+                      <!-- /.theme -->
                       </div>
-                    <!-- /.theme -->
-                    </div>
-                  <!-- /.bodyemission -->
-                  {% endblock %}
-
+                    <!-- /.bodyemission -->
+                  </tr>
+                </tbody>
+              {% endblock %}
                 

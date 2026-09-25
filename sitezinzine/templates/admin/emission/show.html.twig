@@ -149,6 +149,7 @@
 
 .bodyemission .table-infos {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   background-color: #f9f9f9;
   border-radius: 8px;
@@ -176,7 +177,10 @@
   border-top: 1px solid #eee;
   border-bottom: 1px solid #eee;
   vertical-align: top;
+
   overflow-wrap: anywhere;
+  word-break: normal;
+  white-space: normal;
 }
 
 /* ========== CATEGORIE ========== */
@@ -389,9 +393,9 @@ font-size: 1.6rem;
                             </strong>
                             {% set usernames = emission.users|map(u => u.username)|join(', ') %}
                             {% set anciens = emission.inviteOldAnimateurs
-                              |filter(a => a.ancienanimateur)
-                              |map(a => a ~ '')
-                              |join(', ') %}
+        |filter(a => a.ancienanimateur)
+        |map(a => a ~ '')
+        |join(', ') %}
                             {% if usernames %}
                               {{ usernames }}
                               {% if anciens %}
@@ -403,79 +407,90 @@ font-size: 1.6rem;
                             {% else %}
                               Utilisateur inconnu
                             {% endif %}
-                          </td>
-                          <td>
-                            {% if diffusions is not empty %}
-                              <details class="diffusions-history">
-                                <summary>
-                                  {{ diffusions|length }}
-                                  diffusion
-                                  {% if diffusions|length > 1 %}
-                                    s
-                                  {% endif %}
-                                  enregistrée
-                                  {% if diffusions|length > 1 %}
-                                    s
-                                  {% endif %}
-                                </summary>
-                                <div class="diffusions-history-list">
-                                  {% for diffusion in diffusions %}
-                                    <div class="diffusion-history-item">
-                                      {{ diffusion.horaireDiffusion|format_datetime(
+                            {% set invites = emission.inviteOldAnimateurs
+        |filter(a => not a.ancienanimateur)
+        |map(a => a ~ '')
+        |join(', ') %}
+                            {% if invites %}
+                              <br>
+                                <strong>
+                                  Invité·e·s :
+                                </strong>
+                                {{ invites }}
+                              {% endif %}
+                            </td>
+                            <td>
+                              {% if diffusions is not empty %}
+                                <details class="diffusions-history">
+                                  <summary>
+                                    {{ diffusions|length }}
+                                    diffusion
+                                    {% if diffusions|length > 1 %}
+                                      s
+                                    {% endif %}
+                                    enregistrée
+                                    {% if diffusions|length > 1 %}
+                                      s
+                                    {% endif %}
+                                  </summary>
+                                  <div class="diffusions-history-list">
+                                    {% for diffusion in diffusions %}
+                                      <div class="diffusion-history-item">
+                                        {{ diffusion.horaireDiffusion|format_datetime(
                             'long',
                             'short',
                             locale='fr'
                         ) }}
-                                    </div>
-                                  {% endfor %}
-                                </div>
-                              </details>
-                            {% else %}
-                              Aucune diffusion enregistrée
-                            {% endif %}
-                          </td>
-                          <td>
-                            {% if emission.url %}
-                              <a href="{{ emission.url }}" target="_blank">
-                                🎧 Écouter
-                              </a>
-                              <br>
-                                <a href="{{ emission.url }}" download target="_blank">
-                                  ⬇ Télécharger
-                                </a>
+                                      </div>
+                                    {% endfor %}
+                                  </div>
+                                </details>
                               {% else %}
-                                Aucun lien disponible
+                                Aucune diffusion enregistrée
                               {% endif %}
                             </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                    {% if emission.categorie %}
-                      <div class="catemission">
-                        <div class="titre">
-                          <h1>
-                            {{ emission.categorie.titre }}
-                          </h1>
-                        </div>
-                        {% if emission.categorie.thumbnail %}
-                          <img src="{{ vich_uploader_asset(emission.categorie, 'thumbnailFile', 'App\\Entity\\Categories') }}" alt="Photo de {{ emission.categorie.titre }}">
-                          {% endif %}
-                          <div class="descriptif">
-                            {{ emission.categorie.descriptif | raw }}
+                            <td>
+                              {% if emission.url %}
+                                <a href="{{ emission.url }}" target="_blank">
+                                  🎧 Écouter
+                                </a>
+                                <br>
+                                  <a href="{{ emission.url }}" download target="_blank">
+                                    ⬇ Télécharger
+                                  </a>
+                                {% else %}
+                                  Aucun lien disponible
+                                {% endif %}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      {% if emission.categorie %}
+                        <div class="catemission">
+                          <div class="titre">
+                            <h1>
+                              {{ emission.categorie.titre }}
+                            </h1>
                           </div>
-                          <div class="admin-actions" style="justify-content:center; padding: 0 12px 14px;">
-                            <a class="btn-admin" href="{{ path('admin.categorie.edit', { id: emission.categorie.id }) }}">
-                              Éditer la catégorie
-                            </a>
+                          {% if emission.categorie.thumbnail %}
+                            <img src="{{ vich_uploader_asset(emission.categorie, 'thumbnailFile', 'App\\Entity\\Categories') }}" alt="Photo de {{ emission.categorie.titre }}">
+                            {% endif %}
+                            <div class="descriptif">
+                              {{ emission.categorie.descriptif | raw }}
+                            </div>
+                            <div class="admin-actions" style="justify-content:center; padding: 0 12px 14px;">
+                              <a class="btn-admin" href="{{ path('admin.categorie.edit', { id: emission.categorie.id }) }}">
+                                Éditer la catégorie
+                              </a>
+                            </div>
                           </div>
-                        </div>
-                      {% endif %}
-                    </div>
-                    <img class="bottom" src="/images/top-content-dechire-D.gif" alt="">
-                      {% if emissions %}
-                        <div class="emissionsdelacategorie">
-                          {% include 'partials/_emission_results.html.twig' with {
+                        {% endif %}
+                      </div>
+                      <img class="bottom" src="/images/top-content-dechire-D.gif" alt="">
+                        {% if emissions %}
+                          <div class="emissionsdelacategorie">
+                            {% include 'partials/_emission_results.html.twig' with {
       emissions: emissions,
       showNoResults: true,
       resultsTitle: 'Autres émissions de cette catégorie :',
@@ -484,9 +499,9 @@ font-size: 1.6rem;
       useLivePagination: false,
       searchTerm: null
     } only %}
-                        </div>
-                      {% endif %}
+                          </div>
+                        {% endif %}
+                      </div>
                     </div>
-                  </div>
-                {% endblock %}
-                
+                  {% endblock %}
+                  

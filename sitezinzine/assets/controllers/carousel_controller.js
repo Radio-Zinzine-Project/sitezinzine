@@ -15,7 +15,11 @@ export default class extends Controller {
     const slides = Array.from(this.element.querySelectorAll('.glide__slide'))
 
     const liveIndex = liveSlide ? slides.indexOf(liveSlide) : -1
-    const fallbackIndex = parseInt(this.element.dataset.carouselStartIndex || '0', 10)
+
+    const fallbackIndex = parseInt(
+      this.element.dataset.carouselStartIndex || '0',
+      10
+    )
 
     const startIndex = liveIndex >= 0
       ? liveIndex
@@ -34,10 +38,33 @@ export default class extends Controller {
       rewind: false,
 
       breakpoints: {
-        1400: { perView: 3 },
-        1024: { perView: 2 },
-        768: { perView: 1, focusAt: 'center', peek: { before: 24, after: 24 }, gap: 18 },
-        480: { perView: 1, focusAt: 'center', peek: { before: 12, after: 12 }, gap: 14 }
+        1400: {
+          perView: 3
+        },
+
+        1024: {
+          perView: 2
+        },
+
+        768: {
+          perView: 1,
+          focusAt: 'center',
+          peek: {
+            before: 36,
+            after: 36
+          },
+          gap: 12
+        },
+
+        480: {
+          perView: 1,
+          focusAt: 'center',
+          peek: {
+            before: 32,
+            after: 32
+          },
+          gap: 10
+        }
       }
     })
 

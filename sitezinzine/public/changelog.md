@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.0.117] - 2026-09-26
+### Ajout
+- Sur les grilles imprimées, les émissions dont l'éditeur est AIX auront un fond grisés.
+- Ajout des playlists sur les têtes de colonnes des grilles imprimées.
+- Ajout des playlists dans le carrousel.
+- Ajout sur les cartes et sur les fiches émissions, publiques et admin, des ancien·nes animateur·ices et des invité·es.
+### Correction
+- Correction/mise à jour des vulnerabilités connue de node.js et de ses dépendances.
+- Correction de la logique des conflits pour les règles de programmation qui faisaient remonter des faux positifs.
+- Correction de show catégories. La requête garantit maintenant que seules les émissions de la bonne catégorie avec une url réellement renseignée sont récupérées, avant la pagination.
+- Correction de la page programme, maintenant les créneaux sans émissions apparaissent avec les infos de la catégorie concernée.
+- Correction du carrousel, maintenant les créneaux sans émissions apparaissent avec les infos de la catégorie concernée.
+- Correction du responsive du carrousel.
+- Correction de la listes des catégories du formulaire de recherche qui n'affiche plus que celles qui possèdes des émissions avec un fichier mp3.
+- Nettoyage de code mort.
+
+
 ## [1.0.116] - 2026-09-25
 ### Ajout
 - Feature qui permet de rajouter une diffusion ponctuelle à un créneau régulier (2e redif). Ajout depuis la 1re diffusion régulière → duplication → suppression individuelle. Parc → placement sur la grille → suppression de la rediff placée → retour au Parc, avec renumérotation correcte. (Attention partie front pas encore faite, feature incomplète).

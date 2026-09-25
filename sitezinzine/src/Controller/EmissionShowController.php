@@ -4,7 +4,6 @@ namespace App\Controller;
 
 use App\Entity\Emission;
 use App\Form\EmissionSearchType;
-use Symfony\Bundle\SecurityBundle\Security;
 use App\Repository\EmissionRepository;
 use App\Repository\ThemeRepository;
 use App\Repository\DiffusionRepository;
@@ -20,20 +19,6 @@ use Symfony\Component\Routing\Requirement\Requirement;
 #[Route("/emission", name: 'emission.')]
 class EmissionShowController extends AbstractController
 {
-    #[Route('/', name: 'index')]
-    public function index(Request $request, EmissionRepository $emissionRepository, Security $security): Response
-    {
-        $page = $request->query->getInt('page', 1);
-        $limit = 25;
-
-        $pagination = $emissionRepository->paginateEmissions($page, '', $this->getUser(), $security);
-
-
-        return $this->render('/home/emissions.html.twig', [
-            'pagination' => $pagination, // pour knp_pagination_render
-            'emissions' => $pagination->getItems(), // pour le partial
-        ]);
-    }
 
     #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => Requirement::DIGITS])]
     public function show(
@@ -92,7 +77,10 @@ class EmissionShowController extends AbstractController
         Request $request,
         EmissionRepository $emissionRepository
     ): Response {
-        $form = $this->createForm(EmissionSearchType::class);
+        $form = $this->createForm(EmissionSearchType::class, null, [
+            'public_only' => true,
+        ]);
+
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {

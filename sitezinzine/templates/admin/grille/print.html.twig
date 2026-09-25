@@ -4,7 +4,9 @@
     <head>
         <meta charset="UTF-8">
         <title>
-            Grille de programmation - {{ printFormat|upper }} -
+            Grille de programmation -
+            {{ printFormat|upper }}
+            -
             semaine du
             {{ startOfWeek|date('d/m/Y') }}
         </title>
@@ -41,7 +43,7 @@
         body {
             --grid-line: #8d8d8d;
             --grid-line-strong: #000000;
-            --header-bg: #eeeeee;
+            --header-bg: #cccccc;
         }
 
 
@@ -322,6 +324,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            position: relative;
 
             min-width: 0;
 
@@ -356,6 +359,17 @@
 
             font-size: var(--date-font-size);
             font-weight: 400;
+        }
+
+        .print-head__playlist {
+            position: absolute;
+            right: 2mm;
+            top: 50%;
+            transform: translateY(-50%);
+
+            font-size: var(--date-font-size);
+            font-weight: 700;
+            line-height: 1;
         }
 
 
@@ -478,6 +492,10 @@
             font-weight: 700;
             line-height: 1.05;
             text-align: center;
+        }
+
+        .print-postit--aix {
+            background: #e6e6e6;
         }
 
         .print-a3 .print-postit {
@@ -754,6 +772,7 @@
                 <div class="print-head print-head--hour" style="grid-column: 1; grid-row: 1;">
                     Heure
                 </div>
+                {% set playlistLetters = ['a', 'b', 'c', 'd', 'e', 'f', 'g'] %}
                 {% for dayIndex in 0..6 %}
                     {% set jour = jours[dayIndex] %}
                     {#
@@ -776,6 +795,10 @@
                 pattern='EEEE',
                 locale='fr'
             ) }}
+                        </span>
+                        <span class="print-head__playlist">
+                            {{ playlistWeek }}
+                            {{ playlistLetters[dayIndex] }}
                         </span>
                         <span class="print-head__date">
                             {{ jour|date('d/m') }}
@@ -935,6 +958,7 @@
                                     print-postit
                                     {{ not isAssigned ? 'print-postit--empty' : '' }}
                                     {{ isAssigned and slots <= 2 ? 'print-postit--compact' : '' }}
+                                    {{ seg.isAix|default(false) ? 'print-postit--aix' : '' }}
                                 " data-slots="{{ slots }}" style="
                                         top:
                                         calc(
@@ -1024,6 +1048,7 @@
                                     print-postit
                                     print-postit--manual
                                     {{ slots <= 2 ? 'print-postit--compact' : '' }}
+                                    {{ diffusion.isAix|default(false) ? 'print-postit--aix' : '' }}
                                 " data-slots="{{ slots }}" style="
                                         top:
                                         calc(
@@ -1175,7 +1200,9 @@
                                     </strong>
                                 </p>
                                 <p>
-                                    <strong>Si vous ne trouvez pas une émission :</strong>
+                                    <strong>
+                                        Si vous ne trouvez pas une émission :
+                                    </strong>
                                     joviale@poivron.org
                                     signal : 0652955077
                                 </p>

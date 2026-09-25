@@ -964,14 +964,48 @@ class EmissionRepositoryTest extends KernelTestCase
         $this->assertNotNull($results[0]->getLastDiffusion());
     }
 
-    public function testCreateLatestByCategoryQueryBuilderFiltersCategoryAndOrdersByNewestId(): void
+    public function testCreateLatestByCategoryQueryBuilderFiltersCategoryUrlAndOrdersByNewestId(): void
     {
         $categorie = $this->createCategorie();
         $otherCategorie = $this->createCategorie();
 
-        $first = $this->createEmission($categorie, 'Première', new \DateTime('-2 days'));
-        $second = $this->createEmission($categorie, 'Deuxième', new \DateTime('-1 day'));
-        $this->createEmission($otherCategorie, 'Hors catégorie', new \DateTime());
+        $first = $this->createEmission(
+            $categorie,
+            'Première',
+            new \DateTime('-2 days'),
+            60,
+            'https://premiere-' . $this->unique() . '.test'
+        );
+
+        $second = $this->createEmission(
+            $categorie,
+            'Deuxième',
+            new \DateTime('-1 day'),
+            60,
+            'https://deuxieme-' . $this->unique() . '.test'
+        );
+
+        $withoutUrl = $this->createEmission(
+            $categorie,
+            'Sans URL',
+            new \DateTime()
+        );
+        $withoutUrl->setUrl(null);
+
+        $emptyUrl = $this->createEmission(
+            $categorie,
+            'URL vide',
+            new \DateTime()
+        );
+        $emptyUrl->setUrl('');
+
+        $this->createEmission(
+            $otherCategorie,
+            'Hors catégorie',
+            new \DateTime(),
+            60,
+            'https://autre-' . $this->unique() . '.test'
+        );
 
         $this->flush();
 
@@ -983,6 +1017,14 @@ class EmissionRepositoryTest extends KernelTestCase
         $this->assertCount(2, $results);
         $this->assertSame($second->getId(), $results[0]->getId());
         $this->assertSame($first->getId(), $results[1]->getId());
+
+        $ids = array_map(
+            static fn(Emission $emission): ?int => $emission->getId(),
+            $results
+        );
+
+        $this->assertNotContains($withoutUrl->getId(), $ids);
+        $this->assertNotContains($emptyUrl->getId(), $ids);
     }
 
     public function testFindAssignableForCategoryReturnsOnlyActiveNonDeletedCategoryEmissions(): void

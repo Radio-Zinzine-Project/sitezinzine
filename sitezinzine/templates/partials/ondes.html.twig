@@ -107,6 +107,7 @@
 .bodyondes .glide__slide--live {
   z-index: 4;
 }
+
 /* =========================
    Carte
    ========================= */
@@ -121,11 +122,8 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-
   box-shadow: 0 10px 28px rgba(28, 28, 26, 0.08);
-
   transform: scale(.96);
-
   transition:
     transform .25s ease,
     box-shadow .25s ease,
@@ -139,9 +137,7 @@
 
 .bodyondes .glide__slide--live .carousel {
   transform: scale(1.06);
-
   border-color: #7E4093;
-
   box-shadow:
     0 24px 60px rgba(126,64,147,.30),
     0 10px 25px rgba(0,0,0,.12);
@@ -215,11 +211,13 @@
   flex: 1;
 }
 
-.bodyondes .titre_carousel a {
+.bodyondes .titre_carousel a,
+.bodyondes .titre_carousel .carousel-title {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  margin: 0;
   text-decoration: none;
   font-weight: 900;
   color: #1c1c1a;
@@ -249,12 +247,14 @@
 }
 
 /* La vraie carte en direct, pas seulement la slide active Glide */
+
 .bodyondes .glide__slide--live .date_carousel p {
   background: #7E4093;
   color: #fff;
 }
 
-.bodyondes .glide__slide--live .titre_carousel a {
+.bodyondes .glide__slide--live .titre_carousel a,
+.bodyondes .glide__slide--live .titre_carousel .carousel-title {
   color: #7E4093;
 }
 
@@ -332,6 +332,7 @@
 }
 
 @media (max-width: 768px) {
+
   .bodyondes {
     padding: 0 16px 28px;
   }
@@ -354,29 +355,45 @@
   }
 
   .bodyondes .glide {
-  padding: 0;
-  overflow: hidden;
-}
+    padding: 0;
+    overflow: hidden;
+  }
 
-.bodyondes .glide__track {
-  padding: 25px 0 35px;
-}
+  .bodyondes .glide__track {
+    padding: 25px 0 35px;
+    overflow: visible;
+  }
 
   .bodyondes .carousel {
     max-width: none;
     min-height: 360px;
+    transform: scale(.96);
+    opacity: .8;
+
+    transition:
+      transform .25s ease,
+      opacity .25s ease,
+      box-shadow .25s ease,
+      border-color .25s ease,
+      background .25s ease;
+  }
+
+  .bodyondes .glide__slide--active .carousel {
     transform: scale(1);
+    opacity: 1;
   }
 
   .bodyondes .glide__slide--live .carousel {
     transform: scale(1);
+    opacity: 1;
   }
 
   .bodyondes .image_carousel {
     height: 170px;
   }
 
-  .bodyondes .titre_carousel a {
+  .bodyondes .titre_carousel a,
+  .bodyondes .titre_carousel .carousel-title {
     font-size: 17px;
   }
 
@@ -433,63 +450,134 @@
         <div class="glide__track" data-glide-el="track">
           <ul class="glide__slides">
             {% for row in lastEmissions %}
+              {% set type = row.type %}
               {% set emission = row.emission %}
+              {% set category = row.category %}
               {% set diffusion = row.diffusion %}
-              {% set isCurrent = row.isCurrent %}
               {% set endDiffusion = row.endDiffusion %}
+              {% set isCurrent = row.isCurrent %}
               <li class="glide__slide {{ isCurrent ? 'glide__slide--live' : '' }}">
                 <div class="carousel">
+                  {# =========================
+                    IMAGE
+                  ========================= #}
                   <div class="image_carousel">
-                    {% set imagePathEmission = vich_uploader_asset(emission, 'thumbnailFile') %}
-                    {% set imagePathCategorie = vich_uploader_asset(emission.categorie, 'thumbnailFile') %}
-                    {% if imagePathEmission %}
-                      <img
-                      src="{{ imagePathEmission }}" alt="{{ emission.titre }}">
-                        {% elseif imagePathCategorie %}
+                    {% if type == 'diffusion' and emission %}
+                      {% set imagePathEmission = vich_uploader_asset(emission, 'thumbnailFile') %}
+                      {% set imagePathCategorie = category
+                      ? vich_uploader_asset(category, 'thumbnailFile')
+                      : null %}
+                      {% if imagePathEmission %}
                         <img
-                        src="{{ imagePathCategorie }}" alt="{{ emission.categorie.titre }}">
-                          {% else %}
-                          <img src="{{ asset('uploads/images/emission-zinzine.jpg') }}" alt="Image par défaut">
-                          {% endif %}
-                          {% if isCurrent %}
-                            <div class="live-badge">
-                              ● EN CE MOMENT
-                            </div>
-                          {% endif %}
-                        </div>
-                        <div class="date_carousel">
-                          <p>
-                            {{ diffusion|date('H:i', 'Europe/Paris') }}
-                            -
-                            {{ endDiffusion|date('H:i', 'Europe/Paris') }}
-                          </p>
-                        </div>
-                        <div class="titre_carousel">
-                          <p>
-                            <a href="{{ path('emission.show', { id: emission.id }) }}">
-                              {{ emission.titre | upper }}
-                            </a>
-                          </p>
-                        </div>
-                        <div class="categorie_carousel">
-                          <p>
-                            {{ emission.categorie.titre | upper }}
-                          </p>
+                        src="{{ imagePathEmission }}" alt="{{ emission.titre }}">
+                          {% elseif imagePathCategorie %}
+                          <img
+                          src="{{ imagePathCategorie }}" alt="{{ category.titre }}">
+                            {% else %}
+                            <img src="{{ asset('uploads/images/emission-zinzine.jpg') }}" alt="Image par défaut">
+                            {% endif %}
+                          {% elseif type == 'empty_regular' and category %}
+                            {% set imagePathCategorie = vich_uploader_asset(category, 'thumbnailFile') %}
+                            {% if imagePathCategorie %}
+                              <img
+                              src="{{ imagePathCategorie }}" alt="{{ category.titre }}">
+                                {% else %}
+                                <img src="{{ asset('uploads/images/emission-zinzine.jpg') }}" alt="Image par défaut">
+                                {% endif %}
+                              {% elseif type == 'playlist' %}
+                                {#
+                                  Image temporaire pour la Playlist.
+                                  
+                                  Quand tu auras choisi l'image définitive, il suffira
+                                  de remplacer ce chemin.
+                                #}
+                                <img
+                                src="{{ asset('uploads/images/emission-zinzine.jpg') }}" alt="Musiques et chansons">
+                                  {% else %}
+                                  <img src="{{ asset('uploads/images/emission-zinzine.jpg') }}" alt="Image par défaut">
+                                  {% endif %}
+                                  {% if isCurrent %}
+                                    <div class="live-badge">
+                                      ● EN CE MOMENT
+                                    </div>
+                                  {% endif %}
+                                </div>
+                                {# =========================
+                                  HORAIRES
+                                ========================= #}
+                                <div class="date_carousel">
+                                  <p>
+                                    {{ diffusion|date('H:i', 'Europe/Paris') }}
+                                    -
+                                    {{ endDiffusion|date('H:i', 'Europe/Paris') }}
+                                  </p>
+                                </div>
+                                {# =========================
+                                  TITRE
+                                ========================= #}
+                                <div class="titre_carousel">
+                                  <p>
+                                    {% if type == 'diffusion' and emission %}
+                                      <a href="{{ path('emission.show', { id: emission.id }) }}">
+                                        {{ emission.titre|upper }}
+                                      </a>
+                                    {% elseif type == 'empty_regular' and category %}
+                                      <span class="carousel-title">
+                                        {{ category.titre|upper }}
+                                      </span>
+                                    {% elseif type == 'playlist' %}
+                                      <span class="carousel-title">
+                                        {{ row.title|upper }}
+                                      </span>
+                                    {% else %}
+                                      <span class="carousel-title">
+                                        PROGRAMMATION
+                                      </span>
+                                    {% endif %}
+                                  </p>
+                                </div>
+                                {# =========================
+                                  BANDEAU INFÉRIEUR
+                                ========================= #}
+                                {% if type == 'diffusion' and category %}
+                                  <div class="categorie_carousel">
+                                    <p>
+                                      {{ category.titre|upper }}
+                                    </p>
+                                  </div>
+                                {% elseif type == 'playlist' %}
+                                  <div class="categorie_carousel">
+                                    <p>
+                                      PLAYLIST
+                                    </p>
+                                  </div>
+                                {% endif %}
+                              </div>
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      </div>
+                      <div class="glide__arrows" data-glide-el="controls">
+                        <button class="glide__arrow glide__arrow--left" data-glide-dir="<"
+                          type="button"
+                          aria-label="Programme précédent"
+                          >
+                          <img
+                        src=" /images/previous.png"
+                        alt=" "
+                          >
+                          </button>
+                          
+                          <button
+                        class=" glide__arrow glide__arrow--right"
+                          data-glide-dir=">
+                          "
+                            type="button"
+                            aria-label="Programme suivant"
+                          >
+                          <img src="/images/next.png" alt=""></button>
                         </div>
                       </div>
-                    </li>
-                  {% endfor %}
-                </ul>
-              </div>
-              <div class="glide__arrows" data-glide-el="controls">
-                <button class="glide__arrow glide__arrow--left" data-glide-dir="<">
-                <img src=" /images/previous.png" alt=" Précédent"></button>
-                <button class="glide__arrow glide__arrow--right" data-glide-dir=">
-                  ">
-                  <img src="/images/next.png" alt="Suivant"></button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        
+                    </div>
+                  </div>
+                  

@@ -116,6 +116,16 @@
     font-style: italic;
   }
 
+  .emission-list .invites{
+    color: #666;
+    font-family: "Montserrat", sans-serif;
+    font-size: 14px;
+}
+
+.emission-list .invites strong{
+    font-weight: 600;
+}
+
   .emission-list .descriptif-content{
     overflow: hidden;
     display: -webkit-box;
@@ -369,20 +379,65 @@
             4.2 CONTENU TEXTE
           --------------------------------------------------------- #}
           <div class="col2">
+            {# -------- Titre + animateurs -------- #}
             <div class="titre">
               <a href="{{ path(showRoute, { id: emission.id }) }}">
                 {{ emission.titre }}
-                {% if emission.users|length > 0 %}
+                {% set anciensAnimateurs = [] %}
+                {% for personne in emission.inviteOldAnimateurs %}
+                  {% if personne.ancienanimateur %}
+                    {% set anciensAnimateurs = anciensAnimateurs|merge([personne]) %}
+                  {% endif %}
+                {% endfor %}
+                {% if emission.users|length > 0 or anciensAnimateurs|length > 0 %}
                   -
+                  {% set firstAnimateur = true %}
                   {% for user in emission.users %}
-                    {{ user.displayName }}
-                    {% if not loop.last %}
+                    {% if not firstAnimateur %}
                       ,
                     {% endif %}
+                    {{ user.displayName }}
+                    {% set firstAnimateur = false %}
+                  {% endfor %}
+                  {% for animateur in anciensAnimateurs %}
+                    {% if not firstAnimateur %}
+                      ,
+                    {% endif %}
+                    {{ animateur.firstName }}
+                    {% if animateur.lastName %}
+                      {{ animateur.lastName }}
+                    {% endif %}
+                    {% set firstAnimateur = false %}
                   {% endfor %}
                 {% endif %}
               </a>
             </div>
+            {# -------- Invités -------- #}
+            {% set invites = [] %}
+            {% for personne in emission.inviteOldAnimateurs %}
+              {% if not personne.ancienanimateur %}
+                {% set invites = invites|merge([personne]) %}
+              {% endif %}
+            {% endfor %}
+            {% if invites|length > 0 %}
+              <div class="invites">
+                <p>
+                  <strong>
+                    {{ invites|length > 1 ? 'Invités :' : 'Invité :' }}
+                  </strong>
+                  {% for invite in invites %}
+                    {{ invite.firstName }}
+                    {% if invite.lastName %}
+                      {{ invite.lastName }}
+                    {% endif %}
+                    {% if not loop.last %}
+                      ,
+                    {% endif %}
+                  {% endfor %}
+                </p>
+              </div>
+            {% endif %}
+            {# -------- Catégorie / thème -------- #}
             <div class="cat">
               <p>
                 {{ emission.categorie.titre }}
@@ -392,6 +447,7 @@
                 {% endif %}
               </p>
             </div>
+            {# -------- Descriptif -------- #}
             <div data-controller="descriptif">
               <div data-descriptif-target="content" class="descriptif-content">
                 <p>
@@ -402,6 +458,7 @@
                 Lire la suite
               </button>
             </div>
+            {# -------- Dernière diffusion -------- #}
             <p class="horaire">
               {% if lastDiffusion %}
                 Dernière diffusion le :

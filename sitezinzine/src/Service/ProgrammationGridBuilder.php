@@ -232,6 +232,7 @@ class ProgrammationGridBuilder
         $category = $rule->getCategory();
         $categoryTitle = $category?->getTitre() ?? 'Catégorie inconnue';
         $categorySlug = $category?->getSlug();
+        $categoryEditorId = $category?->getEditeur()?->getId();
 
         $segmentKey = $this->buildSegmentKey(
             $slot->getId(),
@@ -244,8 +245,10 @@ class ProgrammationGridBuilder
             'title' => $categoryTitle,
             'displayTitle' => $categoryTitle,
 
+            'category' => $category,
             'categoryTitle' => $categoryTitle,
             'categorySlug' => $categorySlug,
+            'categoryEditorId' => $categoryEditorId,
 
             'duration' => $duration,
             'startIndex' => $startIndex,

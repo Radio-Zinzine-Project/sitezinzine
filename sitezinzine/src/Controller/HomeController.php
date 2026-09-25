@@ -6,6 +6,7 @@ namespace App\Controller;
 use App\Repository\EmissionRepository;
 use App\Repository\EvenementRepository;
 use App\Service\InfosSoirRssService;
+use App\Service\PublicDailyScheduleBuilder;
 use App\Repository\PageRepository;
 use App\Entity\Evenement;
 use Symfony\Component\Routing\Requirement\Requirement;
@@ -19,30 +20,18 @@ class HomeController extends AbstractController
     #[Route("/", name: "home")]
     public function index(
         EmissionRepository $emissionRepository,
-        EvenementRepository $evenementRepository
+        EvenementRepository $evenementRepository,
+        PublicDailyScheduleBuilder $publicDailyScheduleBuilder
     ): Response {
         $timezone = new \DateTimeZone('Europe/Paris');
 
         $date = new \DateTimeImmutable('today', $timezone);
         $now = new \DateTimeImmutable('now', $timezone);
 
-        $programData = $emissionRepository->findProgramForDate($date, $now);
-
-        // Fallback DEV si aucune programmation aujourd'hui
-        if (empty($programData['items'])) {
-            $fixedDate = new \DateTimeImmutable('2026-03-07', $timezone);
-
-            $fakeNow = $fixedDate->setTime(
-                (int) $now->format('H'),
-                (int) $now->format('i'),
-                (int) $now->format('s')
-            );
-
-            $programData = $emissionRepository->findProgramForDate(
-                $fixedDate,
-                $fakeNow
-            );
-        }
+        $programData = $publicDailyScheduleBuilder->build(
+            $date,
+            $now
+        );
 
         return $this->render('home/index.html.twig', [
             'lastEmissions' => $programData['items'],

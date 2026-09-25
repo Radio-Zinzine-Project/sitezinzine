@@ -830,7 +830,10 @@ class EmissionRepository extends ServiceEntityRepository
             ->leftJoin('e.categorie', 'c')
             ->addSelect('c')
             ->andWhere('c.id = :catId')
+            ->andWhere('e.url IS NOT NULL')
+            ->andWhere('e.url != :emptyUrl')
             ->setParameter('catId', $categoryId)
+            ->setParameter('emptyUrl', '')
             ->orderBy('e.id', SortDirection::Descending);
     }
 

@@ -69,8 +69,22 @@ class EmissionSearchType extends AbstractType
                 'placeholder' => 'Sélectionnez une catégorie',
                 'choice_label' => 'titre',
                 'label' => 'Catégorie',
-                'query_builder' => fn (CategoriesRepository $er): QueryBuilder =>
-                    $er->createQueryBuilder('c')->orderBy('c.titre', SortDirection::Ascending),
+                'query_builder' => function (CategoriesRepository $er) use ($options): QueryBuilder {
+                    $qb = $er->createQueryBuilder('c')
+                        ->orderBy('c.titre', SortDirection::Ascending);
+
+                    if ($options['public_only']) {
+                        $qb
+                            ->innerJoin('c.emissions', 'e_public')
+                            ->andWhere('e_public.url IS NOT NULL')
+                            ->andWhere('e_public.url != :emptyUrl')
+                            ->andWhere('e_public.deletedAt IS NULL')
+                            ->setParameter('emptyUrl', '')
+                            ->distinct();
+                    }
+
+                    return $qb;
+                },
             ])
 
             ->add('theme', EntityType::class, [
@@ -79,8 +93,8 @@ class EmissionSearchType extends AbstractType
                 'placeholder' => 'Sélectionnez un thème',
                 'choice_label' => 'name',
                 'label' => 'Thème',
-                'query_builder' => fn (ThemeRepository $er): QueryBuilder =>
-                    $er->createQueryBuilder('t')->orderBy('t.name', SortDirection::Ascending),
+                'query_builder' => fn(ThemeRepository $er): QueryBuilder =>
+                $er->createQueryBuilder('t')->orderBy('t.name', SortDirection::Ascending),
             ])
 
             ->add('personne', ChoiceType::class, [
@@ -133,6 +147,9 @@ class EmissionSearchType extends AbstractType
         $resolver->setDefaults([
             'method' => 'GET',
             'csrf_protection' => false,
+            'public_only' => false,
         ]);
+
+        $resolver->setAllowedTypes('public_only', 'bool');
     }
 }
