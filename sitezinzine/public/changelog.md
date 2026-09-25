@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.116] - 2026-09-xx
+## [1.0.116] - 2026-09-25
 ### Ajout
 - Feature qui permet de rajouter une diffusion ponctuelle à un créneau régulier (2e redif). Ajout depuis la 1re diffusion régulière → duplication → suppression individuelle. Parc → placement sur la grille → suppression de la rediff placée → retour au Parc, avec renumérotation correcte. (Attention partie front pas encore faite, feature incomplète).
 - Ajout de la procédure de création d'une compte : créer son compte, envois d'un mail de validation, valider son mail, demande de validation d'un admin, authorisation d'un admin, compte validé, la personne peut se connecter.
