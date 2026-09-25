@@ -62,18 +62,18 @@ class ProgrammationRuleSlotRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-public function findActiveByRule(ProgrammationRule $rule): array
-{
-    return $this->createActiveQueryBuilder('s')
-        ->andWhere('s.rule = :rule')
-        ->setParameter('rule', $rule)
-        ->orderBy('s.broadcastRank', SortDirection::Ascending)
-        ->addOrderBy('s.weekOffset', SortDirection::Ascending)
-        ->addOrderBy('s.dayOfWeek', SortDirection::Ascending)
-        ->addOrderBy('s.startTime', SortDirection::Ascending)
-        ->getQuery()
-        ->getResult();
-}
+    public function findActiveByRule(ProgrammationRule $rule): array
+    {
+        return $this->createActiveQueryBuilder('s')
+            ->andWhere('s.rule = :rule')
+            ->setParameter('rule', $rule)
+            ->orderBy('s.broadcastRank', SortDirection::Ascending)
+            ->addOrderBy('s.weekOffset', SortDirection::Ascending)
+            ->addOrderBy('s.dayOfWeek', SortDirection::Ascending)
+            ->addOrderBy('s.startTime', SortDirection::Ascending)
+            ->getQuery()
+            ->getResult();
+    }
 
     public function findActiveByDay(int $dayOfWeek): array
     {
@@ -91,5 +91,26 @@ public function findActiveByRule(ProgrammationRule $rule): array
             ->getResult();
     }
 
-    
+    /**
+     * Retourne les créneaux actifs appartenant à des règles actives.
+     *
+     * Le repository ne décide pas s'il existe réellement un conflit :
+     * cette responsabilité appartient à ProgrammationRuleConflictChecker.
+     *
+     * @return ProgrammationRuleSlot[]
+     */
+    public function findActiveStructuralConflictCandidates(): array
+    {
+        return $this->createActiveQueryBuilder('s')
+            ->innerJoin('s.rule', 'r')
+            ->addSelect('r')
+            ->andWhere('r.deletedAt IS NULL')
+            ->andWhere('r.isActive = :ruleActive')
+            ->setParameter('ruleActive', true)
+            ->orderBy('s.dayOfWeek', SortDirection::Ascending)
+            ->addOrderBy('s.startTime', SortDirection::Ascending)
+            ->addOrderBy('s.broadcastRank', SortDirection::Ascending)
+            ->getQuery()
+            ->getResult();
+    }
 }

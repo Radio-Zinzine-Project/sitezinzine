@@ -4,13 +4,14 @@ namespace App\Controller\Admin;
 
 use App\Entity\User;
 use App\Form\ProfileType;
+use App\Form\ChangePasswordType;
 use App\Security\EmailVerifier;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Mime\Address;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -53,8 +54,12 @@ class ProfileController extends AbstractController
                 && $newEmail !== $user->getEmail()
                 && $newEmail !== $user->getPendingEmail()
             ) {
+                /*
+             * L'adresse actuelle reste vérifiée et utilisable.
+             * La nouvelle adresse n'est promue qu'après
+             * confirmation du lien signé.
+             */
                 $user->setPendingEmail($newEmail);
-                $user->setVerified(false);
 
                 $em->flush();
 
@@ -62,18 +67,12 @@ class ProfileController extends AbstractController
                     'app_profile_verify_new_email',
                     $user,
                     (new TemplatedEmail())
-                        ->from(
-                            new Address(
-                                'drelin04@hotmail.fr',
-                                'Support'
-                            )
-                        )
                         ->to($newEmail)
                         ->subject(
                             'Confirmez votre nouvelle adresse email'
                         )
                         ->htmlTemplate(
-                            'profile/confirm_new_email.html.twig'
+                            'admin/profile/confirm_new_email.html.twig'
                         ),
                     $newEmail
                 );
@@ -150,6 +149,84 @@ class ProfileController extends AbstractController
 
         return $this->redirectToRoute(
             'app_profile_edit'
+        );
+    }
+
+    #[Route(
+        '/admin/profil/password',
+        name: 'app_profile_change_password',
+        methods: ['GET', 'POST']
+    )]
+    public function changePassword(
+        Request $request,
+        EntityManagerInterface $em,
+        UserPasswordHasherInterface $passwordHasher
+    ): Response {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $form = $this->createForm(
+            ChangePasswordType::class,
+            null,
+            [
+                'attr' => [
+                    'data-turbo' => 'false',
+                ],
+            ]
+        );
+
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $currentPassword = (string) $form
+                ->get('currentPassword')
+                ->getData();
+
+            if (!$passwordHasher->isPasswordValid(
+                $user,
+                $currentPassword
+            )) {
+                $this->addFlash(
+                    'error',
+                    'Le mot de passe actuel est incorrect.'
+                );
+
+                return $this->render(
+                    'admin/profile/change_password.html.twig',
+                    [
+                        'form' => $form->createView(),
+                    ]
+                );
+            }
+
+            $newPassword = (string) $form
+                ->get('newPassword')
+                ->getData();
+
+            $user->setPassword(
+                $passwordHasher->hashPassword(
+                    $user,
+                    $newPassword
+                )
+            );
+
+            $em->flush();
+
+            $this->addFlash(
+                'success',
+                'Votre mot de passe a été modifié.'
+            );
+
+            return $this->redirectToRoute(
+                'app_profile_edit'
+            );
+        }
+
+        return $this->render(
+            'admin/profile/change_password.html.twig',
+            [
+                'form' => $form->createView(),
+            ]
         );
     }
 }

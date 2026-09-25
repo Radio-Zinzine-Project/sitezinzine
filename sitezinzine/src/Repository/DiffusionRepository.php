@@ -166,15 +166,37 @@ class DiffusionRepository extends ServiceEntityRepository
     }
 
     /**
- * @return Diffusion[]
- */
-public function findAllByEmission(Emission $emission): array
-{
-    return $this->createQueryBuilder('d')
-        ->andWhere('d.emission = :emission')
-        ->setParameter('emission', $emission)
-        ->orderBy('d.horaireDiffusion', SortDirection::Descending)
-        ->getQuery()
-        ->getResult();
-}
+     * @return Diffusion[]
+     */
+    public function findAllByEmission(Emission $emission): array
+    {
+        return $this->createQueryBuilder('d')
+            ->andWhere('d.emission = :emission')
+            ->setParameter('emission', $emission)
+            ->orderBy('d.horaireDiffusion', SortDirection::Descending)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Retourne toutes les Diffusion d'un groupe, quel que soit leur statut.
+     *
+     * Les Diffusion non publiées sont volontairement incluses :
+     * elles font partie du cycle publication → dévalidation → republication.
+     *
+     * @return Diffusion[]
+     */
+    public function findByAssignmentGroupKey(
+        string $assignmentGroupKey
+    ): array {
+        return $this->createQueryBuilder('d')
+            ->addSelect('e')
+            ->join('d.emission', 'e')
+            ->andWhere('d.assignmentGroupKey = :assignmentGroupKey')
+            ->setParameter('assignmentGroupKey', $assignmentGroupKey)
+            ->orderBy('d.horaireDiffusion', SortDirection::Ascending)
+            ->addOrderBy('d.id', SortDirection::Ascending)
+            ->getQuery()
+            ->getResult();
+    }
 }

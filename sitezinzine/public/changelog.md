@@ -2,11 +2,16 @@
 
 ## [1.0.116] - 2026-09-xx
 ### Ajout
-- Feature qui permet de rajouter une diffusion ponctuelle à un créneau régulier (2e redif).
-- Ajout de la procédure de création d'une compte : créer son compte, envois d'un mail de validation, valider son mail, demande de validation d'un admin, authorisation d'un admin, compte validé, la personne peut se connecter. Attention, le server mail maljet est bloqué pour l'instant, les mail du site ne fonctionnent pas.
+- Feature qui permet de rajouter une diffusion ponctuelle à un créneau régulier (2e redif). Ajout depuis la 1re diffusion régulière → duplication → suppression individuelle. Parc → placement sur la grille → suppression de la rediff placée → retour au Parc, avec renumérotation correcte. (Attention partie front pas encore faite, feature incomplète).
+- Ajout de la procédure de création d'une compte : créer son compte, envois d'un mail de validation, valider son mail, demande de validation d'un admin, authorisation d'un admin, compte validé, la personne peut se connecter.
+    À ce stade, pour les comptes, on a donc validé : inscription → confirmation e-mail → attente d'approbation → validation admin → connexion autorisée, renvoi de l'e-mail de vérification, gestion sécurisée des rôles, désactivation par soft delete, profil avec pseudo/changement d'e-mail, changement de mot de passe, et les fronts correspondants. Le cas « refus » reste lui aussi hors périmètre tant qu'on n'a pas défini son comportement.
 - Ajout de la logique d'atribution des rôles: on ne peut pas promouvoir quelqu'un à un rang supérieur au sien propre. Seul un super_admin peut dégrader un super admin. Les admin peuvent changer les rôles des users et editeurs.
+- Ajout d'une sécurité lors de la création de règles de programmation pour empêcher les conflits de créneaux.
+- Ajout d'une purge des créneaux orphelins lorsque l'ont modifie les règles sans avoir nettoyé la grille avant.
+- Ajout de rate-limiter pour éviter le spam d'email de vérification de compte.
 ### Correction
 - Retrait des boutons partager facebook et bluesky.
+- Modification des pages règles de programmation et créneaux de programmation.
 - Correction du nom des grilles à imprimer qui ne contenaient pas le format papier.
 
 

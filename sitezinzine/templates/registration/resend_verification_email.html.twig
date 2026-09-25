@@ -1,0 +1,174 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Renvoyer l'e-mail de confirmation{% endblock %}
+
+{% block body %}
+<style>
+  .body-resend {
+    background: linear-gradient(#E4013A, #B81C61);
+    min-height: 100vh;
+    min-height: 100svh;
+    margin: 0;
+    padding: 24px 12px;
+    font-family: "Montserrat Alternates", sans-serif;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .resend-form {
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .12);
+    color: #1C1C1A;
+  }
+
+  .resend-form h1 {
+    text-align: center;
+    color: #E4013A;
+    font-size: 24px;
+    margin: 0 0 1rem;
+    font-weight: 900;
+    overflow-wrap: anywhere;
+  }
+
+  .resend-form p {
+    line-height: 1.5;
+  }
+
+  .resend-form label {
+    display: block;
+    margin: 1rem 0 0.5rem;
+    color: #333;
+    font-weight: 800;
+  }
+
+  .resend-form input[type="text"] {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+    box-sizing: border-box;
+  }
+
+  .resend-form button[type="submit"] {
+    width: 100%;
+    padding: 0.8rem;
+    background-color: #E4013A;
+    color: white;
+    border: none;
+    border-radius: 26px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 1rem;
+    font-weight: 900;
+  }
+
+  .resend-form button[type="submit"]:hover {
+    background-color: #b30021;
+  }
+
+  .back-login {
+    margin-top: 1.5rem;
+    text-align: center;
+  }
+
+  .back-login a {
+    color: #E4013A;
+    font-weight: 900;
+    text-decoration: none;
+  }
+
+  .back-login a:hover {
+    text-decoration: underline;
+  }
+
+  .alert {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    overflow-wrap: anywhere;
+  }
+
+  .alert-error {
+    background-color: #ffe6e6;
+    border: 1px solid #ffcccc;
+    color: #cc0000;
+  }
+
+  @media (max-width: 480px) {
+    .body-resend {
+      padding: 16px 0;
+      align-items: flex-start;
+    }
+
+    .resend-form {
+      margin: 16px;
+      padding: 1.1rem;
+      border-radius: 12px;
+    }
+
+    .resend-form h1 {
+      font-size: 20px;
+    }
+  }
+</style>
+
+<div class="body-resend">
+  <div class="resend-form">
+    <h1>Renvoyer l'e-mail de confirmation</h1>
+
+    <p>
+      Saisissez votre nom d'utilisateurice.
+      Si votre adresse e-mail n'a pas encore été confirmée,
+      un nouveau lien vous sera envoyé.
+    </p>
+
+    {% for message in app.flashes('error') %}
+      <div class="alert alert-error">
+        {{ message }}
+      </div>
+    {% endfor %}
+
+    <form method="post"
+          action="{{ path('app_resend_verification_email') }}"
+          data-turbo="false">
+
+      <label for="username">
+        Nom d'utilisateurice
+      </label>
+
+      <input
+        type="text"
+        name="username"
+        id="username"
+        autocomplete="username"
+        required
+        autofocus
+      >
+
+      <input
+        type="hidden"
+        name="_token"
+        value="{{ csrf_token('resend-verification-email') }}"
+      >
+
+      <button type="submit">
+        Renvoyer le lien
+      </button>
+    </form>
+
+    <div class="back-login">
+      <a href="{{ path('app_login') }}" data-turbo="false">
+        Retour à la connexion
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

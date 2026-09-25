@@ -1,19 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Service;
 
 use App\Entity\DiffusionDraft;
 use App\Entity\Emission;
+use App\Entity\PendingRebroadcast;
 use App\Entity\ProgrammationRuleSlot;
 use App\Repository\DiffusionDraftRepository;
+use App\Repository\PendingRebroadcastRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 class GridAssignmentService
 {
     public function __construct(
         private readonly DiffusionDraftRepository $draftRepository,
+        private readonly PendingRebroadcastRepository $pendingRebroadcastRepository,
         private readonly EntityManagerInterface $em,
-    ) {}
+    ) {
+    }
 
     public function assign(
         ProgrammationRuleSlot $slot,
@@ -62,9 +68,14 @@ class GridAssignmentService
         return true;
     }
 
-    public function remove(ProgrammationRuleSlot $slot, \DateTimeImmutable $selectedDate): bool
-    {
-        $draft = $this->draftRepository->findOneRegularBySlotAndHoraire($slot, $selectedDate);
+    public function remove(
+        ProgrammationRuleSlot $slot,
+        \DateTimeImmutable $selectedDate
+    ): bool {
+        $draft = $this->draftRepository->findOneRegularBySlotAndHoraire(
+            $slot,
+            $selectedDate
+        );
 
         if (!$draft instanceof DiffusionDraft) {
             return false;
@@ -79,11 +90,23 @@ class GridAssignmentService
             return false;
         }
 
-        $drafts = $this->draftRepository->findByAssignmentGroupKey($assignmentGroupKey);
+        $drafts = $this->draftRepository->findByAssignmentGroupKey(
+            $assignmentGroupKey
+        );
 
         foreach ($drafts as $draftToRemove) {
             if ($draftToRemove instanceof DiffusionDraft) {
                 $this->em->remove($draftToRemove);
+            }
+        }
+
+        $pendingRebroadcasts = $this->pendingRebroadcastRepository->findBy([
+            'assignmentGroupKey' => $assignmentGroupKey,
+        ]);
+
+        foreach ($pendingRebroadcasts as $pendingRebroadcast) {
+            if ($pendingRebroadcast instanceof PendingRebroadcast) {
+                $this->em->remove($pendingRebroadcast);
             }
         }
 
@@ -100,7 +123,10 @@ class GridAssignmentService
     ): DiffusionDraft {
         $duration = $this->resolveDurationMinutes($slot, $emission);
 
-        $draft = $this->draftRepository->findOneRegularBySlotAndHoraire($slot, $startsAt);
+        $draft = $this->draftRepository->findOneRegularBySlotAndHoraire(
+            $slot,
+            $startsAt
+        );
 
         if (!$draft instanceof DiffusionDraft) {
             $draft = new DiffusionDraft();
@@ -119,10 +145,14 @@ class GridAssignmentService
         return $draft;
     }
 
-    private function buildAssignmentGroupKey(?int $ruleId, \DateTimeImmutable $originDate): string
-    {
+    private function buildAssignmentGroupKey(
+        ?int $ruleId,
+        \DateTimeImmutable $originDate
+    ): string {
         if ($ruleId === null) {
-            throw new \RuntimeException('Impossible de générer une clé de groupe sans ID de règle.');
+            throw new \RuntimeException(
+                'Impossible de générer une clé de groupe sans ID de règle.'
+            );
         }
 
         return sprintf(
@@ -132,8 +162,10 @@ class GridAssignmentService
         );
     }
 
-    private function resolveDurationMinutes(ProgrammationRuleSlot $slot, Emission $emission): int
-    {
+    private function resolveDurationMinutes(
+        ProgrammationRuleSlot $slot,
+        Emission $emission
+    ): int {
         $slotDuration = $slot->getDurationMinutes();
 
         if (\is_int($slotDuration) && $slotDuration > 0) {
@@ -156,8 +188,16 @@ class GridAssignmentService
         $anchorWeekStart = $this->getRadioWeekStart($anchorDate);
 
         $targetDate = $anchorWeekStart
-            ->modify(sprintf('+%d days', $this->radioDayIndexFromDayOfWeek($slot->getDayOfWeek())))
-            ->modify(sprintf('+%d days', $slot->getWeekOffset() * 7));
+            ->modify(sprintf(
+                '+%d days',
+                $this->radioDayIndexFromDayOfWeek(
+                    $slot->getDayOfWeek()
+                )
+            ))
+            ->modify(sprintf(
+                '+%d days',
+                $slot->getWeekOffset() * 7
+            ));
 
         $startTime = $slot->getStartTime();
 
@@ -172,8 +212,9 @@ class GridAssignmentService
         );
     }
 
-    private function getRadioWeekStart(\DateTimeImmutable $date): \DateTimeImmutable
-    {
+    private function getRadioWeekStart(
+        \DateTimeImmutable $date
+    ): \DateTimeImmutable {
         $midnight = $date->setTime(0, 0, 0);
         $dayOfWeek = (int) $midnight->format('N');
 
@@ -189,8 +230,9 @@ class GridAssignmentService
         };
     }
 
-    private function radioDayIndexFromDayOfWeek(?int $dayOfWeek): int
-    {
+    private function radioDayIndexFromDayOfWeek(
+        ?int $dayOfWeek
+    ): int {
         return match ($dayOfWeek) {
             2 => 0,
             3 => 1,

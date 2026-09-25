@@ -160,15 +160,12 @@ class Diffusion
             );
         }
 
-        $this->horaireDiffusion = $startsAt;
+        $mutableStartsAt = \DateTime::createFromInterface($startsAt);
+
+        $this->horaireDiffusion = $mutableStartsAt;
         $this->durationMinutes = $durationMinutes;
-
-        $immutableStartsAt = \DateTimeImmutable::createFromInterface($startsAt);
-
-        $this->endsAt = \DateTime::createFromImmutable(
-            $immutableStartsAt->modify(
-                sprintf('+%d minutes', $durationMinutes)
-            )
+        $this->endsAt = (clone $mutableStartsAt)->modify(
+            sprintf('+%d minutes', $durationMinutes)
         );
 
         $this->touch();

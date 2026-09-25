@@ -1,7 +1,30 @@
-<h1>Confirmez votre nouvelle adresse email</h1>
+<h1>Confirmez votre adresse e-mail</h1>
 
 <p>
-  Cliquez sur ce lien pour confirmer votre nouvelle adresse :<br><br>
-  <a href="{{ signedUrl|raw }}">Confirmer mon nouvel email</a><br><br>
-  Ce lien expirera dans {{ expiresAtMessageKey|trans(expiresAtMessageData, 'VerifyEmailBundle') }}.
+    Merci d'avoir créé un compte sur le site de Radio Zinzine.
+</p>
+
+<p>
+    Pour confirmer votre adresse e-mail, cliquez sur le lien suivant :
+</p>
+
+<p>
+    <a href="{{ signedUrl|raw }}">
+        Confirmer mon adresse e-mail
+    </a>
+</p>
+
+<p>
+    Ce lien expirera dans
+    {{ expiresAtMessageKey|trans(expiresAtMessageData, 'VerifyEmailBundle') }}.
+</p>
+
+<p>
+    Une fois votre adresse e-mail confirmée, votre compte devra encore être
+    validé par Radio Zinzine avant que vous puissiez vous connecter.
+</p>
+
+<p>
+    Si vous n'êtes pas à l'origine de cette inscription, vous pouvez ignorer
+    cet e-mail.
 </p>

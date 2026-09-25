@@ -1,9 +1,15 @@
 {% extends 'admin/admin.html.twig' %}
 
-{% block title %}Gestion des règles de programmation{% endblock %}
+{% block title %}
+  Gestion des règles de programmation
+{% endblock %}
 
 {% block body %}
 <style>
+/* =========================================================
+   BASE
+   ========================================================= */
+
 .main-content .programmation-rule-index,
 .main-content .programmation-rule-index *{
   box-sizing: border-box;
@@ -16,6 +22,11 @@
   padding: 16px;
   color: #1C1C1A;
 }
+
+
+/* =========================================================
+   EN-TÊTE DE PAGE
+   ========================================================= */
 
 .main-content .programmation-rule-index .page-header{
   display: flex;
@@ -33,6 +44,11 @@
   font-weight: 900;
 }
 
+
+/* =========================================================
+   BOUTON CRÉER UNE RÈGLE
+   ========================================================= */
+
 .main-content .programmation-rule-index .btn-create{
   display: inline-flex;
   align-items: center;
@@ -49,6 +65,11 @@
 .main-content .programmation-rule-index .btn-create:hover{
   background: #b30021;
 }
+
+
+/* =========================================================
+   TABLEAU DES RÈGLES
+   ========================================================= */
 
 .main-content .programmation-rule-index .table-wrap{
   background: #fff;
@@ -82,6 +103,32 @@
   font-size: 14px;
 }
 
+
+/* =========================================================
+   LARGEUR DES COLONNES
+   ========================================================= */
+
+.main-content .programmation-rule-index th:last-child,
+.main-content .programmation-rule-index td:last-child{
+  width: 1%;
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   RÈGLE INACTIVE
+   ========================================================= */
+
+.main-content .programmation-rule-index tr.rule-inactive td{
+  background: #f1f1f1;
+  color: #686868;
+}
+
+
+/* =========================================================
+   BADGES D'ÉTAT
+   ========================================================= */
+
 .main-content .programmation-rule-index .badge{
   display: inline-flex;
   align-items: center;
@@ -98,33 +145,63 @@
   color: #1d7a37;
 }
 
-.main-content .programmation-rule-index .badge-inactive{
-  background: #f5f5f5;
-  color: #666;
+.main-content .programmation-rule-index .badge-conflict{
+  background: #fde8e8;
+  color: #a51d1d;
 }
+
+.main-content .programmation-rule-index .badge-reactivable{
+  background: #fff3cd;
+  color: #765a00;
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
 
 .main-content .programmation-rule-index .actions{
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
+
+.main-content .programmation-rule-index .actions form{
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+
+/* =========================================================
+   BOUTONS D'ACTION
+   ========================================================= */
 
 .main-content .programmation-rule-index .btn-edit,
 .main-content .programmation-rule-index .btn-slots,
+.main-content .programmation-rule-index .btn-activate,
+.main-content .programmation-rule-index .btn-deactivate,
 .main-content .programmation-rule-index .btn-delete{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 110px;
+  flex: 0 0 auto;
+  min-width: 100px;
   padding: 8px 12px;
   border: 0;
   border-radius: 20px;
   text-decoration: none;
   font-weight: 800;
   font-size: 13px;
+  line-height: 1.2;
+  white-space: nowrap;
   cursor: pointer;
 }
+
+
+/* ---------------------------------------------------------
+   Modifier / Créneaux
+   --------------------------------------------------------- */
 
 .main-content .programmation-rule-index .btn-edit,
 .main-content .programmation-rule-index .btn-slots{
@@ -137,6 +214,34 @@
   background: #e2e2e2;
 }
 
+
+/* ---------------------------------------------------------
+   Activer / Désactiver
+   --------------------------------------------------------- */
+
+.main-content .programmation-rule-index .btn-activate{
+  background: #e7f8ec;
+  color: #1d7a37;
+}
+
+.main-content .programmation-rule-index .btn-activate:hover{
+  background: #ccefd6;
+}
+
+.main-content .programmation-rule-index .btn-deactivate{
+  background: #fff3cd;
+  color: #765a00;
+}
+
+.main-content .programmation-rule-index .btn-deactivate:hover{
+  background: #ffe69c;
+}
+
+
+/* ---------------------------------------------------------
+   Supprimer
+   --------------------------------------------------------- */
+
 .main-content .programmation-rule-index .btn-delete{
   background: #E4013A;
   color: #fff;
@@ -146,6 +251,11 @@
   background: #b30021;
 }
 
+
+/* =========================================================
+   ÉTAT VIDE
+   ========================================================= */
+
 .main-content .programmation-rule-index .empty{
   padding: 24px 16px;
   text-align: center;
@@ -153,19 +263,53 @@
   font-weight: 700;
 }
 
+
+/* =========================================================
+   CARTES MOBILES
+   ========================================================= */
+
 .main-content .programmation-rule-index .mobile-cards{
   display: none;
 }
 
+
+/* =========================================================
+   RESPONSIVE — TABLETTE / MOBILE
+   ========================================================= */
+
 @media (max-width: 960px){
+
+  /* -------------------------------------------------------
+     Conteneur
+     ------------------------------------------------------- */
+
   .main-content .programmation-rule-index{
     margin: 14px 12px 22px;
     padding: 0;
   }
 
+
+  /* -------------------------------------------------------
+     En-tête
+     ------------------------------------------------------- */
+
+  .main-content .programmation-rule-index .page-header{
+    align-items: stretch;
+  }
+
+
+  /* -------------------------------------------------------
+     Tableau desktop
+     ------------------------------------------------------- */
+
   .main-content .programmation-rule-index .table-wrap{
     display: none;
   }
+
+
+  /* -------------------------------------------------------
+     Cartes
+     ------------------------------------------------------- */
 
   .main-content .programmation-rule-index .mobile-cards{
     display: grid;
@@ -179,24 +323,112 @@
     padding: 14px 12px;
   }
 
+  .main-content .programmation-rule-index .card.rule-inactive{
+    background: #f1f1f1;
+    color: #686868;
+  }
+
   .main-content .programmation-rule-index .card h2{
     margin: 0 0 10px 0;
     font-size: 18px;
     color: #E4013A;
   }
 
+  .main-content .programmation-rule-index .card.rule-inactive h2{
+    color: #686868;
+  }
+
   .main-content .programmation-rule-index .card p{
     margin: 6px 0;
     font-size: 14px;
+  }
+
+
+  /* -------------------------------------------------------
+     Actions des cartes
+     ------------------------------------------------------- */
+
+  .main-content .programmation-rule-index .card .actions{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .main-content .programmation-rule-index .card .actions form{
+    width: 100%;
+    margin: 0;
+  }
+
+  .main-content .programmation-rule-index .card .btn-edit,
+  .main-content .programmation-rule-index .card .btn-slots,
+  .main-content .programmation-rule-index .card .btn-activate,
+  .main-content .programmation-rule-index .card .btn-deactivate,
+  .main-content .programmation-rule-index .card .btn-delete{
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE — PETIT MOBILE
+   ========================================================= */
+
+@media (max-width: 520px){
+
+  /* -------------------------------------------------------
+     En-tête
+     ------------------------------------------------------- */
+
+  .main-content .programmation-rule-index .page-header{
+    flex-direction: column;
+  }
+
+  .main-content .programmation-rule-index h1{
+    font-size: 22px;
+  }
+
+  .main-content .programmation-rule-index .btn-create{
+    width: 100%;
+  }
+
+
+  /* -------------------------------------------------------
+     Cartes
+     ------------------------------------------------------- */
+
+  .main-content .programmation-rule-index .card{
+    padding: 12px 10px;
+  }
+
+  .main-content .programmation-rule-index .card h2{
+    font-size: 16px;
+  }
+
+
+  /* -------------------------------------------------------
+     Actions
+     ------------------------------------------------------- */
+
+  .main-content .programmation-rule-index .card .actions{
+    grid-template-columns: 1fr;
   }
 }
 </style>
 
 <div class="programmation-rule-index">
   <div class="page-header">
-    <h1>Règles de programmation</h1>
-      
-    <a href="{{ path('admin_programmationRule_create') }}" class="btn-create">Créer une règle</a>
+    <h1>
+      Règles de programmation
+    </h1>
+
+    <a
+      href="{{ path('admin_programmationRule_create') }}"
+      class="btn-create"
+    >
+      Créer une règle
+    </a>
   </div>
 
   <div class="table-wrap">
@@ -206,79 +438,327 @@
           <th>Catégorie</th>
           <th>Valide du</th>
           <th>Valide au</th>
-          <th>Actif</th>
+          <th>État</th>
           <th>Créneaux</th>
           <th>Actions</th>
         </tr>
       </thead>
-      <tbody>
-      {% for rule in rules %}
-        <tr>
-          <td>{{ rule.displayName }}</td>
-          <td>{{ rule.validFrom ? rule.validFrom|date('d/m/Y') : '—' }}</td>
-          <td>{{ rule.validUntil ? rule.validUntil|date('d/m/Y') : '—' }}</td>
-          <td>
-            {% if rule.isActive %}
-              <span class="badge badge-active">Oui</span>
-            {% else %}
-              <span class="badge badge-inactive">Non</span>
-            {% endif %}
-          </td>
-          <td>{{ rule.getActiveSlotsCount() }}</td>
-          <td>
-            <div class="actions">
-              <a href="{{ path('admin_programmationRule_edit', {id: rule.id}) }}" class="btn-edit">Modifier</a>
-              <a href="{{ path('admin_programmationRuleSlot_index', {ruleId: rule.id}) }}" class="btn-slots">Créneaux</a>
 
-              <form method="post"
-                    action="{{ path('admin_programmationRule_delete', {id: rule.id}) }}"
-                    onsubmit="return confirm('Supprimer cette règle de programmation ?');">
-                <input type="hidden" name="_token" value="{{ csrf_token('delete_rule_' ~ rule.id) }}">
-                <button type="submit" class="btn-delete">Supprimer</button>
-              </form>
-            </div>
-          </td>
-        </tr>
-      {% else %}
-        <tr>
-          <td colspan="6" class="empty">Aucune règle de programmation pour le moment.</td>
-        </tr>
-      {% endfor %}
+      <tbody>
+        {% for rule in rules %}
+          {% set hasConflict = conflictStates[rule.id]|default(false) %}
+
+          <tr class="{{ not rule.isActive ? 'rule-inactive' : '' }}">
+            <td>
+              {{ rule.displayName }}
+            </td>
+
+            <td>
+              {{ rule.validFrom
+                ? rule.validFrom|date('d/m/Y')
+                : '—'
+              }}
+            </td>
+
+            <td>
+              {{ rule.validUntil
+                ? rule.validUntil|date('d/m/Y')
+                : '—'
+              }}
+            </td>
+
+            <td>
+              {% if rule.isActive %}
+                <span class="badge badge-active">
+                  Active
+                </span>
+              {% elseif hasConflict %}
+                <span class="badge badge-conflict">
+                  Conflit à corriger
+                </span>
+              {% else %}
+                <span class="badge badge-reactivable">
+                  Peut être réactivée
+                </span>
+              {% endif %}
+            </td>
+
+            <td>
+              {{ rule.getActiveSlotsCount() }}
+            </td>
+
+            <td>
+              <div class="actions">
+                <a
+                  href="{{ path(
+                    'admin_programmationRule_edit',
+                    {id: rule.id}
+                  ) }}"
+                  class="btn-edit"
+                >
+                  Modifier
+                </a>
+
+                <a
+                  href="{{ path(
+                    'admin_programmationRuleSlot_index',
+                    {ruleId: rule.id}
+                  ) }}"
+                  class="btn-slots"
+                >
+                  Créneaux
+                </a>
+
+                {% if rule.isActive %}
+                  <form
+                    method="post"
+                    action="{{ path(
+                      'admin_programmationRule_deactivate',
+                      {id: rule.id}
+                    ) }}"
+                    onsubmit="return confirm(
+                      'Désactiver cette règle de programmation ?'
+                    );"
+                  >
+                    <input
+                      type="hidden"
+                      name="_token"
+                      value="{{ csrf_token(
+                        'deactivate_rule_' ~ rule.id
+                      ) }}"
+                    >
+
+                    <button
+                      type="submit"
+                      class="btn-deactivate"
+                    >
+                      Désactiver
+                    </button>
+                  </form>
+                {% elseif not hasConflict %}
+                  <form
+                    method="post"
+                    action="{{ path(
+                      'admin_programmationRule_activate',
+                      {id: rule.id}
+                    ) }}"
+                    onsubmit="return confirm(
+                      'Réactiver cette règle de programmation ?'
+                    );"
+                  >
+                    <input
+                      type="hidden"
+                      name="_token"
+                      value="{{ csrf_token(
+                        'activate_rule_' ~ rule.id
+                      ) }}"
+                    >
+
+                    <button
+                      type="submit"
+                      class="btn-activate"
+                    >
+                      Réactiver
+                    </button>
+                  </form>
+                {% endif %}
+
+                <form
+                  method="post"
+                  action="{{ path(
+                    'admin_programmationRule_delete',
+                    {id: rule.id}
+                  ) }}"
+                  onsubmit="return confirm(
+                    'Supprimer cette règle de programmation ?'
+                  );"
+                >
+                  <input
+                    type="hidden"
+                    name="_token"
+                    value="{{ csrf_token(
+                      'delete_rule_' ~ rule.id
+                    ) }}"
+                  >
+
+                  <button
+                    type="submit"
+                    class="btn-delete"
+                  >
+                    Supprimer
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="6" class="empty">
+              Aucune règle de programmation pour le moment.
+            </td>
+          </tr>
+        {% endfor %}
       </tbody>
     </table>
   </div>
 
   <div class="mobile-cards">
     {% for rule in rules %}
-      <div class="card">
-        <h2>{{ rule.category.titre }} règle N° {{ rule.ruleNumber }}</h2>
-        <p><strong>Valide du :</strong> {{ rule.validFrom ? rule.validFrom|date('d/m/Y') : '—' }}</p>
-        <p><strong>Valide au :</strong> {{ rule.validUntil ? rule.validUntil|date('d/m/Y') : '—' }}</p>
-        <p><strong>Créneaux :</strong> {{ rule.slots|length }}</p>
+      {% set hasConflict = conflictStates[rule.id]|default(false) %}
+
+      <div class="card {{ not rule.isActive ? 'rule-inactive' : '' }}">
+        <h2>
+          {{ rule.displayName }}
+        </h2>
+
         <p>
-          <strong>Actif :</strong>
+          <strong>Valide du :</strong>
+
+          {{ rule.validFrom
+            ? rule.validFrom|date('d/m/Y')
+            : '—'
+          }}
+        </p>
+
+        <p>
+          <strong>Valide au :</strong>
+
+          {{ rule.validUntil
+            ? rule.validUntil|date('d/m/Y')
+            : '—'
+          }}
+        </p>
+
+        <p>
+          <strong>Créneaux :</strong>
+          {{ rule.getActiveSlotsCount() }}
+        </p>
+
+        <p>
+          <strong>État :</strong>
+
           {% if rule.isActive %}
-            <span class="badge badge-active">Oui</span>
+            <span class="badge badge-active">
+              Active
+            </span>
+          {% elseif hasConflict %}
+            <span class="badge badge-conflict">
+              Conflit à corriger
+            </span>
           {% else %}
-            <span class="badge badge-inactive">Non</span>
+            <span class="badge badge-reactivable">
+              Peut être réactivée
+            </span>
           {% endif %}
         </p>
 
         <div class="actions">
-          <a href="{{ path('admin_programmationRule_edit', {id: rule.id}) }}" class="btn-edit">Modifier</a>
-          <a href="{{ path('admin_programmationRuleSlot_index', {ruleId: rule.id}) }}" class="btn-slots">Créneaux</a>
+          <a
+            href="{{ path(
+              'admin_programmationRule_edit',
+              {id: rule.id}
+            ) }}"
+            class="btn-edit"
+          >
+            Modifier
+          </a>
 
-          <form method="post"
-                action="{{ path('admin_programmationRule_delete', {id: rule.id}) }}"
-                onsubmit="return confirm('Supprimer cette règle de programmation ?');">
-            <input type="hidden" name="_token" value="{{ csrf_token('delete_rule_' ~ rule.id) }}">
-            <button type="submit" class="btn-delete">Supprimer</button>
+          <a
+            href="{{ path(
+              'admin_programmationRuleSlot_index',
+              {ruleId: rule.id}
+            ) }}"
+            class="btn-slots"
+          >
+            Créneaux
+          </a>
+
+          {% if rule.isActive %}
+            <form
+              method="post"
+              action="{{ path(
+                'admin_programmationRule_deactivate',
+                {id: rule.id}
+              ) }}"
+              onsubmit="return confirm(
+                'Désactiver cette règle de programmation ?'
+              );"
+            >
+              <input
+                type="hidden"
+                name="_token"
+                value="{{ csrf_token(
+                  'deactivate_rule_' ~ rule.id
+                ) }}"
+              >
+
+              <button
+                type="submit"
+                class="btn-deactivate"
+              >
+                Désactiver
+              </button>
+            </form>
+          {% elseif not hasConflict %}
+            <form
+              method="post"
+              action="{{ path(
+                'admin_programmationRule_activate',
+                {id: rule.id}
+              ) }}"
+              onsubmit="return confirm(
+                'Réactiver cette règle de programmation ?'
+              );"
+            >
+              <input
+                type="hidden"
+                name="_token"
+                value="{{ csrf_token(
+                  'activate_rule_' ~ rule.id
+                ) }}"
+              >
+
+              <button
+                type="submit"
+                class="btn-activate"
+              >
+                Réactiver
+              </button>
+            </form>
+          {% endif %}
+
+          <form
+            method="post"
+            action="{{ path(
+              'admin_programmationRule_delete',
+              {id: rule.id}
+            ) }}"
+            onsubmit="return confirm(
+              'Supprimer cette règle de programmation ?'
+            );"
+          >
+            <input
+              type="hidden"
+              name="_token"
+              value="{{ csrf_token(
+                'delete_rule_' ~ rule.id
+              ) }}"
+            >
+
+            <button
+              type="submit"
+              class="btn-delete"
+            >
+              Supprimer
+            </button>
           </form>
         </div>
       </div>
     {% else %}
       <div class="card">
-        <p class="empty">Aucune règle de programmation pour le moment.</p>
+        <p class="empty">
+          Aucune règle de programmation pour le moment.
+        </p>
       </div>
     {% endfor %}
   </div>

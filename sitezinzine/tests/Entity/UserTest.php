@@ -22,6 +22,8 @@ class UserTest extends TestCase
         $this->assertNull($user->getPendingEmail());
         $this->assertNull($user->getPseudo());
         $this->assertFalse($user->isVerified());
+        $this->assertNull($user->getDeletedAt());
+        $this->assertFalse($user->isDeleted());
 
         $this->assertSame(['ROLE_USER'], $user->getRoles());
 
@@ -441,6 +443,51 @@ class UserTest extends TestCase
             ->validateProperty($user, 'pseudo');
 
         $this->assertCount(0, $violations);
+    }
+
+    public function testUserCanBeDeactivated(): void
+    {
+        $user = new User();
+
+        $result = $user->deactivate();
+
+        $this->assertSame($user, $result);
+        $this->assertTrue($user->isDeleted());
+        $this->assertInstanceOf(
+            \DateTimeImmutable::class,
+            $user->getDeletedAt()
+        );
+    }
+
+    public function testDeactivatingAlreadyDeletedUserKeepsOriginalDeletionDate(): void
+    {
+        $user = new User();
+
+        $user->deactivate();
+
+        $deletedAt = $user->getDeletedAt();
+
+        $user->deactivate();
+
+        $this->assertSame(
+            $deletedAt,
+            $user->getDeletedAt()
+        );
+
+        $this->assertTrue($user->isDeleted());
+    }
+
+    public function testUserCanBeReactivated(): void
+    {
+        $user = new User();
+
+        $user->deactivate();
+
+        $result = $user->reactivate();
+
+        $this->assertSame($user, $result);
+        $this->assertNull($user->getDeletedAt());
+        $this->assertFalse($user->isDeleted());
     }
 
     public function testEraseCredentialsDoesNothing(): void

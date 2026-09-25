@@ -10,17 +10,14 @@ use App\Repository\CategoriesRepository;
 use App\Repository\DiffusionDraftRepository;
 use App\Repository\EmissionRepository;
 use App\Service\LiveEmissionCreator;
+use App\Service\GridPlacementConflictService;
+use App\Service\PendingRebroadcastService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use App\Service\GridConflictDetector;
-use App\Service\GridOccurrenceProjectionService;
-use App\Service\ProgrammationGridBuilder;
-use App\Repository\GridSlotArbitrationRepository;
-use App\Entity\GridSlotArbitration;
 
 #[Route('/admin/grid-drafts', name: 'admin.grid_draft.')]
 #[IsGranted('ROLE_ADMIN')]
@@ -30,12 +27,8 @@ class GridDraftController extends AbstractController
     public function createManual(
         Request $request,
         EmissionRepository $emissionRepository,
-        DiffusionDraftRepository $draftRepository,
         EntityManagerInterface $em,
-        ProgrammationGridBuilder $programmationGridBuilder,
-        GridOccurrenceProjectionService $gridOccurrenceProjectionService,
-        GridConflictDetector $gridConflictDetector,
-        GridSlotArbitrationRepository $arbitrationRepository
+        GridPlacementConflictService $placementConflictService
     ): JsonResponse {
         $emissionId = $request->request->get('emissionId');
         $startsAtRaw = $request->request->get('startsAt');
@@ -99,12 +92,9 @@ class GridDraftController extends AbstractController
         }
 
         $endsAt = $startsAt->modify(sprintf('+%d minutes', $duration));
-        if ($this->hasRegularBlockingOverlap(
+        if ($placementConflictService->hasBlockingRegularOverlap(
             $startsAt,
-            $endsAt,
-            $programmationGridBuilder,
-            $gridOccurrenceProjectionService,
-            $gridConflictDetector
+            $endsAt
         )) {
             return $this->json([
                 'success' => false,
@@ -112,9 +102,9 @@ class GridDraftController extends AbstractController
                 'error' => 'Ce créneau chevauche déjà une programmation régulière.',
             ], 409);
         }
-        $overlaps = $this->filterBlockingDraftOverlaps(
-            $draftRepository->findOverlappingDrafts($startsAt, $endsAt),
-            $arbitrationRepository
+        $overlaps = $placementConflictService->findBlockingDraftOverlaps(
+            $startsAt,
+            $endsAt
         );
 
         if (\count($overlaps) > 0) {
@@ -175,13 +165,9 @@ class GridDraftController extends AbstractController
     public function createManualLive(
         Request $request,
         CategoriesRepository $categoriesRepository,
-        DiffusionDraftRepository $draftRepository,
         LiveEmissionCreator $liveEmissionCreator,
         EntityManagerInterface $em,
-        ProgrammationGridBuilder $programmationGridBuilder,
-        GridOccurrenceProjectionService $gridOccurrenceProjectionService,
-        GridConflictDetector $gridConflictDetector,
-        GridSlotArbitrationRepository $arbitrationRepository
+        GridPlacementConflictService $placementConflictService
     ): JsonResponse {
         $categoryId = $request->request->get('categoryId');
         $startsAtRaw = $request->request->get('startsAt');
@@ -234,12 +220,9 @@ class GridDraftController extends AbstractController
         }
 
         $endsAt = $startsAt->modify(sprintf('+%d minutes', $duration));
-        if ($this->hasRegularBlockingOverlap(
+        if ($placementConflictService->hasBlockingRegularOverlap(
             $startsAt,
-            $endsAt,
-            $programmationGridBuilder,
-            $gridOccurrenceProjectionService,
-            $gridConflictDetector
+            $endsAt
         )) {
             return $this->json([
                 'success' => false,
@@ -247,9 +230,9 @@ class GridDraftController extends AbstractController
                 'error' => 'Ce créneau chevauche déjà une programmation régulière.',
             ], 409);
         }
-        $overlaps = $this->filterBlockingDraftOverlaps(
-            $draftRepository->findOverlappingDrafts($startsAt, $endsAt),
-            $arbitrationRepository
+        $overlaps = $placementConflictService->findBlockingDraftOverlaps(
+            $startsAt,
+            $endsAt
         );
 
         if (\count($overlaps) > 0) {
@@ -301,45 +284,11 @@ class GridDraftController extends AbstractController
         ]);
     }
 
-    private function filterBlockingDraftOverlaps(
-        array $drafts,
-        GridSlotArbitrationRepository $arbitrationRepository
-    ): array {
-        return array_values(array_filter(
-            $drafts,
-            static function (DiffusionDraft $draft) use ($arbitrationRepository): bool {
-                if (DiffusionDraft::TYPE_REGULAR !== $draft->getDraftType()) {
-                    return true;
-                }
-
-                $slot = $draft->getSlot();
-                $startsAt = $draft->getHoraireDiffusion();
-
-                if (!$slot || !$slot->getId() || !$startsAt instanceof \DateTimeImmutable) {
-                    return true;
-                }
-
-                $arbitration = $arbitrationRepository->findOneBy([
-                    'slot' => $slot,
-                    'originalStartsAt' => $startsAt,
-                ]);
-
-                if (!$arbitration instanceof GridSlotArbitration) {
-                    return true;
-                }
-
-                return !(
-                    $arbitration->isCancelAction() ||
-                    $arbitration->isRescheduleAction()
-                );
-            }
-        ));
-    }
-
     #[Route('/delete', name: 'delete', methods: ['POST'])]
     public function delete(
         Request $request,
         DiffusionDraftRepository $draftRepository,
+        PendingRebroadcastService $pendingRebroadcastService,
         EntityManagerInterface $em
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
@@ -361,7 +310,11 @@ class GridDraftController extends AbstractController
             ], 400);
         }
 
-        if (!\in_array($deleteMode, ['single', 'rebroadcasts', 'group'], true)) {
+        if (!\in_array(
+            $deleteMode,
+            ['single', 'rebroadcasts', 'group'],
+            true
+        )) {
             return $this->json([
                 'success' => false,
                 'error' => 'Mode de suppression invalide',
@@ -390,22 +343,61 @@ class GridDraftController extends AbstractController
 
         $draftsToDelete = [$draft];
         $groupKey = $draft->getAssignmentGroupKey();
+        $groupDrafts = [];
+        $groupHasRegularDrafts = false;
 
-        if ($groupKey && 'single' !== $deleteMode) {
+        /*
+     * Le groupe doit être chargé même pour une suppression "single".
+     *
+     * Cela permet :
+     * - de savoir si une rediffusion appartient à un groupe régulier ;
+     * - de décider si elle doit retourner dans le Parc à rediff ;
+     * - de renuméroter correctement les rediffusions restantes.
+     */
+        if ($groupKey) {
             $groupDrafts = $draftRepository->findBy([
                 'assignmentGroupKey' => $groupKey,
             ]);
 
+            $groupHasRegularDrafts = \count(array_filter(
+                $groupDrafts,
+                static fn(DiffusionDraft $item): bool =>
+                DiffusionDraft::TYPE_REGULAR === $item->getDraftType()
+            )) > 0;
+        }
+
+        if ($groupKey && 'single' !== $deleteMode) {
             if ('rebroadcasts' === $deleteMode) {
                 $draftsToDelete = array_values(array_filter(
                     $groupDrafts,
                     static fn(DiffusionDraft $item): bool =>
-                    DiffusionDraft::TYPE_MANUAL_REBROADCAST === $item->getDraftType()
+                    DiffusionDraft::TYPE_MANUAL_REBROADCAST
+                        === $item->getDraftType()
                 ));
             }
 
             if ('group' === $deleteMode) {
-                $draftsToDelete = $groupDrafts;
+                /*
+             * Un groupe issu d'une programmation régulière ne doit jamais
+             * perdre ses diffusions régulières depuis cette action.
+             *
+             * "Supprimer le groupe" depuis une rediffusion ponctuelle
+             * signifie donc supprimer toutes les rediffusions manuelles
+             * ajoutées à ce groupe.
+             *
+             * Pour un groupe entièrement manuel, le comportement historique
+             * est conservé : tout le groupe est supprimé.
+             */
+                if ($groupHasRegularDrafts) {
+                    $draftsToDelete = array_values(array_filter(
+                        $groupDrafts,
+                        static fn(DiffusionDraft $item): bool =>
+                        DiffusionDraft::TYPE_MANUAL_REBROADCAST
+                            === $item->getDraftType()
+                    ));
+                } else {
+                    $draftsToDelete = $groupDrafts;
+                }
             }
         }
 
@@ -416,27 +408,68 @@ class GridDraftController extends AbstractController
             ], 400);
         }
 
+        /*
+     * Une rediffusion retirée individuellement d'un groupe régulier
+     * retourne dans le Parc à rediff.
+     *
+     * Les groupes entièrement manuels ne sont pas concernés.
+     *
+     * Les suppressions explicites "rebroadcasts" et "group" ne recréent
+     * pas de PendingRebroadcast.
+     */
+        if (
+            'single' === $deleteMode
+            && DiffusionDraft::TYPE_MANUAL_REBROADCAST === $draft->getDraftType()
+            && $groupHasRegularDrafts
+            && null !== $groupKey
+        ) {
+            $emission = $draft->getEmission();
+
+            if ($emission instanceof Emission) {
+                $pendingRebroadcastService->createForGroup(
+                    $emission,
+                    $groupKey
+                );
+            }
+        }
+
         foreach ($draftsToDelete as $item) {
             if ($item instanceof DiffusionDraft) {
                 $em->remove($item);
             }
         }
 
-        if ($groupKey && 'group' !== $deleteMode) {
-            $remainingDrafts = $draftRepository->findBy(
-                ['assignmentGroupKey' => $groupKey],
-                ['horaireDiffusion' => 'ASC']
-            );
+        /*
+     * Si le groupe continue d'exister, on renumérote ce qui reste.
+     *
+     * Les entités passées à remove() sont encore visibles par les requêtes
+     * Doctrine tant que le flush n'a pas eu lieu. On transmet donc
+     * explicitement la liste des Drafts en cours de suppression afin
+     * qu'ils soient ignorés pendant la renumérotation.
+     */
+        if ($groupKey) {
+            if ($groupHasRegularDrafts) {
+                $this->renumberRegularGroupManualRebroadcasts(
+                    $groupKey,
+                    $draftRepository,
+                    $draftsToDelete
+                );
+            } elseif ('group' !== $deleteMode) {
+                $remainingDrafts = $draftRepository->findBy(
+                    ['assignmentGroupKey' => $groupKey],
+                    ['horaireDiffusion' => 'ASC']
+                );
 
-            $rank = 1;
+                $rank = 1;
 
-            foreach ($remainingDrafts as $remainingDraft) {
-                if (\in_array($remainingDraft, $draftsToDelete, true)) {
-                    continue;
+                foreach ($remainingDrafts as $remainingDraft) {
+                    if (\in_array($remainingDraft, $draftsToDelete, true)) {
+                        continue;
+                    }
+
+                    $remainingDraft->setNombreDiffusion($rank);
+                    ++$rank;
                 }
-
-                $remainingDraft->setNombreDiffusion($rank);
-                ++$rank;
             }
         }
 
@@ -455,10 +488,7 @@ class GridDraftController extends AbstractController
         Request $request,
         DiffusionDraftRepository $draftRepository,
         EntityManagerInterface $em,
-        ProgrammationGridBuilder $programmationGridBuilder,
-        GridOccurrenceProjectionService $gridOccurrenceProjectionService,
-        GridConflictDetector $gridConflictDetector,
-        GridSlotArbitrationRepository $arbitrationRepository
+        GridPlacementConflictService $placementConflictService
     ): JsonResponse {
         $draftId = $request->request->getInt('draftId');
         $startsAt = $request->request->get('startsAt');
@@ -495,6 +525,58 @@ class GridDraftController extends AbstractController
             ], 400);
         }
 
+        $groupKey = $draft->getAssignmentGroupKey();
+        $isRegularOriginGroup = false;
+
+        /*
+     * Une rediffusion ponctuelle appartenant à un groupe régulier
+     * doit toujours rester après toutes les diffusions régulières
+     * de ce groupe.
+     */
+        if (
+            DiffusionDraft::TYPE_MANUAL_REBROADCAST === $draft->getDraftType()
+            && $groupKey
+        ) {
+            $groupDrafts = $draftRepository->findByAssignmentGroupKey(
+                $groupKey
+            );
+
+            $lastRegularEndsAt = null;
+
+            foreach ($groupDrafts as $groupDraft) {
+                if (
+                    !$groupDraft instanceof DiffusionDraft
+                    || DiffusionDraft::TYPE_REGULAR !== $groupDraft->getDraftType()
+                ) {
+                    continue;
+                }
+
+                $isRegularOriginGroup = true;
+
+                $regularEndsAt = $groupDraft->getEndsAt();
+
+                if (
+                    $regularEndsAt instanceof \DateTimeImmutable
+                    && (
+                        null === $lastRegularEndsAt
+                        || $regularEndsAt > $lastRegularEndsAt
+                    )
+                ) {
+                    $lastRegularEndsAt = $regularEndsAt;
+                }
+            }
+
+            if (
+                $lastRegularEndsAt instanceof \DateTimeImmutable
+                && $newStartsAt < $lastRegularEndsAt
+            ) {
+                return $this->json([
+                    'success' => false,
+                    'error' => 'Une rediffusion ponctuelle doit être placée après toutes les diffusions régulières du groupe.',
+                ], 400);
+            }
+        }
+
         $duration = $draft->getDurationMinutes()
             ?? $draft->getEmission()?->getDuree()
             ?? 15;
@@ -503,13 +585,13 @@ class GridDraftController extends AbstractController
             $duration = 15;
         }
 
-        $newEndsAt = $newStartsAt->modify(sprintf('+%d minutes', $duration));
-        if ($this->hasRegularBlockingOverlap(
+        $newEndsAt = $newStartsAt->modify(
+            sprintf('+%d minutes', $duration)
+        );
+
+        if ($placementConflictService->hasBlockingRegularOverlap(
             $newStartsAt,
-            $newEndsAt,
-            $programmationGridBuilder,
-            $gridOccurrenceProjectionService,
-            $gridConflictDetector
+            $newEndsAt
         )) {
             return $this->json([
                 'success' => false,
@@ -518,16 +600,13 @@ class GridDraftController extends AbstractController
             ], 409);
         }
 
-        $overlappingDrafts = $this->filterBlockingDraftOverlaps(
-            $draftRepository->findOverlappingDrafts(
-                $newStartsAt,
-                $newEndsAt,
-                $draft->getId()
-            ),
-            $arbitrationRepository
+        $overlappingDrafts = $placementConflictService->findBlockingDraftOverlaps(
+            $newStartsAt,
+            $newEndsAt,
+            $draft->getId()
         );
 
-        if (count($overlappingDrafts) > 0) {
+        if (\count($overlappingDrafts) > 0) {
             return $this->json([
                 'success' => false,
                 'error' => 'Ce déplacement chevauche déjà une autre programmation.',
@@ -538,13 +617,28 @@ class GridDraftController extends AbstractController
 
         $em->flush();
 
-        $groupKey = $draft->getAssignmentGroupKey();
-
+        /*
+     * Deux politiques différentes :
+     *
+     * - groupe d'origine régulière :
+     *   les rangs réguliers restent intacts et seules les
+     *   rediffusions ponctuelles sont renumérotées ;
+     *
+     * - groupe entièrement ponctuel :
+     *   on conserve la renumérotation historique du groupe.
+     */
         if ($groupKey) {
-            $this->renumberDraftGroupChronologically(
-                $groupKey,
-                $draftRepository
-            );
+            if ($isRegularOriginGroup) {
+                $this->renumberRegularGroupManualRebroadcasts(
+                    $groupKey,
+                    $draftRepository
+                );
+            } else {
+                $this->renumberDraftGroupChronologically(
+                    $groupKey,
+                    $draftRepository
+                );
+            }
         }
 
         $em->flush();
@@ -557,50 +651,301 @@ class GridDraftController extends AbstractController
         ]);
     }
 
-    private function hasRegularBlockingOverlap(
-        \DateTimeImmutable $startsAt,
-        \DateTimeImmutable $endsAt,
-        ProgrammationGridBuilder $programmationGridBuilder,
-        GridOccurrenceProjectionService $gridOccurrenceProjectionService,
-        GridConflictDetector $gridConflictDetector
-    ): bool {
-        return \count($this->findRegularBlockingOverlaps(
-            $startsAt,
-            $endsAt,
-            $programmationGridBuilder,
-            $gridOccurrenceProjectionService,
-            $gridConflictDetector
-        )) > 0;
-    }
+    #[Route('/regular-rebroadcasts', name: 'regular_rebroadcasts_create', methods: ['POST'])]
+    public function createRegularRebroadcasts(
+        Request $request,
+        DiffusionDraftRepository $draftRepository,
+        EntityManagerInterface $em,
+        GridPlacementConflictService $placementConflictService
+    ): JsonResponse {
+        $data = json_decode($request->getContent(), true);
 
-    private function findRegularBlockingOverlaps(
-        \DateTimeImmutable $startsAt,
-        \DateTimeImmutable $endsAt,
-        ProgrammationGridBuilder $programmationGridBuilder,
-        GridOccurrenceProjectionService $gridOccurrenceProjectionService,
-        GridConflictDetector $gridConflictDetector
-    ): array {
-        $weekStart = $this->getRadioWeekStart($startsAt);
-        $weekEnd = $weekStart->modify('+7 days');
+        if (!\is_array($data)) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Payload JSON invalide.',
+            ], 400);
+        }
 
-        $daySegments = $programmationGridBuilder->buildForWeek($weekStart, $weekEnd);
-        $daySegments = $gridOccurrenceProjectionService->applyForWeek($daySegments, $weekStart, $weekEnd);
+        $draftId = (int) ($data['draftId'] ?? 0);
+        $rebroadcasts = $data['rebroadcasts'] ?? [];
 
-        return $gridConflictDetector->findBlockingOverlapsForRange(
-            $daySegments,
-            $startsAt,
-            $endsAt
+        if (
+            $draftId <= 0
+            || !\is_array($rebroadcasts)
+            || [] === $rebroadcasts
+        ) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Paramètres manquants.',
+            ], 400);
+        }
+
+        $parentDraft = $draftRepository->find($draftId);
+
+        if (
+            !$parentDraft instanceof DiffusionDraft
+            || DiffusionDraft::TYPE_REGULAR !== $parentDraft->getDraftType()
+            || 1 !== $parentDraft->getNombreDiffusion()
+        ) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Première diffusion régulière introuvable.',
+            ], 404);
+        }
+
+        $groupKey = $parentDraft->getAssignmentGroupKey();
+
+        if (!$groupKey) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Cette diffusion régulière ne possède pas de groupe.',
+            ], 400);
+        }
+
+        $emission = $parentDraft->getEmission();
+
+        if (!$emission instanceof Emission) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Émission introuvable.',
+            ], 404);
+        }
+
+        $duration = (int) (
+            $parentDraft->getDurationMinutes()
+            ?? $emission->getDuree()
+            ?? 15
         );
+
+        if ($duration < 1) {
+            $duration = 15;
+        }
+
+        $groupDrafts = $draftRepository->findByAssignmentGroupKey(
+            $groupKey
+        );
+
+        $maxNombreDiffusion = 0;
+        $lastRegularEndsAt = null;
+
+        foreach ($groupDrafts as $groupDraft) {
+            if (!$groupDraft instanceof DiffusionDraft) {
+                continue;
+            }
+
+            $maxNombreDiffusion = max(
+                $maxNombreDiffusion,
+                (int) $groupDraft->getNombreDiffusion()
+            );
+
+            if (DiffusionDraft::TYPE_REGULAR !== $groupDraft->getDraftType()) {
+                continue;
+            }
+
+            $regularEndsAt = $groupDraft->getEndsAt();
+
+            if (
+                $regularEndsAt instanceof \DateTimeImmutable
+                && (
+                    null === $lastRegularEndsAt
+                    || $regularEndsAt > $lastRegularEndsAt
+                )
+            ) {
+                $lastRegularEndsAt = $regularEndsAt;
+            }
+        }
+
+        $createdDrafts = [];
+
+        foreach ($rebroadcasts as $rawStartsAt) {
+            if (
+                !\is_string($rawStartsAt)
+                || '' === trim($rawStartsAt)
+            ) {
+                continue;
+            }
+
+            try {
+                $startsAt = new \DateTimeImmutable($rawStartsAt);
+            } catch (\Exception) {
+                return $this->json([
+                    'success' => false,
+                    'error' => 'Date de rediffusion invalide.',
+                ], 400);
+            }
+
+            $minute = (int) $startsAt->format('i');
+
+            if ($minute % 15 !== 0) {
+                return $this->json([
+                    'success' => false,
+                    'error' => 'Les heures doivent être alignées sur un quart d’heure.',
+                ], 400);
+            }
+
+            if (
+                $lastRegularEndsAt instanceof \DateTimeImmutable
+                && $startsAt < $lastRegularEndsAt
+            ) {
+                return $this->json([
+                    'success' => false,
+                    'error' => 'Une rediffusion ponctuelle doit être placée après toutes les diffusions régulières du groupe.',
+                ], 400);
+            }
+
+            $endsAt = $startsAt->modify(
+                sprintf('+%d minutes', $duration)
+            );
+
+            $regularOverlaps = $placementConflictService->findBlockingRegularOverlaps(
+                $startsAt,
+                $endsAt
+            );
+
+            if (\count($regularOverlaps) > 0) {
+                return $this->json([
+                    'success' => false,
+                    'conflict' => true,
+                    'error' => 'Une rediffusion chevauche déjà une programmation régulière.',
+                    'debug' => $regularOverlaps,
+                ], 409);
+            }
+
+            $overlappingDrafts = $placementConflictService->findBlockingDraftOverlaps(
+                $startsAt,
+                $endsAt
+            );
+
+            if (\count($overlappingDrafts) > 0) {
+                return $this->json([
+                    'success' => false,
+                    'conflict' => true,
+                    'error' => 'Une rediffusion chevauche déjà une programmation existante.',
+                ], 409);
+            }
+
+            ++$maxNombreDiffusion;
+
+            $draft = new DiffusionDraft();
+
+            $draft
+                ->setEmission($emission)
+                ->setDraftType(
+                    DiffusionDraft::TYPE_MANUAL_REBROADCAST
+                )
+                ->setNombreDiffusion($maxNombreDiffusion)
+                ->setAssignmentGroupKey($groupKey)
+                ->setSchedule($startsAt, $duration);
+
+            $em->persist($draft);
+            $createdDrafts[] = $draft;
+        }
+
+        if ([] === $createdDrafts) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Aucune rediffusion valide à créer.',
+            ], 400);
+        }
+
+        /*
+     * On enregistre d'abord les nouvelles rediffusions afin qu'elles
+     * soient incluses dans la requête de renumérotation du groupe.
+     */
+        $em->flush();
+
+        /*
+     * Les rangs réguliers restent intacts.
+     * Seules les rediffusions ponctuelles sont renumérotées
+     * chronologiquement après les régulières.
+     */
+        $this->renumberRegularGroupManualRebroadcasts(
+            $groupKey,
+            $draftRepository
+        );
+
+        $em->flush();
+
+        return $this->json([
+            'success' => true,
+            'createdCount' => \count($createdDrafts),
+            'assignmentGroupKey' => $groupKey,
+        ]);
     }
 
-    private function getRadioWeekStart(\DateTimeImmutable $date): \DateTimeImmutable
-    {
-        $dayOfWeek = (int) $date->format('N');
-        $daysSinceTuesday = ($dayOfWeek + 5) % 7;
+    private function renumberRegularGroupManualRebroadcasts(
+        string $assignmentGroupKey,
+        DiffusionDraftRepository $draftRepository,
+        array $draftsToIgnore = []
+    ): void {
+        $groupDrafts = $draftRepository->findBy(
+            ['assignmentGroupKey' => $assignmentGroupKey],
+            ['horaireDiffusion' => 'ASC']
+        );
 
-        return $date
-            ->modify(sprintf('-%d days', $daysSinceTuesday))
-            ->setTime(0, 0);
+        /*
+     * On travaille avec les identifiants et non avec l'identité
+     * des objets Doctrine.
+     *
+     * Les Drafts passés à EntityManager::remove() existent encore
+     * en base jusqu'au flush final et peuvent donc toujours être
+     * retournés par le repository.
+     */
+        $ignoredDraftIds = [];
+
+        foreach ($draftsToIgnore as $draftToIgnore) {
+            if (!$draftToIgnore instanceof DiffusionDraft) {
+                continue;
+            }
+
+            $ignoredId = $draftToIgnore->getId();
+
+            if (null !== $ignoredId) {
+                $ignoredDraftIds[] = $ignoredId;
+            }
+        }
+
+        $maxRegularRank = 0;
+        $manualRebroadcasts = [];
+
+        foreach ($groupDrafts as $groupDraft) {
+            if (!$groupDraft instanceof DiffusionDraft) {
+                continue;
+            }
+
+            $groupDraftId = $groupDraft->getId();
+
+            if (
+                null !== $groupDraftId
+                && \in_array($groupDraftId, $ignoredDraftIds, true)
+            ) {
+                continue;
+            }
+
+            if (DiffusionDraft::TYPE_REGULAR === $groupDraft->getDraftType()) {
+                $maxRegularRank = max(
+                    $maxRegularRank,
+                    (int) $groupDraft->getNombreDiffusion()
+                );
+
+                continue;
+            }
+
+            if (
+                DiffusionDraft::TYPE_MANUAL_REBROADCAST
+                === $groupDraft->getDraftType()
+            ) {
+                $manualRebroadcasts[] = $groupDraft;
+            }
+        }
+
+        $rank = $maxRegularRank + 1;
+
+        foreach ($manualRebroadcasts as $manualRebroadcast) {
+            $manualRebroadcast->setNombreDiffusion($rank);
+            ++$rank;
+        }
     }
 
     #[Route('/rebroadcasts', name: 'rebroadcasts_create', methods: ['POST'])]
@@ -608,10 +953,7 @@ class GridDraftController extends AbstractController
         Request $request,
         DiffusionDraftRepository $draftRepository,
         EntityManagerInterface $em,
-        ProgrammationGridBuilder $programmationGridBuilder,
-        GridOccurrenceProjectionService $gridOccurrenceProjectionService,
-        GridConflictDetector $gridConflictDetector,
-        GridSlotArbitrationRepository $arbitrationRepository
+        GridPlacementConflictService $placementConflictService
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
@@ -705,12 +1047,9 @@ class GridDraftController extends AbstractController
 
             $endsAt = $startsAt->modify(sprintf('+%d minutes', $duration));
 
-            $regularOverlaps = $this->findRegularBlockingOverlaps(
+            $regularOverlaps = $placementConflictService->findBlockingRegularOverlaps(
                 $startsAt,
-                $endsAt,
-                $programmationGridBuilder,
-                $gridOccurrenceProjectionService,
-                $gridConflictDetector
+                $endsAt
             );
 
             if (\count($regularOverlaps) > 0) {
@@ -722,12 +1061,9 @@ class GridDraftController extends AbstractController
                 ], 409);
             }
 
-            $overlappingDrafts = $this->filterBlockingDraftOverlaps(
-                $draftRepository->findOverlappingDrafts(
-                    $startsAt,
-                    $endsAt
-                ),
-                $arbitrationRepository
+            $overlappingDrafts = $placementConflictService->findBlockingDraftOverlaps(
+                $startsAt,
+                $endsAt
             );
 
             if (\count($overlappingDrafts) > 0) {

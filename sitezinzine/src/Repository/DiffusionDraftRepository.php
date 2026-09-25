@@ -231,4 +231,61 @@ class DiffusionDraftRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Retourne tous les Drafts appartenant à des groupes réguliers
+     * d'une règle donnée.
+     *
+     * On part volontairement des Drafts réguliers liés aux slots de la règle,
+     * puis on récupère tous les Drafts portant les mêmes assignmentGroupKey.
+     *
+     * Cela permet notamment d'inclure :
+     * - les diffusions régulières ;
+     * - les rediffusions ponctuelles ajoutées au groupe.
+     *
+     * @return DiffusionDraft[]
+     */
+    public function findRegularGroupsByRule(int $ruleId): array
+    {
+        $groupKeyRows = $this->createQueryBuilder('regularDraft')
+            ->select('DISTINCT regularDraft.assignmentGroupKey AS assignmentGroupKey')
+            ->join('regularDraft.slot', 'slot')
+            ->andWhere('IDENTITY(slot.rule) = :ruleId')
+            ->andWhere('regularDraft.draftType = :regularType')
+            ->andWhere('regularDraft.assignmentGroupKey IS NOT NULL')
+            ->setParameter('ruleId', $ruleId)
+            ->setParameter('regularType', DiffusionDraft::TYPE_REGULAR)
+            ->getQuery()
+            ->getArrayResult();
+
+        $groupKeys = array_values(array_filter(
+            array_map(
+                static fn(array $row): ?string =>
+                isset($row['assignmentGroupKey'])
+                    && \is_string($row['assignmentGroupKey'])
+                    ? $row['assignmentGroupKey']
+                    : null,
+                $groupKeyRows
+            ),
+            static fn(?string $key): bool =>
+            null !== $key && '' !== trim($key)
+        ));
+
+        if ([] === $groupKeys) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('d')
+            ->addSelect('slot', 'emission', 'publishedDiffusion')
+            ->leftJoin('d.slot', 'slot')
+            ->join('d.emission', 'emission')
+            ->leftJoin('d.publishedDiffusion', 'publishedDiffusion')
+            ->andWhere('d.assignmentGroupKey IN (:groupKeys)')
+            ->setParameter('groupKeys', $groupKeys)
+            ->orderBy('d.assignmentGroupKey', SortDirection::Ascending)
+            ->addOrderBy('d.horaireDiffusion', SortDirection::Ascending)
+            ->addOrderBy('d.id', SortDirection::Ascending)
+            ->getQuery()
+            ->getResult();
+    }
 }

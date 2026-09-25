@@ -326,8 +326,25 @@ class EmissionController extends AbstractController
 
 
     #[Route('/{id}', name: 'delete', methods: ['DELETE'], requirements: ['id' => Requirement::DIGITS])]
-    public function delete(Request $request, Emission $emission, EntityManagerInterface $em): Response
-    {
+    public function delete(
+        Request $request,
+        Emission $emission,
+        EntityManagerInterface $em
+    ): Response {
+        $user = $this->getUser();
+
+        // Un ADMIN / SUPER_ADMIN peut supprimer toutes les émissions.
+        // Un USER / EDITOR ne peut supprimer que les émissions
+        // auxquelles il est associé.
+        if (
+            !$this->isGranted('ROLE_ADMIN')
+            && (!$user || !$emission->getUsers()->contains($user))
+        ) {
+            throw $this->createAccessDeniedException(
+                'Vous n\'avez pas les droits pour supprimer cette émission.'
+            );
+        }
+
         $token = $request->request->get('_token');
 
         if (!$this->isCsrfTokenValid('delete' . $emission->getId(), $token)) {

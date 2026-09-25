@@ -225,23 +225,26 @@ class UserController extends AbstractController
         User $user,
         EntityManagerInterface $entityManager
     ): Response {
-        if ($this->isCsrfTokenValid(
+        if (!$this->isCsrfTokenValid(
             'delete-user-' . $user->getId(),
             $request->request->getString('_token')
         )) {
-            $entityManager->remove($user);
-            $entityManager->flush();
-
-            $this->addFlash(
-                'success',
-                'L\'utilisateur a bien été supprimé.'
-            );
-        } else {
             $this->addFlash(
                 'error',
-                'Jeton CSRF invalide. Suppression annulée.'
+                'Jeton CSRF invalide. Désactivation annulée.'
             );
+
+            return $this->redirectToRoute('admin.user.index');
         }
+
+        $user->deactivate();
+
+        $entityManager->flush();
+
+        $this->addFlash(
+            'success',
+            'Le compte de ' . $user->getUsername() . ' a bien été désactivé.'
+        );
 
         return $this->redirectToRoute('admin.user.index');
     }

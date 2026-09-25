@@ -75,6 +75,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private bool $isApproved = false;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $deletedAt = null;
+
 
     public function __construct()
     {
@@ -307,6 +310,39 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setApproved(bool $isApproved): static
     {
         $this->isApproved = $isApproved;
+
+        return $this;
+    }
+
+    public function getDeletedAt(): ?\DateTimeImmutable
+    {
+        return $this->deletedAt;
+    }
+
+    public function setDeletedAt(?\DateTimeImmutable $deletedAt): static
+    {
+        $this->deletedAt = $deletedAt;
+
+        return $this;
+    }
+
+    public function isDeleted(): bool
+    {
+        return $this->deletedAt !== null;
+    }
+
+    public function deactivate(): static
+    {
+        if ($this->deletedAt === null) {
+            $this->deletedAt = new \DateTimeImmutable();
+        }
+
+        return $this;
+    }
+
+    public function reactivate(): static
+    {
+        $this->deletedAt = null;
 
         return $this;
     }

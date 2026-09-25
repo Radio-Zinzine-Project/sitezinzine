@@ -434,16 +434,14 @@
                         Modifier
                       </a>
                     {% endif %}
-                    {% if deleteRoute and is_granted('ROLE_SUPER_ADMIN') %}
-                      {% if deleteRoute and is_granted('ROLE_SUPER_ADMIN') %}
-                        <form action="{{ path(deleteRoute, { id: emission.id }) }}" method="post" onsubmit="return confirm('Voulez-vous vraiment supprimer cette émission ?');">
-                          <input type="hidden" name="_method" value="DELETE">
-                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ emission.id) }}">
-                              <button type="submit" class="btn-action btn-delete">
-                                Supprimer
-                              </button>
-                            </form>
-                          {% endif %}
+                    {% if deleteRoute and (is_granted('ROLE_ADMIN') or isOwner) %}
+                      <form action="{{ path(deleteRoute, { id: emission.id }) }}" method="post" onsubmit="return confirm('Voulez-vous vraiment supprimer cette émission ?');">
+                        <input type="hidden" name="_method" value="DELETE">
+                          <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ emission.id) }}">
+                            <button type="submit" class="btn-action btn-delete">
+                              Supprimer
+                            </button>
+                          </form>
                         {% endif %}
                       </div>
                     {% endif %}

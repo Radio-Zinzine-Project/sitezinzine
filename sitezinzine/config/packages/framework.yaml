@@ -10,6 +10,12 @@ framework:
     #fragments: true
     http_method_override: true
 
+    rate_limiter:
+        email_verification_resend:
+            policy: 'sliding_window'
+            limit: 3
+            interval: '15 minutes'
+
 when@test:
     framework:
         test: true

@@ -653,4 +653,145 @@ class ProgrammationGridBuilder
 
         return null;
     }
+
+    /**
+     * Construit les occurrences théoriques d'une règle pour une semaine radio.
+     *
+     * Contrairement à buildForWeek(), cette méthode travaille sur la règle
+     * explicitement fournie et ne tient volontairement pas compte de son état
+     * actif/inactif.
+     *
+     * Cela permet notamment de comparer une programmation existante avec une
+     * règle qui vient d'être désactivée sans dupliquer les calculs de récurrence.
+     *
+     * Les slots inactifs ou supprimés restent exclus : ils ne font plus partie
+     * de la structure attendue de la règle.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function buildRuleOccurrencesForWeek(
+        ProgrammationRule $rule,
+        \DateTimeImmutable $startOfWeek,
+        \DateTimeImmutable $endOfWeek
+    ): array {
+        if ($rule->isDeleted()) {
+            return [];
+        }
+
+        $firstBroadcastSlots = [];
+        $rebroadcastSlots = [];
+
+        foreach ($rule->getSlots() as $slot) {
+            if (!$slot instanceof ProgrammationRuleSlot) {
+                continue;
+            }
+
+            if (!$slot->isActive() || $slot->isDeleted()) {
+                continue;
+            }
+
+            if (1 === $slot->getBroadcastRank()) {
+                $firstBroadcastSlots[] = $slot;
+            } else {
+                $rebroadcastSlots[] = $slot;
+            }
+        }
+
+        $segments = [];
+
+        foreach ($firstBroadcastSlots as $firstSlot) {
+            $firstOccurrences = $this->generateSlotOccurrencesForWeekWithLookAround(
+                $rule,
+                $firstSlot,
+                $startOfWeek,
+                $endOfWeek
+            );
+
+            foreach ($firstOccurrences as $firstStartsAt) {
+                if (
+                    $firstStartsAt >= $startOfWeek
+                    && $firstStartsAt < $endOfWeek
+                ) {
+                    $segments[] = $this->buildRuleOccurrenceSegment(
+                        $rule,
+                        $firstSlot,
+                        $firstStartsAt,
+                        $firstStartsAt
+                    );
+                }
+
+                foreach ($rebroadcastSlots as $rebroadcastSlot) {
+                    $rebroadcastStartsAt = $this->computeStartsAtFromAnchor(
+                        $firstStartsAt,
+                        $rebroadcastSlot
+                    );
+
+                    /*
+                 * Une rediffusion peut appartenir à une semaine radio
+                 * différente de celle de sa première diffusion.
+                 *
+                 * On la conserve donc ici : le synchronizer travaille
+                 * au niveau du groupe complet et non uniquement de
+                 * l'affichage de la semaine.
+                 */
+                    $segments[] = $this->buildRuleOccurrenceSegment(
+                        $rule,
+                        $rebroadcastSlot,
+                        $rebroadcastStartsAt,
+                        $firstStartsAt
+                    );
+                }
+            }
+        }
+
+        usort(
+            $segments,
+            static function (array $a, array $b): int {
+                $rankComparison =
+                    ($a['broadcastRank'] ?? 0)
+                    <=>
+                    ($b['broadcastRank'] ?? 0);
+
+                if (0 !== $rankComparison) {
+                    return $rankComparison;
+                }
+
+                return strcmp(
+                    (string) ($a['startsAt'] ?? ''),
+                    (string) ($b['startsAt'] ?? '')
+                );
+            }
+        );
+
+        return $segments;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildRuleOccurrenceSegment(
+        ProgrammationRule $rule,
+        ProgrammationRuleSlot $slot,
+        \DateTimeImmutable $startsAt,
+        \DateTimeImmutable $firstBroadcastStartsAt
+    ): array {
+        $duration = $slot->getDurationMinutes() ?? 15;
+        $endsAt = $startsAt->modify(
+            sprintf('+%d minutes', $duration)
+        );
+
+        return [
+            'ruleId' => $rule->getId(),
+            'slotId' => $slot->getId(),
+            'broadcastRank' => $slot->getBroadcastRank(),
+
+            'firstBroadcastStartsAt' =>
+            $firstBroadcastStartsAt->format('Y-m-d H:i:s'),
+
+            'startsAt' => $startsAt->format('Y-m-d H:i:s'),
+            'endsAt' => $endsAt->format('Y-m-d H:i:s'),
+
+            'duration' => $duration,
+        ];
+    }
 }

@@ -239,7 +239,18 @@ final class GridViewBuilder
         \DateTimeImmutable $weekStart,
         \DateTimeImmutable $weekEnd
     ): array {
-        $diffusions = $this->diffusionRepository->findByWeek($weekStart, $weekEnd);
+        /*
+     * La grille validée ne doit afficher que les Diffusion
+     * actuellement publiées.
+     *
+     * Les Diffusion "unpublished" restent volontairement en base :
+     * elles peuvent être réutilisées lors d'une future revalidation
+     * de la semaine, mais ne représentent plus l'état validé courant.
+     */
+        $diffusions = $this->diffusionRepository->findPublishedByWeek(
+            $weekStart,
+            $weekEnd
+        );
 
         $diffusionIndex = [];
         $manualDiffusionsByDay = array_fill(0, 7, []);
@@ -336,7 +347,11 @@ final class GridViewBuilder
                 continue;
             }
 
-            $dayIndex = $this->getManualDraftDayIndex($startsAt, $weekStart, $weekEnd);
+            $dayIndex = $this->getManualDraftDayIndex(
+                $startsAt,
+                $weekStart,
+                $weekEnd
+            );
 
             if (null === $dayIndex) {
                 continue;
@@ -350,8 +365,17 @@ final class GridViewBuilder
                 $duration = 15;
             }
 
-            $minutesFromMidnight = ((int) $startsAt->format('H') * 60) + (int) $startsAt->format('i');
-            $startIndex = max(0, min(95, (int) floor($minutesFromMidnight / 15)));
+            $minutesFromMidnight =
+                ((int) $startsAt->format('H') * 60)
+                + (int) $startsAt->format('i');
+
+            $startIndex = max(
+                0,
+                min(
+                    95,
+                    (int) floor($minutesFromMidnight / 15)
+                )
+            );
 
             $manualDiffusionsByDay[$dayIndex][] = [
                 'id' => $diffusion->getId(),
@@ -381,7 +405,10 @@ final class GridViewBuilder
         foreach ($manualDiffusionsByDay as &$diffusionsForDay) {
             usort(
                 $diffusionsForDay,
-                static fn(array $a, array $b): int => strcmp($a['startsAt'], $b['startsAt'])
+                static fn(array $a, array $b): int => strcmp(
+                    $a['startsAt'],
+                    $b['startsAt']
+                )
             );
         }
         unset($diffusionsForDay);

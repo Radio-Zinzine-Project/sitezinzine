@@ -1,0 +1,31 @@
+<h1>Confirmez votre nouvelle adresse e-mail</h1>
+
+<p>
+    Vous avez demandé à modifier l'adresse e-mail associée à votre compte
+    Radio Zinzine.
+</p>
+
+<p>
+    Pour confirmer cette nouvelle adresse, cliquez sur le lien suivant :
+</p>
+
+<p>
+    <a href="{{ signedUrl|raw }}">
+        Confirmer ma nouvelle adresse e-mail
+    </a>
+</p>
+
+<p>
+    Ce lien expirera dans
+    {{ expiresAtMessageKey|trans(expiresAtMessageData, 'VerifyEmailBundle') }}.
+</p>
+
+<p>
+    Tant que cette nouvelle adresse n'est pas confirmée,
+    votre adresse e-mail actuelle reste associée à votre compte.
+</p>
+
+<p>
+    Si vous n'êtes pas à l'origine de cette demande,
+    vous pouvez ignorer cet e-mail.
+</p>

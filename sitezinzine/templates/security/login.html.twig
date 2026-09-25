@@ -9,10 +9,7 @@
   min-height: 100vh;
   min-height: 100svh;
   margin: 0;
-
-  /* ✅ espace garanti à gauche / droite */
   padding: 24px 12px;
-
   font-family: "Montserrat Alternates", sans-serif;
 
   display: flex;
@@ -20,194 +17,225 @@
   justify-content: center;
 }
 
+.form {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 2rem;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.12);
+  color: #1C1C1A;
+}
+
+.form h1 {
+  text-align: center;
+  color: #E4013A;
+  font-size: 24px;
+  margin: 0 0 1.5rem 0;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.form label {
+  display: block;
+  margin: 1rem 0 0.5rem;
+  color: #333;
+  font-weight: 800;
+}
+
+.form input[type="text"],
+.form input[type="password"] {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.alert {
+  background-color: #ffe6e6;
+  border: 1px solid #ffcccc;
+  color: #cc0000;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+
+.alert-success {
+  background-color: #e9f8ed;
+  border-color: #b9e4c3;
+  color: #236b35;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.checkbox input[type="checkbox"] {
+  margin: 0;
+}
+
+button[type="submit"] {
+  width: 100%;
+  padding: 0.8rem;
+  background-color: #E4013A;
+  color: white;
+  border: none;
+  border-radius: 26px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background-color 0.3s ease;
+  font-weight: 900;
+}
+
+button[type="submit"]:hover {
+  background-color: #b30021;
+}
+
+.register-section {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: #666;
+}
+
+.register-btn {
+  display: inline-block;
+  padding: 0.8rem 1.5rem;
+  background-color: white;
+  color: #E4013A;
+  text-decoration: none;
+  border: 2px solid #E4013A;
+  border-radius: 26px;
+  margin-top: 0.5rem;
+  transition: all 0.3s ease;
+  font-weight: 900;
+}
+
+.register-btn:hover {
+  background-color: #E4013A;
+  color: white;
+}
+
+.password-field {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.password-field input {
+  flex: 1;
+  min-width: 0;
+}
+
+.toggle-password {
+  flex: 0 0 auto;
+  padding: 0.65rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #E4013A;
+  font-family: "Montserrat Alternates", sans-serif;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.toggle-password:hover {
+  background: #E4013A;
+  color: #fff;
+  border-color: #E4013A;
+}
+
+.login-help {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.login-help a {
+  color: #E4013A;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.login-help a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .bodylogin {
+    padding: 16px 0;
+    align-items: flex-start;
+  }
 
   .form {
-    width: 100%;
-    max-width: 420px;
-    margin: 0 auto;
-    padding: 2rem;
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0,0,0,.12);
-    color: #1C1C1A;
+    margin: 16px;
+    padding: 1.1rem;
+    border-radius: 12px;
   }
 
   .form h1 {
-    text-align: center;
-    color: #E4013A;
-    font-size: 24px;
-    margin: 0 0 1.5rem 0;
-    font-weight: 900;
-    overflow-wrap: anywhere;
+    font-size: 20px;
+    margin-bottom: 1.2rem;
   }
+}
 
-  .form label {
-    display: block;
-    margin: 1rem 0 0.5rem;
-    color: #333;
-    font-weight: 800;
-  }
-
-  .form input[type="text"],
-  .form input[type="password"]{
-    width: 100%;
-    padding: 0.8rem;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 16px; /* ✅ évite le zoom iOS */
-    box-sizing: border-box;
-  }
-
-  .alert {
-    background-color: #ffe6e6;
-    border: 1px solid #ffcccc;
-    color: #cc0000;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border-radius: 8px;
-    overflow-wrap: anywhere;
-  }
-
-  .checkbox {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 1rem 0;
-  }
-
-  .checkbox input[type="checkbox"] { margin: 0; }
-
-  button[type="submit"] {
-    width: 100%;
-    padding: 0.8rem;
-    background-color: #E4013A;
-    color: white;
-    border: none;
-    border-radius: 26px;
-    font-size: 16px;
-    cursor: pointer;
-    margin-top: 1rem;
-    transition: background-color 0.3s ease;
-    font-weight: 900;
-  }
-
-  button[type="submit"]:hover { background-color: #b30021; }
-
-  .register-section {
-    text-align: center;
-    margin-top: 1.5rem;
-    color: #666;
-  }
-
-  .register-btn {
-    display: inline-block;
-    padding: 0.8rem 1.5rem;
-    background-color: white;
-    color: #E4013A;
-    text-decoration: none;
-    border: 2px solid #E4013A;
-    border-radius: 26px;
-    margin-top: 0.5rem;
-    transition: all 0.3s ease;
-    font-weight: 900;
-  }
-
-  .register-btn:hover {
-    background-color: #E4013A;
-    color: white;
-  }
-
-  /* ====== Password toggle ====== */
+@media (max-width: 420px) {
   .password-field {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-
-  .password-field input {
-    flex: 1;
-    min-width: 0;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .toggle-password {
-    flex: 0 0 auto;
-    padding: 0.65rem 0.9rem;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-    background: #fff;
-    color: #E4013A;
-    font-family: "Montserrat Alternates", sans-serif;
-    font-weight: 800;
-    cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-    white-space: nowrap;
+    width: 100%;
   }
-
-  .toggle-password:hover {
-    background: #E4013A;
-    color: #fff;
-    border-color: #E4013A;
-  }
-
-  .forgot-password {
-    margin-top: 10px;
-    text-align: center;
-  }
-
-  .forgot-password a {
-    color: #E4013A;
-    font-weight: 900;
-    text-decoration: none;
-  }
-
-  .forgot-password a:hover {
-    text-decoration: underline;
-  }
-
-  /* ✅ Mobile */
-  @media (max-width: 480px){
-    .bodylogin{
-      padding: 16px 0;
-      align-items: flex-start; /* ✅ plus confortable */
-    }
-
-    .form{
-      margin: 16px;
-      padding: 1.1rem;
-      border-radius: 12px;
-    }
-
-    .form h1{
-      font-size: 20px;
-      margin-bottom: 1.2rem;
-    }
-  }
-
-  @media (max-width: 420px) {
-    .password-field { flex-direction: column; align-items: stretch; }
-    .toggle-password { width: 100%; }
-  }
+}
 </style>
 
 <div class="bodylogin">
   <div class="form">
-    <form method="post" action="{{ path('app_login') }}" data-turbo="false">
+    <form method="post"
+          action="{{ path('app_login') }}"
+          data-turbo="false">
+
       {% if error %}
         <div class="alert">
           {{ error.messageKey|trans(error.messageData, 'security') }}
         </div>
       {% endif %}
 
+      {% for message in app.flashes('success') %}
+        <div class="alert alert-success">
+          {{ message }}
+        </div>
+      {% endfor %}
+
       {% if app.user %}
         <div class="alert">
-          Vous êtes connecté en tant que {{ app.user.userIdentifier }},
-          <a href="{{ path('app_logout') }}">Se déconnecter</a>
+          Vous êtes connecté en tant que
+          {{ app.user.userIdentifier }},
+          <a href="{{ path('app_logout') }}">
+            Se déconnecter
+          </a>
         </div>
       {% endif %}
 
       <h1>Connectez-Vous</h1>
 
-      <label for="username">Nom d'utilisateurice</label>
+      <label for="username">
+        Nom d'utilisateurice
+      </label>
+
       <input
         type="text"
         value="{{ last_username }}"
@@ -218,7 +246,10 @@
         autofocus
       >
 
-      <label for="password">Mot de passe</label>
+      <label for="password">
+        Mot de passe
+      </label>
+
       <div class="password-field">
         <input
           type="password"
@@ -227,6 +258,7 @@
           autocomplete="current-password"
           required
         >
+
         <button
           type="button"
           class="toggle-password"
@@ -238,25 +270,49 @@
         </button>
       </div>
 
-      <div class="forgot-password">
-        <a href="{{ path('app_forgot_password_request') }}" data-turbo="false">
+      <div class="login-help">
+        <a href="{{ path('app_forgot_password_request') }}"
+           data-turbo="false">
           Mot de passe oublié ?
         </a>
       </div>
 
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
-
-      <div class="checkbox">
-        <input type="checkbox" name="_remember_me" id="_remember_me">
-        <label for="_remember_me">Se rappeler de moi</label>
+      <div class="login-help">
+        <a href="{{ path('app_resend_verification_email') }}"
+           data-turbo="false">
+          E-mail de confirmation non reçu ?
+        </a>
       </div>
 
-      <button type="submit">Se connecter</button>
+      <input
+        type="hidden"
+        name="_csrf_token"
+        value="{{ csrf_token('authenticate') }}"
+      >
+
+      <div class="checkbox">
+        <input
+          type="checkbox"
+          name="_remember_me"
+          id="_remember_me"
+        >
+
+        <label for="_remember_me">
+          Se rappeler de moi
+        </label>
+      </div>
+
+      <button type="submit">
+        Se connecter
+      </button>
     </form>
 
     <div class="register-section">
       <p>Pas encore de compte ?</p>
-      <a href="{{ path('app_register') }}" class="register-btn" data-turbo="false">
+
+      <a href="{{ path('app_register') }}"
+         class="register-btn"
+         data-turbo="false">
         Créer un compte
       </a>
     </div>
@@ -264,17 +320,24 @@
 </div>
 
 <script>
-  (function () {
-    const input = document.getElementById('password');
-    const btn = document.getElementById('togglePassword');
-    if (!input || !btn) return;
+(function () {
+  const input = document.getElementById('password');
+  const btn = document.getElementById('togglePassword');
 
-    btn.addEventListener('click', () => {
-      const isPassword = input.type === 'password';
-      input.type = isPassword ? 'text' : 'password';
-      btn.textContent = isPassword ? 'Masquer' : 'Afficher';
-      btn.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
-    });
-  })();
+  if (!input || !btn) {
+    return;
+  }
+
+  btn.addEventListener('click', () => {
+    const isPassword = input.type === 'password';
+
+    input.type = isPassword ? 'text' : 'password';
+    btn.textContent = isPassword ? 'Masquer' : 'Afficher';
+    btn.setAttribute(
+      'aria-pressed',
+      isPassword ? 'true' : 'false'
+    );
+  });
+})();
 </script>
 {% endblock %}

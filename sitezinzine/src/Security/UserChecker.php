@@ -16,6 +16,12 @@ class UserChecker implements UserCheckerInterface
             return;
         }
 
+        if ($user->isDeleted()) {
+            throw new CustomUserMessageAccountStatusException(
+                'Votre compte a été désactivé.'
+            );
+        }
+
         if (!$user->isVerified()) {
             throw new CustomUserMessageAccountStatusException(
                 'Votre adresse e-mail n’a pas encore été confirmée.'
@@ -32,6 +38,5 @@ class UserChecker implements UserCheckerInterface
     public function checkPostAuth(
         UserInterface $user,
         ?TokenInterface $token = null
-    ): void {
-    }
+    ): void {}
 }

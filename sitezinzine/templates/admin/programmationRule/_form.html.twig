@@ -79,10 +79,9 @@
   font-size: 13px;
 }
 
-.main-content .programmation-rule-form .checkline{
+.main-content .programmation-rule-form .rule-status{
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid #ddd;
@@ -90,11 +89,38 @@
   background: #fafafa;
 }
 
-.main-content .programmation-rule-form .checkline input[type="checkbox"]{
-  width: 18px;
-  height: 18px;
+.main-content .programmation-rule-form .rule-status-label{
+  font-weight: 800;
+  color: #333;
+  font-size: 14px;
+}
+
+.main-content .programmation-rule-form .badge{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.main-content .programmation-rule-form .badge-active{
+  background: #e7f8ec;
+  color: #1d7a37;
+}
+
+.main-content .programmation-rule-form .badge-inactive{
+  background: #f1f1f1;
+  color: #686868;
+}
+
+.main-content .programmation-rule-form .status-help{
   margin: 0;
-  accent-color: #E4013A;
+  color: #686868;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .main-content .programmation-rule-form .actions{
@@ -170,7 +196,9 @@
     font-size: 14px;
   }
 
-  .main-content .programmation-rule-form .checkline{
+  .main-content .programmation-rule-form .rule-status{
+    align-items: flex-start;
+    flex-direction: column;
     padding: 9px 10px;
   }
 }
@@ -185,6 +213,29 @@
     <div class="field">
       <label>Règle</label>
       <div>{{ rule.displayName }}</div>
+    </div>
+
+    <div class="field">
+      <div class="rule-status">
+        <span class="rule-status-label">État :</span>
+
+        {% if rule.isActive %}
+          <span class="badge badge-active">
+            Active
+          </span>
+        {% else %}
+          <span class="badge badge-inactive">
+            Inactive
+          </span>
+        {% endif %}
+      </div>
+
+      {% if not rule.isActive %}
+        <p class="status-help">
+          Une règle inactive ne peut pas être réactivée depuis ce formulaire.
+          Revenez à la liste des règles après avoir corrigé ses créneaux.
+        </p>
+      {% endif %}
     </div>
   {% endif %}
 
@@ -208,19 +259,17 @@
     </div>
   </div>
 
-  <div class="field">
-    <div class="checkline">
-      {{ form_widget(form.isActive) }}
-      {{ form_label(form.isActive) }}
-    </div>
-    {{ form_errors(form.isActive) }}
-  </div>
-
   {{ form_widget(form._token) }}
 
   <div class="actions">
     {{ form_widget(form.save) }}
-    <a href="{{ path('admin_programmationRule_index') }}" class="btn-back">Retour à la liste</a>
+
+    <a
+      href="{{ path('admin_programmationRule_index') }}"
+      class="btn-back"
+    >
+      Retour à la liste
+    </a>
   </div>
 
   {{ form_end(form, { render_rest: false }) }}

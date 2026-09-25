@@ -7,11 +7,15 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Address;
 use SymfonyCasts\Bundle\VerifyEmail\Exception\VerifyEmailExceptionInterface;
 use SymfonyCasts\Bundle\VerifyEmail\VerifyEmailHelperInterface;
 
 class EmailVerifier
 {
+    private const SENDER_EMAIL = 'noreply@radiozinzine.com';
+    private const SENDER_NAME = 'Radio Zinzine';
+
     public function __construct(
         private VerifyEmailHelperInterface $verifyEmailHelper,
         private MailerInterface $mailer,
@@ -59,7 +63,12 @@ class EmailVerifier
         $context['expiresAtMessageData'] = $signatureComponents->getExpirationMessageData();
 
         $email
-            ->from('mc.glasson@free.fr')
+            ->from(
+                new Address(
+                    self::SENDER_EMAIL,
+                    self::SENDER_NAME
+                )
+            )
             ->context($context);
 
         $this->mailer->send($email);

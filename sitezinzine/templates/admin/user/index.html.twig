@@ -10,6 +10,12 @@
        PAGE
        ========================================================= */
 
+    /*
+     * Scope général de la page.
+     *
+     * Toutes les règles restent sous .users-page afin d'éviter
+     * de modifier les autres pages de l'administration.
+     */
     .users-page,
     .users-page * {
         box-sizing: border-box;
@@ -37,7 +43,7 @@
 
 
     /* =========================================================
-       CONTENEUR TABLE
+       CONTENEUR DE LA TABLE
        ========================================================= */
 
     .users-table-wrapper {
@@ -50,6 +56,9 @@
         overflow: hidden;
     }
 
+    /*
+     * Liens permettant le tri des colonnes.
+     */
     .users-table .sort-link {
         display: inline-flex;
         align-items: center;
@@ -106,9 +115,13 @@
 
 
     /* =========================================================
-       CONTENU
+       CONTENU DES COLONNES
        ========================================================= */
 
+    /*
+     * Les adresses e-mail peuvent être longues.
+     * On autorise donc leur retour à la ligne.
+     */
     .user-email {
         overflow-wrap: anywhere;
         word-break: break-word;
@@ -117,6 +130,29 @@
     .user-roles {
         line-height: 1.4;
     }
+
+
+    /* =========================================================
+       ÉTAT DU COMPTE
+       ========================================================= */
+
+    /*
+     * Un compte peut se trouver dans quatre états visibles :
+     *
+     * 1. E-mail à confirmer
+     *    -> inscription effectuée mais e-mail non vérifié.
+     *
+     * 2. En attente de validation
+     *    -> e-mail vérifié mais compte pas encore approuvé.
+     *
+     * 3. Compte validé
+     *    -> e-mail vérifié + compte approuvé.
+     *
+     * 4. Compte désactivé
+     *    -> soft delete : deletedAt n'est pas null.
+     *
+     * L'état "désactivé" est prioritaire sur tous les autres.
+     */
 
     .account-status {
         display: inline-flex;
@@ -130,22 +166,32 @@
         text-align: center;
     }
 
+    /* E-mail pas encore confirmé. */
     .account-status--email {
         background-color: #f3f3f3;
         color: #555;
         border: 1px solid #ccc;
     }
 
+    /* E-mail confirmé, validation administrative en attente. */
     .account-status--pending {
         background-color: #fff3cd;
         color: #664d03;
         border: 1px solid #ffda6a;
     }
 
+    /* Compte utilisable normalement. */
     .account-status--approved {
         background-color: #d1e7dd;
         color: #0f5132;
         border: 1px solid #a3cfbb;
+    }
+
+    /* Compte désactivé par soft delete. */
+    .account-status--disabled {
+        background-color: #f8d7da;
+        color: #842029;
+        border: 1px solid #f1aeb5;
     }
 
 
@@ -167,6 +213,11 @@
     .user-actions form {
         margin: 0;
     }
+
+
+    /* ---------------------------------------------------------
+       Bouton d'édition
+       --------------------------------------------------------- */
 
     .btn-edit,
     .btn-approve {
@@ -198,6 +249,18 @@
         border-color: #E40039;
     }
 
+
+    /* ---------------------------------------------------------
+       Bouton de validation
+       --------------------------------------------------------- */
+
+    /*
+     * Ce bouton n'est affiché que lorsque :
+     *
+     * - l'e-mail est confirmé ;
+     * - le compte n'est pas encore approuvé ;
+     * - le compte n'est pas désactivé.
+     */
     .btn-approve {
         width: 100%;
         background-color: #198754;
@@ -210,27 +273,44 @@
         border-color: #146c43;
     }
 
-    .btn-delete {
+
+    /* ---------------------------------------------------------
+       Bouton de désactivation
+       --------------------------------------------------------- */
+
+    /*
+     * L'action admin.user.delete effectue maintenant un soft delete.
+     *
+     * On parle donc de "désactivation" dans l'interface et non plus
+     * de "suppression", puisque le User reste présent en base.
+     */
+    .btn-deactivate {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 40px;
+        width: 100%;
         min-height: 38px;
-        padding: 0.45rem 0.65rem;
+        padding: 0.45rem 0.8rem;
         background-color: #E4013A;
         color: white;
         border: none;
         border-radius: 26px;
-        font-size: 1rem;
+        font-size: 0.9rem;
+        font-weight: 700;
         cursor: pointer;
         transition:
             background-color .2s ease,
             transform .2s ease;
     }
 
-    .btn-delete:hover {
+    .btn-deactivate:hover {
         background-color: #b30021;
     }
+
+
+    /* ---------------------------------------------------------
+       Aucune action disponible
+       --------------------------------------------------------- */
 
     .no-action {
         color: #777;
@@ -274,6 +354,10 @@
             font-size: 23px;
         }
 
+        /*
+         * Sur mobile, le conteneur blanc de la table disparaît.
+         * Chaque utilisateur devient une carte indépendante.
+         */
         .users-table-wrapper {
             width: 100%;
             margin: 0;
@@ -312,6 +396,10 @@
             background: white;
         }
 
+        /*
+         * Le libellé de chaque colonne est fourni par data-label
+         * directement dans le HTML.
+         */
         .users-table td {
             display: grid;
             grid-template-columns:
@@ -349,11 +437,11 @@
 
         .btn-edit,
         .btn-approve,
-        .btn-delete {
+        .btn-deactivate {
             width: 100%;
         }
 
-        .btn-delete {
+        .btn-deactivate {
             min-height: 40px;
         }
     }
@@ -388,7 +476,7 @@
 
         .btn-edit,
         .btn-approve,
-        .btn-delete {
+        .btn-deactivate {
             min-height: 42px;
         }
     }
@@ -415,7 +503,7 @@
 
 
     /* =========================================================
-       PAYSAGE
+       PAYSAGE À FAIBLE HAUTEUR
        ========================================================= */
 
     @media screen and (max-height: 520px) and (orientation: landscape) {
@@ -451,42 +539,63 @@
         <table class="users-table">
             <thead>
                 <tr>
+                    {# -------------------------------------------------
+                       ID
+                       ------------------------------------------------- #}
                     <th>
-                        <a href="{{ path('admin.user.index', {
-                            sort: 'id',
-                            direction: sort == 'id' and direction == 'ASC'
-                                ? 'DESC'
-                                : 'ASC'
-                        }) }}" class="sort-link">
+                        <a
+                            href="{{ path('admin.user.index', {
+                                sort: 'id',
+                                direction: sort == 'id' and direction == 'ASC'
+                                    ? 'DESC'
+                                    : 'ASC'
+                            }) }}"
+                            class="sort-link"
+                        >
                             ID
+
                             {% if sort == 'id' %}
                                 {{ direction == 'ASC' ? '▲' : '▼' }}
                             {% endif %}
                         </a>
                     </th>
 
+                    {# -------------------------------------------------
+                       Nom d'utilisateur
+                       ------------------------------------------------- #}
                     <th>
-                        <a href="{{ path('admin.user.index', {
-                            sort: 'username',
-                            direction: sort == 'username' and direction == 'ASC'
-                                ? 'DESC'
-                                : 'ASC'
-                        }) }}" class="sort-link">
+                        <a
+                            href="{{ path('admin.user.index', {
+                                sort: 'username',
+                                direction: sort == 'username' and direction == 'ASC'
+                                    ? 'DESC'
+                                    : 'ASC'
+                            }) }}"
+                            class="sort-link"
+                        >
                             Nom d'utilisateurice
+
                             {% if sort == 'username' %}
                                 {{ direction == 'ASC' ? '▲' : '▼' }}
                             {% endif %}
                         </a>
                     </th>
 
+                    {# -------------------------------------------------
+                       Adresse e-mail
+                       ------------------------------------------------- #}
                     <th>
-                        <a href="{{ path('admin.user.index', {
-                            sort: 'email',
-                            direction: sort == 'email' and direction == 'ASC'
-                                ? 'DESC'
-                                : 'ASC'
-                        }) }}" class="sort-link">
+                        <a
+                            href="{{ path('admin.user.index', {
+                                sort: 'email',
+                                direction: sort == 'email' and direction == 'ASC'
+                                    ? 'DESC'
+                                    : 'ASC'
+                            }) }}"
+                            class="sort-link"
+                        >
                             Email
+
                             {% if sort == 'email' %}
                                 {{ direction == 'ASC' ? '▲' : '▼' }}
                             {% endif %}
@@ -505,9 +614,13 @@
                         Actions
                     </th>
 
+                    {#
+                     # La désactivation d'un compte reste réservée
+                     # au SUPER_ADMIN, comme l'ancienne action delete.
+                     #}
                     {% if is_granted('ROLE_SUPER_ADMIN') %}
                         <th>
-                            Supprimer
+                            Désactiver
                         </th>
                     {% endif %}
                 </tr>
@@ -524,28 +637,60 @@
                             {{ user.username }}
                         </td>
 
-                        <td data-label="Email" class="user-email">
+                        <td
+                            data-label="Email"
+                            class="user-email"
+                        >
                             {{ user.email }}
                         </td>
 
-                        <td data-label="Rôles" class="user-roles">
+                        {# -------------------------------------------------
+                           Rôles
+                           -------------------------------------------------
+
+                           On conserve l'affichage existant et le mapping
+                           available_roles fourni par le contrôleur.
+                           ------------------------------------------------- #}
+                        <td
+                            data-label="Rôles"
+                            class="user-roles"
+                        >
                             {% for role in user.roles %}
                                 {{ available_roles[role]|default(role) }}
+
                                 {% if not loop.last %}
                                     ,
                                 {% endif %}
                             {% endfor %}
                         </td>
 
+                        {# -------------------------------------------------
+                           État du compte
+                           -------------------------------------------------
+
+                           IMPORTANT :
+                           deletedAt est prioritaire.
+
+                           Un compte qui avait déjà été vérifié et approuvé
+                           avant sa désactivation ne doit pas continuer à
+                           apparaître comme "Compte validé".
+                           ------------------------------------------------- #}
                         <td data-label="État du compte">
-                            {% if not user.verified %}
+                            {% if user.deleted %}
+                                <span class="account-status account-status--disabled">
+                                    Compte désactivé
+                                </span>
+
+                            {% elseif not user.verified %}
                                 <span class="account-status account-status--email">
                                     E-mail à confirmer
                                 </span>
+
                             {% elseif not user.approved %}
                                 <span class="account-status account-status--pending">
                                     En attente de validation
                                 </span>
+
                             {% else %}
                                 <span class="account-status account-status--approved">
                                     Compte validé
@@ -553,15 +698,42 @@
                             {% endif %}
                         </td>
 
-                        <td data-label="Actions" class="user-actions">
+                        {# -------------------------------------------------
+                           Actions courantes
+                           ------------------------------------------------- #}
+                        <td
+                            data-label="Actions"
+                            class="user-actions"
+                        >
                             <div class="user-actions-inner">
-                                <a href="{{ path('admin.user.edit', {
-                                    id: user.id
-                                }) }}" class="btn-edit">
+
+                                {#
+                                 # L'édition reste disponible comme avant.
+                                 # Les restrictions sur les rôles sont
+                                 # gérées côté formulaire/contrôleur.
+                                 #}
+                                <a
+                                    href="{{ path('admin.user.edit', {
+                                        id: user.id
+                                    }) }}"
+                                    class="btn-edit"
+                                >
                                     Éditer
                                 </a>
 
-                                {% if user.verified and not user.approved %}
+                                {#
+                                 # Validation administrative :
+                                 #
+                                 # - l'adresse e-mail doit déjà être vérifiée ;
+                                 # - le compte ne doit pas encore être approuvé ;
+                                 # - un compte désactivé ne doit pas pouvoir
+                                 #   être approuvé depuis cette action.
+                                 #}
+                                {% if
+                                    not user.deleted
+                                    and user.verified
+                                    and not user.approved
+                                %}
                                     <form
                                         method="post"
                                         action="{{ path('admin.user.approve', {
@@ -588,35 +760,59 @@
                             </div>
                         </td>
 
-                        {% if is_granted('ROLE_SUPER_ADMIN') %}
-                            <td data-label="Supprimer" class="user-actions">
-                                <form
-                                    method="post"
-                                    action="{{ path('admin.user.delete', {
-                                        id: user.id
-                                    }) }}"
-                                    onsubmit="return confirm('Confirmer la suppression de ce compte ?');"
-                                >
-                                    <input
-                                        type="hidden"
-                                        name="_token"
-                                        value="{{ csrf_token(
-                                            'delete-user-' ~ user.id
-                                        ) }}"
-                                    >
+                        {# -------------------------------------------------
+                           Désactivation
+                           -------------------------------------------------
 
-                                    <button
-                                        type="submit"
-                                        class="btn-delete"
-                                        aria-label="Supprimer {{ user.username }}"
-                                        title="Supprimer"
+                           Le nom de route reste admin.user.delete parce que
+                           c'est actuellement le nom de l'action Symfony.
+
+                           En revanche, cette action effectue désormais un
+                           soft delete. L'interface parle donc correctement
+                           de "désactivation" et non de "suppression".
+
+                           Aucun bouton de réactivation n'est ajouté ici :
+                           ce comportement n'est pas encore implémenté.
+                           ------------------------------------------------- #}
+                        {% if is_granted('ROLE_SUPER_ADMIN') %}
+                            <td
+                                data-label="Désactiver"
+                                class="user-actions"
+                            >
+                                {% if not user.deleted %}
+                                    <form
+                                        method="post"
+                                        action="{{ path('admin.user.delete', {
+                                            id: user.id
+                                        }) }}"
+                                        onsubmit="return confirm('Confirmer la désactivation de ce compte ?');"
                                     >
-                                        🗑️
-                                    </button>
-                                </form>
+                                        <input
+                                            type="hidden"
+                                            name="_token"
+                                            value="{{ csrf_token(
+                                                'delete-user-' ~ user.id
+                                            ) }}"
+                                        >
+
+                                        <button
+                                            type="submit"
+                                            class="btn-deactivate"
+                                            aria-label="Désactiver {{ user.username }}"
+                                            title="Désactiver le compte"
+                                        >
+                                            Désactiver
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <span class="no-action">
+                                        Compte désactivé
+                                    </span>
+                                {% endif %}
                             </td>
                         {% endif %}
                     </tr>
+
                 {% else %}
                     <tr>
                         <td

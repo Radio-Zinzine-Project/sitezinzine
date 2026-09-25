@@ -1,20 +1,208 @@
 {% extends 'admin/admin.html.twig' %}
-{% block title %}Mon profil{% endblock %}
-
+{% block title %}
+  Mon profil
+{% endblock %}
 {% block body %}
-  <div style="max-width: 520px; margin: 24px auto; padding: 16px;">
-    <h1>Mon profil</h1>
+  <style>
+.main-content .profile-form,
+.main-content .profile-form * {
+  box-sizing: border-box;
+}
 
+.main-content .profile-form {
+  font-family: "Montserrat Alternates", sans-serif;
+  max-width: 620px;
+  margin: 18px auto 28px;
+  padding: 24px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  color: #1C1C1A;
+}
+
+.main-content .profile-form h1 {
+  margin: 0 0 22px;
+  text-align: center;
+  color: #E4013A;
+  font-family: "Montserrat Alternates", sans-serif;
+  font-weight: 900;
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.main-content .profile-form form {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.main-content .profile-form .field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.main-content .profile-form label {
+  margin: 0 0 6px;
+  font-weight: 800;
+  color: #333;
+  font-size: 14px;
+}
+
+.main-content .profile-form input[type="text"],
+.main-content .profile-form input[type="email"],
+.main-content .profile-form input[type="password"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 15px;
+  background: #fff;
+  color: #1C1C1A;
+}
+
+.main-content .profile-form input:focus {
+  outline: none;
+  border-color: #E4013A;
+  box-shadow: 0 0 0 3px rgba(228, 1, 58, 0.15);
+}
+
+.main-content .profile-form button {
+  width: 100%;
+  margin-top: 4px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 26px;
+  background: #E4013A;
+  color: #fff;
+  font-family: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background-color .2s ease;
+}
+
+.main-content .profile-form button:hover {
+  background: #b30021;
+}
+
+.main-content .profile-form .flash-success {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid #b8f5cd;
+  border-radius: 8px;
+  background: #e6ffef;
+}
+
+.main-content .profile-form .profile-actions {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #ddd;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  text-align: center;
+}
+
+.main-content .profile-form .profile-actions__separator {
+  color: #aaa;
+}
+
+.main-content .profile-form .profile-actions a {
+  color: #E4013A;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.main-content .profile-form .profile-actions a:hover {
+  text-decoration: underline;
+}
+
+.main-content .profile-form ul {
+  margin: 6px 0 0;
+  padding-left: 20px;
+  color: #b30021;
+  font-size: 13px;
+}
+
+
+
+@media (max-width: 680px) {
+  .main-content .profile-form {
+    margin: 14px 12px 22px;
+    padding: 18px 14px;
+  }
+
+  .main-content .profile-form h1 {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 420px) {
+  .main-content .profile-form {
+    margin: 10px 8px 16px;
+    padding: 16px 12px;
+    border-radius: 10px;
+  }
+
+  .main-content .profile-form h1 {
+    font-size: 20px;
+  }
+
+  .main-content .profile-form label {
+    font-size: 13px;
+  }
+
+  .main-content .profile-form input[type="text"],
+  .main-content .profile-form input[type="email"],
+  .main-content .profile-form input[type="password"] {
+    padding: 9px 10px;
+    font-size: 14px;
+  }
+
+  .main-content .profile-form button {
+    padding: 10px 12px;
+  }
+}
+</style>
+  <div class="profile-form">
+    <h1>
+      Mon profil
+    </h1>
     {% for msg in app.flashes('success') %}
-      <div style="padding:10px;border:1px solid #b8f5cd;background:#e6ffef;border-radius:8px;margin:10px 0;">
+      <div class="flash-success">
         {{ msg }}
       </div>
     {% endfor %}
-
     {{ form_start(form, { attr: { 'data-turbo': 'false' } }) }}
-      {{ form_row(form.pseudo) }}
-      {{ form_row(form.newEmail) }}
-      <button type="submit">Enregistrer</button>
+    <div class="field">
+      {{ form_label(form.pseudo) }}
+      {{ form_widget(form.pseudo) }}
+      {{ form_errors(form.pseudo) }}
+    </div>
+    <div class="field">
+      {{ form_label(form.newEmail) }}
+      {{ form_widget(form.newEmail) }}
+      {{ form_errors(form.newEmail) }}
+    </div>
+    <button type="submit">
+      Enregistrer
+    </button>
     {{ form_end(form) }}
+    <div class="profile-actions">
+      <a href="{{ path('app_profile_change_password') }}">
+        Modifier mon mot de passe
+      </a>
+      <span class="profile-actions__separator">
+        •
+      </span>
+      <a href="{{ path('admin.index') }}">
+        Retour à l'accueil
+      </a>
+    </div>
   </div>
 {% endblock %}

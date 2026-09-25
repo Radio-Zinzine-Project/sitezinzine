@@ -9,10 +9,11 @@ use App\Security\EmailVerifier;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Mime\Address;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use SymfonyCasts\Bundle\VerifyEmail\Exception\VerifyEmailExceptionInterface;
@@ -57,19 +58,9 @@ class RegistrationController extends AbstractController
                 'app_verify_email',
                 $user,
                 (new TemplatedEmail())
-                    ->from(
-                        new Address(
-                            'drelin04@hotmail.fr',
-                            'Support'
-                        )
-                    )
                     ->to($user->getEmail())
-                    ->subject(
-                        'Confirmez votre e-mail, s’il vous plaît.'
-                    )
-                    ->htmlTemplate(
-                        'registration/confirmation_email.html.twig'
-                    )
+                    ->subject('Confirmez votre e-mail, s’il vous plaît.')
+                    ->htmlTemplate('registration/confirmation_email.html.twig')
             );
 
             $this->addFlash(
@@ -138,5 +129,94 @@ class RegistrationController extends AbstractController
         );
 
         return $this->redirectToRoute('app_login');
+    }
+
+    #[Route(
+        '/verify/email/resend',
+        name: 'app_resend_verification_email',
+        methods: ['GET', 'POST']
+    )]
+    public function resendVerificationEmail(
+        Request $request,
+        UserRepository $userRepository,
+        #[Target('emailVerificationResendLimiter')]
+        RateLimiterFactoryInterface $emailVerificationResendLimiter
+    ): Response {
+        if ($request->isMethod('POST')) {
+            $username = trim(
+                (string) $request->request->get('username', '')
+            );
+
+            if (!$this->isCsrfTokenValid(
+                'resend-verification-email',
+                (string) $request->request->get('_token', '')
+            )) {
+                $this->addFlash(
+                    'error',
+                    'Jeton CSRF invalide. Veuillez réessayer.'
+                );
+
+                return $this->redirectToRoute(
+                    'app_resend_verification_email'
+                );
+            }
+
+            $limiterKey = sprintf(
+                '%s:%s',
+                $request->getClientIp() ?? 'unknown',
+                mb_strtolower($username)
+            );
+
+            $limit = $emailVerificationResendLimiter
+                ->create($limiterKey)
+                ->consume();
+
+            if (!$limit->isAccepted()) {
+                $this->addFlash(
+                    'error',
+                    'Trop de demandes ont été effectuées. Veuillez patienter avant de réessayer.'
+                );
+
+                return $this->redirectToRoute(
+                    'app_resend_verification_email'
+                );
+            }
+
+            if ($username !== '') {
+                $user = $userRepository->findOneBy([
+                    'username' => $username,
+                ]);
+
+                if (
+                    $user instanceof User
+                    && !$user->isVerified()
+                    && $user->getEmail() !== null
+                ) {
+                    $this->emailVerifier->sendEmailConfirmation(
+                        'app_verify_email',
+                        $user,
+                        (new TemplatedEmail())
+                            ->to($user->getEmail())
+                            ->subject(
+                                'Confirmez votre e-mail, s’il vous plaît.'
+                            )
+                            ->htmlTemplate(
+                                'registration/confirmation_email.html.twig'
+                            )
+                    );
+                }
+            }
+
+            $this->addFlash(
+                'success',
+                'Si ce compte existe et que son adresse e-mail n’est pas encore confirmée, un nouveau lien de confirmation vient d’être envoyé.'
+            );
+
+            return $this->redirectToRoute('app_login');
+        }
+
+        return $this->render(
+            'registration/resend_verification_email.html.twig'
+        );
     }
 }

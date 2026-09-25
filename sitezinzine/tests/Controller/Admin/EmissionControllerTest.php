@@ -15,6 +15,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
+
 class EmissionControllerTest extends WebTestCase
 {
     private KernelBrowser $client;
@@ -184,6 +185,7 @@ class EmissionControllerTest extends WebTestCase
     {
         $admin = $this->createUser(['ROLE_ADMIN']);
         $theme = $this->createTheme();
+        $categorie = $this->createCategorie($admin);
 
         $titre = 'Test Émission ' . uniqid();
 
@@ -196,17 +198,27 @@ class EmissionControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
 
-        $form = $crawler->selectButton('Sauvegarder')->form([
-            'emission[titre]' => $titre,
-            'emission[descriptif]' => 'Description test',
-            'emission[duree]' => 60,
-            'emission[url]' => 'https://test.com/emission',
-            'emission[keyword]' => 'test-keyword',
-            'emission[theme]' => (string) $theme->getId(),
-            'emission[users]' => [(string) $admin->getId()],
-        ]);
+        $csrfToken = $crawler
+            ->filter('input[name="emission[_token]"]')
+            ->attr('value');
 
-        $this->client->submit($form);
+        $this->client->request(
+            'POST',
+            '/admin/emission/create',
+            [
+                'emission' => [
+                    'titre' => $titre,
+                    'descriptif' => 'Description test',
+                    'duree' => '60',
+                    'url' => 'https://test.com/emission',
+                    'keyword' => 'test-keyword',
+                    'theme' => (string) $theme->getId(),
+                    'categorie' => (string) $categorie->getId(),
+                    'users' => [(string) $admin->getId()],
+                    '_token' => $csrfToken,
+                ],
+            ]
+        );
 
         $this->assertResponseRedirects('/admin/emission/');
 
@@ -258,7 +270,7 @@ class EmissionControllerTest extends WebTestCase
     {
         $user = $this->createUser(['ROLE_USER']);
         $theme = $this->createTheme();
-        $categorie = $this->createCategorie();
+        $categorie = $this->createCategorie($user);
 
         $keyword = 'test-create-owner-' . uniqid();
 
@@ -271,17 +283,33 @@ class EmissionControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
 
-        $form = $crawler->selectButton('Sauvegarder')->form([
-            'emission[titre]' => 'Création automatique propriétaire ' . uniqid(),
-            'emission[keyword]' => $keyword,
-            'emission[theme]' => (string) $theme->getId(),
-            'emission[categorie]' => (string) $categorie->getId(),
-            'emission[duree]' => 60,
-            'emission[descriptif]' => 'Description test création',
-            'emission[url]' => '',
-        ]);
+        $csrfToken = $crawler
+            ->filter('input[name="emission[_token]"]')
+            ->attr('value');
 
-        $this->client->submit($form);
+        $this->client->request(
+            'POST',
+            '/admin/emission/create',
+            [
+                'emission' => [
+                    'titre' => 'Création automatique propriétaire ' . uniqid(),
+                    'keyword' => $keyword,
+                    'theme' => (string) $theme->getId(),
+                    'categorie' => (string) $categorie->getId(),
+                    'duree' => '60',
+                    'descriptif' => 'Description test création',
+                    'url' => '',
+                    '_token' => $csrfToken,
+
+                    /*
+                 * Pas de champ users volontairement.
+                 *
+                 * Le comportement testé est précisément l'attribution
+                 * automatique de l'utilisateur connecté lors de la création.
+                 */
+                ],
+            ]
+        );
 
         $this->assertResponseRedirects('/admin/emission/');
 
@@ -295,7 +323,10 @@ class EmissionControllerTest extends WebTestCase
 
         $this->assertNotNull($emission);
 
-        $this->assertCount(1, $emission->getUsers());
+        $this->assertCount(
+            1,
+            $emission->getUsers()
+        );
 
         $this->assertSame(
             $user->getUserIdentifier(),
@@ -307,6 +338,7 @@ class EmissionControllerTest extends WebTestCase
             $emission->getRef()
         );
     }
+
 
     public function testDeleteEmissionSoftDeletesEmission(): void
     {
@@ -587,7 +619,7 @@ class EmissionControllerTest extends WebTestCase
     {
         $admin = $this->createUser(['ROLE_ADMIN']);
         $theme = $this->createTheme();
-        $categorie = $this->createCategorie();
+        $categorie = $this->createCategorie($admin);
 
         $emission = $this->createEmission(
             theme: $theme,
@@ -642,7 +674,7 @@ class EmissionControllerTest extends WebTestCase
     {
         $admin = $this->createUser(['ROLE_ADMIN']);
         $theme = $this->createTheme();
-        $categorie = $this->createCategorie();
+        $categorie = $this->createCategorie($admin);
 
         $emission = $this->createEmission(
             theme: $theme,
@@ -695,7 +727,7 @@ class EmissionControllerTest extends WebTestCase
     {
         $admin = $this->createUser(['ROLE_ADMIN']);
         $theme = $this->createTheme();
-        $categorie = $this->createCategorie();
+        $categorie = $this->createCategorie($admin);
 
         $emission = $this->createEmission(
             theme: $theme,
@@ -751,7 +783,7 @@ class EmissionControllerTest extends WebTestCase
     {
         $admin = $this->createUser(['ROLE_ADMIN']);
         $theme = $this->createTheme();
-        $categorie = $this->createCategorie();
+        $categorie = $this->createCategorie($admin);
 
         $emission = $this->createEmission(
             theme: $theme,
@@ -858,7 +890,7 @@ class EmissionControllerTest extends WebTestCase
     {
         $admin = $this->createUser(['ROLE_ADMIN']);
         $theme = $this->createTheme();
-        $categorie = $this->createCategorie();
+        $categorie = $this->createCategorie($admin);
         $categorie->setSlug('TST');
 
         $emission = $this->createEmission(
@@ -1118,7 +1150,7 @@ class EmissionControllerTest extends WebTestCase
         return $theme;
     }
 
-    private function createCategorie(): Categories
+    private function createCategorie(?User $user = null): Categories
     {
         $editeur = $this->createEditeur();
 
@@ -1130,6 +1162,10 @@ class EmissionControllerTest extends WebTestCase
         $categorie->setDescriptif('Description test');
         $categorie->setUpdatedAt(new \DateTime());
         $categorie->setEditeur($editeur);
+
+        if ($user !== null) {
+            $categorie->addUser($user);
+        }
 
         $this->entityManager->persist($categorie);
         $this->entityManager->flush();
