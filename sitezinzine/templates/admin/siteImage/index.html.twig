@@ -1,0 +1,376 @@
+{% extends 'admin/admin.html.twig' %}
+
+{% block title %}Images du site{% endblock %}
+
+{% block body %}
+
+<style>
+    .bodySiteImages {
+        width: 100%;
+        max-width: 1200px;
+        min-width: 0;
+        margin: 24px auto;
+        padding: 0 12px 24px;
+        font-family: "Montserrat Alternates", sans-serif;
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
+
+    .page-header {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
+
+    .page-header h1 {
+        margin: 0;
+        font-size: 2rem;
+        line-height: 1.2;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .btn-add {
+        display: inline-block;
+        background: #E4013A;
+        color: #fff;
+        text-decoration: none;
+        padding: 10px 18px;
+        border-radius: 999px;
+        font-weight: 700;
+    }
+
+    .btn-add:hover {
+        background: #b8002e;
+    }
+
+    .flash {
+        padding: 14px 16px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        box-sizing: border-box;
+    }
+
+    .flash-success {
+        background: #e8f5e9;
+        color: #1b5e20;
+    }
+
+    .flash-error {
+        background: #ffebee;
+        color: #b71c1c;
+    }
+
+    .table-wrapper {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        box-sizing: border-box;
+    }
+
+    .site-image-table {
+        width: 100%;
+        min-width: 900px;
+        border-collapse: collapse;
+    }
+
+    .site-image-table th,
+    .site-image-table td {
+        padding: 14px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+        vertical-align: middle;
+    }
+
+    .site-image-table th {
+        background: #fafafa;
+        font-size: 0.95rem;
+    }
+
+    .site-image-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .technical-key {
+        display: inline-block;
+        padding: 4px 8px;
+        background: #f3f3f3;
+        border-radius: 6px;
+        font-family: monospace;
+        font-size: 0.9rem;
+        overflow-wrap: anywhere;
+    }
+
+    .description {
+        max-width: 320px;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+
+    .thumb {
+        display: block;
+        width: 100px;
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+    }
+
+    .empty {
+        color: #777;
+        font-style: italic;
+    }
+
+    .actions {
+        white-space: nowrap;
+    }
+
+    .btn-action {
+        display: inline-block;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: #222;
+        color: #fff;
+        text-decoration: none;
+        font-size: 0.92rem;
+    }
+
+    .btn-action:hover {
+        background: #000;
+    }
+
+    .empty-state {
+        background: #fff;
+        padding: 28px 18px;
+        border-radius: 16px;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .empty-state p {
+        margin: 0;
+    }
+
+    @media (max-width: 768px) {
+        .bodySiteImages {
+            margin: 20px auto;
+            padding: 0 8px 20px;
+        }
+
+        .page-header {
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .page-header h1 {
+            font-size: 1.45rem;
+        }
+
+        .header-actions {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn-add {
+            width: 100%;
+            max-width: 320px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .table-wrapper {
+            overflow: visible;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .site-image-table {
+            min-width: 0;
+        }
+
+        .site-image-table thead {
+            display: none;
+        }
+
+        .site-image-table,
+        .site-image-table tbody,
+        .site-image-table tr,
+        .site-image-table td {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .site-image-table tr {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 16px;
+            padding: 10px 12px;
+            text-align: center;
+        }
+
+        .site-image-table td {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+            text-align: center;
+            white-space: normal;
+        }
+
+        .site-image-table td:last-child {
+            border-bottom: none;
+        }
+
+        .site-image-table td::before {
+            content: attr(data-label);
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .description {
+            max-width: none;
+        }
+
+        .thumb {
+            width: 100px;
+            margin: 0 auto;
+        }
+
+        .actions {
+            white-space: normal;
+        }
+    }
+</style>
+
+<div class="bodySiteImages">
+    <div class="page-header">
+        <h1>Images du site</h1>
+
+        <div class="header-actions">
+            <a
+                href="{{ path('admin_siteImage_create') }}"
+                class="btn-add"
+            >
+                Ajouter une image
+            </a>
+        </div>
+    </div>
+
+    {% for message in app.flashes('success') %}
+        <div class="flash flash-success">
+            {{ message }}
+        </div>
+    {% endfor %}
+
+    {% for message in app.flashes('error') %}
+        <div class="flash flash-error">
+            {{ message }}
+        </div>
+    {% endfor %}
+
+    {% if siteImages is not empty %}
+        <div class="table-wrapper">
+            <table class="site-image-table">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Clé technique</th>
+                        <th>Description</th>
+                        <th>Image</th>
+                        <th>Mise à jour</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for siteImage in siteImages %}
+                        <tr>
+                            <td data-label="Nom">
+                                <strong>
+                                    {{ siteImage.label }}
+                                </strong>
+                            </td>
+
+                            <td data-label="Clé technique">
+                                <span class="technical-key">
+                                    {{ siteImage.key }}
+                                </span>
+                            </td>
+
+                            <td
+                                data-label="Description"
+                                class="description"
+                            >
+                                {% if siteImage.description %}
+                                    {{ siteImage.description }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td data-label="Image">
+                                {% if siteImage.thumbnail %}
+                                    <img
+                                        src="{{ vich_uploader_asset(siteImage, 'thumbnailFile') }}"
+                                        alt="{{ siteImage.label }}"
+                                        class="thumb"
+                                    >
+                                {% else %}
+                                    <span class="empty">
+                                        Aucune image
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td data-label="Mise à jour">
+                                {% if siteImage.updatedAt %}
+                                    {{ siteImage.updatedAt|date('d/m/Y H:i') }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td
+                                data-label="Actions"
+                                class="actions"
+                            >
+                                <a
+                                    href="{{ path('admin_siteImage_edit', {
+                                        id: siteImage.id
+                                    }) }}"
+                                    class="btn-action"
+                                >
+                                    Modifier
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <p>
+                Aucune image du site n’est configurée.
+            </p>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

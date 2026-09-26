@@ -48,4 +48,9 @@ vich_uploader:
             uri_prefix: /uploads/tag-images
             upload_destination: '%kernel.project_dir%/public/uploads/tag-images'
             namer: Vich\UploaderBundle\Naming\SmartUniqueNamer
-            
+        site_images:
+            uri_prefix: /uploads/images/site
+            upload_destination: '%kernel.project_dir%/public/uploads/images/site'
+            namer: Vich\UploaderBundle\Naming\SmartUniqueNamer
+            delete_on_update: true
+            delete_on_remove: true

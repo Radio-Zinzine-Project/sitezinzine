@@ -134,8 +134,9 @@ class DiffusionRepository extends ServiceEntityRepository
         \DateTimeInterface $end
     ): array {
         return $this->createQueryBuilder('d')
-            ->addSelect('e')
+            ->addSelect('e', 'c')
             ->join('d.emission', 'e')
+            ->leftJoin('e.categorie', 'c')
             ->andWhere('d.horaireDiffusion >= :start')
             ->andWhere('d.horaireDiffusion < :end')
             ->andWhere('d.publicationStatus = :status')

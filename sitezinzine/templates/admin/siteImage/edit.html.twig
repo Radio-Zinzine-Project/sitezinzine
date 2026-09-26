@@ -1,0 +1,120 @@
+{% extends 'admin/admin.html.twig' %}
+
+{% block title %}Modifier une image du site{% endblock %}
+
+{% block body %}
+
+<style>
+    .bodySiteImageEdit {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 0 20px 40px;
+        font-family: "Montserrat Alternates", sans-serif;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
+
+    .page-header h1 {
+        margin: 0;
+        font-size: 2rem;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .btn-back {
+        display: inline-block;
+        background: #222;
+        color: #fff;
+        text-decoration: none;
+        padding: 10px 18px;
+        border-radius: 999px;
+        font-weight: 700;
+    }
+
+    .btn-back:hover {
+        background: #000;
+    }
+
+    .flash {
+        padding: 14px 16px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+
+    .flash-success {
+        background: #e8f5e9;
+        color: #1b5e20;
+    }
+
+    .flash-error {
+        background: #ffebee;
+        color: #b71c1c;
+    }
+
+    @media (max-width: 768px) {
+        .bodySiteImageEdit {
+            margin: 20px auto;
+            padding: 0 12px 24px;
+        }
+
+        .page-header {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .page-header h1 {
+            font-size: 1.45rem;
+        }
+
+        .header-actions {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="bodySiteImageEdit">
+    <div class="page-header">
+        <h1>Modifier une image du site</h1>
+
+        <div class="header-actions">
+            <a
+                href="{{ path('admin_siteImage_index') }}"
+                class="btn-back"
+            >
+                Retour à la liste
+            </a>
+        </div>
+    </div>
+
+    {% for message in app.flashes('success') %}
+        <div class="flash flash-success">
+            {{ message }}
+        </div>
+    {% endfor %}
+
+    {% for message in app.flashes('error') %}
+        <div class="flash flash-error">
+            {{ message }}
+        </div>
+    {% endfor %}
+
+    {{ include('admin/siteImage/_form.html.twig', {
+        form: form,
+        siteImage: siteImage,
+        button_label: 'Enregistrer'
+    }) }}
+</div>
+
+{% endblock %}

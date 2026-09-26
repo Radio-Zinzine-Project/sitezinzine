@@ -308,6 +308,7 @@ final class PublicDailyScheduleBuilder
             'isRegular' => false,
             'isCurrent' => false,
 
+            'playlistKey' => 'playlist_night',
             'title' => 'Playlist de nuit',
             'label' => 'Playlist',
         ];
@@ -400,9 +401,10 @@ final class PublicDailyScheduleBuilder
             'isCurrent' => false,
 
             /*
-             * Ces deux valeurs sont du contenu d'affichage,
-             * pas des données métier persistées.
-             */
+         * Ces valeurs sont du contenu d'affichage,
+         * pas des données métier persistées.
+         */
+            'playlistKey' => 'playlist_day',
             'title' => 'Musiques et chansons',
             'label' => 'Playlist',
         ];

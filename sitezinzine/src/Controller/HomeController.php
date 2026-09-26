@@ -8,6 +8,7 @@ use App\Repository\EvenementRepository;
 use App\Service\InfosSoirRssService;
 use App\Service\PublicDailyScheduleBuilder;
 use App\Repository\PageRepository;
+use App\Repository\SiteImageRepository;
 use App\Entity\Evenement;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,7 +22,8 @@ class HomeController extends AbstractController
     public function index(
         EmissionRepository $emissionRepository,
         EvenementRepository $evenementRepository,
-        PublicDailyScheduleBuilder $publicDailyScheduleBuilder
+        PublicDailyScheduleBuilder $publicDailyScheduleBuilder,
+        SiteImageRepository $siteImageRepository
     ): Response {
         $timezone = new \DateTimeZone('Europe/Paris');
 
@@ -33,11 +35,17 @@ class HomeController extends AbstractController
             $now
         );
 
+        $playlistImages = [
+            'playlist_day' => $siteImageRepository->findOneByKey('playlist_day'),
+            'playlist_night' => $siteImageRepository->findOneByKey('playlist_night'),
+        ];
+
         return $this->render('home/index.html.twig', [
             'lastEmissions' => $programData['items'],
             'activeIndex' => $programData['activeIndex'],
             'lastEmissionsByTheme' => $emissionRepository->lastEmissionsByGroupTheme(''),
             'evenements' => $evenementRepository->findLatestPublicEvenements(3),
+            'playlistImages' => $playlistImages,
         ]);
     }
 

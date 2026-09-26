@@ -321,14 +321,17 @@
                       <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.user.' ? 'active' : '' }}" href="{{ path('admin.user.index') }}">
                         Utilisateurices
                       </a>
+                      <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_programmationRule_' ? 'active' : '' }}" href="{{ path('admin_programmationRule_index') }}">
+                        Règles de programmation
+                      </a>
                       <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.grille.' ? 'active' : '' }}" href="{{ path('admin.grille.index_current') }}">
                         Grille
                       </a>
                       <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_categorieTagImage_' ? 'active' : '' }}" href="{{ path('admin_categorieTagImage_index') }}">
                         Images tags MP3
                       </a>
-                      <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_programmationRule_' ? 'active' : '' }}" href="{{ path('admin_programmationRule_index') }}">
-                        Règles de programmation
+                      <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_siteImage_' ? 'active' : '' }}" href="{{ path('admin_siteImage_index') }}">
+                        Images du site
                       </a>
                     </div>
                   </li>

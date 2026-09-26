@@ -6,11 +6,11 @@ use App\Repository\CategorieTagImageRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Validator\Constraints as Assert;
-use Vich\UploaderBundle\Mapping\Annotation as Vich;
+use Vich\UploaderBundle\Mapping\Attribute as Vich;
 
 #[ORM\Entity(repositoryClass: CategorieTagImageRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_categorie_annee_tag_image', columns: ['categorie_id', 'annee'])]
-#[Vich\Uploadable]
+#[Vich\Uploadable()]
 class CategorieTagImage
 {
     #[ORM\Id]

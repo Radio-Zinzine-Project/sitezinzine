@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.118] - 2026-09-26
+### Ajout
+- Ajout des SiteImage pour gérer les images du site (playlist du carrousel, loupe de recherche ?).
+### Correction
+- Correction de l'affichage du bandeau catégorie sur les cartes du carrousel.
+
+
 ## [1.0.117] - 2026-09-26
 ### Ajout
 - Sur les grilles imprimées, les émissions dont l'éditeur est AIX auront un fond grisés.

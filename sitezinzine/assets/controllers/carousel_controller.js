@@ -12,9 +12,13 @@ export default class extends Controller {
     }
 
     const liveSlide = this.element.querySelector('.glide__slide--live')
-    const slides = Array.from(this.element.querySelectorAll('.glide__slide'))
+    const slides = Array.from(
+      this.element.querySelectorAll('.glide__slide')
+    )
 
-    const liveIndex = liveSlide ? slides.indexOf(liveSlide) : -1
+    const liveIndex = liveSlide
+      ? slides.indexOf(liveSlide)
+      : -1
 
     const fallbackIndex = parseInt(
       this.element.dataset.carouselStartIndex || '0',
@@ -25,48 +29,50 @@ export default class extends Controller {
       ? liveIndex
       : (Number.isNaN(fallbackIndex) ? 0 : fallbackIndex)
 
-    this.glide = new Glide(this.element, {
-      type: 'slider',
-      startAt: startIndex,
+this.glide = new Glide(this.element, {
+  type: 'slider',
+  startAt: startIndex,
+  focusAt: 1,
+  gap: 12,
+  perView: 4,
+  animationDuration: 600,
+  autoplay: false,
+  hoverpause: true,
+  bound: true,
+  rewind: false,
+
+  breakpoints: {
+    1400: {
+      perView: 3,
+      focusAt: 'center'
+    },
+
+    1024: {
+      perView: 2,
+      focusAt: 0
+    },
+
+    768: {
+      perView: 1,
       focusAt: 'center',
-      gap: 12,
-      perView: 4,
-      animationDuration: 600,
-      autoplay: false,
-      hoverpause: true,
-      bound: true,
-      rewind: false,
+      peek: {
+        before: 36,
+        after: 36
+      },
+      gap: 12
+    },
 
-      breakpoints: {
-        1400: {
-          perView: 3
-        },
-
-        1024: {
-          perView: 2
-        },
-
-        768: {
-          perView: 1,
-          focusAt: 'center',
-          peek: {
-            before: 36,
-            after: 36
-          },
-          gap: 12
-        },
-
-        480: {
-          perView: 1,
-          focusAt: 'center',
-          peek: {
-            before: 32,
-            after: 32
-          },
-          gap: 10
-        }
-      }
-    })
+    480: {
+      perView: 1,
+      focusAt: 'center',
+      peek: {
+        before: 32,
+        after: 32
+      },
+      gap: 10
+    }
+  }
+})
 
     this.glide.mount()
   }

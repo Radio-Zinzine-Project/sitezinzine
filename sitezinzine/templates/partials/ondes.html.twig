@@ -1,437 +1,445 @@
 <style>
-.ondes-section,
-.ondes-section * {
-  box-sizing: border-box;
-}
-
-.ondes-section {
-  width: 100%;
-  background: #fff;
-  font-family: "Montserrat Alternates", sans-serif;
-}
-
-.bodyondes {
-  width: min(100%, 1900px);
-  margin: 0 auto;
-  padding: 0 20px 40px;
-  position: relative;
-}
-
-.bodyondes .ondestitres {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 32px;
-  padding: 24px 0 10px;
-}
-
-.bodyondes .ondestitres img {
-  display: block;
-  max-height: 130px;
-  width: auto;
-  object-fit: contain;
-}
-
-.bodyondes .ondestitres > div {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-width: 0;
-}
-
-.bodyondes h1 {
-  margin: 0;
-  font-weight: 900;
-  color: #7E4093;
-  text-align: left;
-  line-height: 1.05;
-  font-size: clamp(28px, 4vw, 54px);
-}
-
-.bodyondes h3 {
-  margin: 8px 0 0;
-  font-weight: 300;
-  color: #7E4093;
-  text-align: left;
-  line-height: 1.15;
-  font-size: clamp(16px, 2vw, 28px);
-}
-
-/* =========================
-   Glide
-   ========================= */
-
-.bodyondes {
-  overflow: hidden;
-}
-
-.bodyondes .glide {
-  position: relative;
-  width: 100%;
-  max-width: 100%;
-  margin: 0 auto;
-  padding: 0 54px;
-  overflow: hidden;
-}
-
-.bodyondes .glide__track {
-  cursor: grab;
-  overflow: visible;
-  padding: 80px 0 90px;
-}
-
-.bodyondes .glide__track:active {
-  cursor: grabbing;
-}
-
-.bodyondes .glide__slides {
-  display: flex;
-  align-items: stretch;
-  margin: 0;
-  padding: 0;
-}
-
-.bodyondes .glide__slide {
-  user-select: none;
-  -webkit-user-drag: none;
-  position: relative;
-  z-index: 0;
-  display: flex;
-  justify-content: center;
-  align-items: stretch;
-  min-width: 0;
-  padding: 10px 0;
-}
-
-.bodyondes .glide__slide--active,
-.bodyondes .glide__slide--live {
-  z-index: 4;
-}
-
-/* =========================
-   Carte
-   ========================= */
-
-.bodyondes .carousel {
-  width: 100%;
-  max-width: 340px;
-  min-height: 430px;
-  background: #fff;
-  border: 1px solid #eadff0;
-  border-radius: 22px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 28px rgba(28, 28, 26, 0.08);
-  transform: scale(.96);
-  transition:
-    transform .25s ease,
-    box-shadow .25s ease,
-    border-color .25s ease,
-    background .25s ease;
-}
-
-.bodyondes .glide__slide--active .carousel {
-  transform: scale(1);
-}
-
-.bodyondes .glide__slide--live .carousel {
-  transform: scale(1.06);
-  border-color: #7E4093;
-  box-shadow:
-    0 24px 60px rgba(126,64,147,.30),
-    0 10px 25px rgba(0,0,0,.12);
-}
-
-/* =========================
-   Image + badge
-   ========================= */
-
-.bodyondes .image_carousel {
-  width: 100%;
-  height: 210px;
-  overflow: hidden;
-  position: relative;
-  background: #f2eef5;
-}
-
-.bodyondes .image_carousel img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.bodyondes .live-badge {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  z-index: 4;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 7px 12px;
-  border-radius: 999px;
-  background: #E4013A;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  box-shadow: 0 8px 18px rgba(228, 1, 58, 0.28);
-}
-
-/* =========================
-   Texte
-   ========================= */
-
-.bodyondes .date_carousel {
-  padding: 18px 22px 4px;
-}
-
-.bodyondes .date_carousel p,
-.bodyondes .titre_carousel p,
-.bodyondes .categorie_carousel p {
-  margin: 0;
-}
-
-.bodyondes .date_carousel p {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 34px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: #f5edf8;
-  color: #7E4093;
-  font-size: 18px;
-  font-weight: 900;
-}
-
-.bodyondes .titre_carousel {
-  padding: 14px 22px 18px;
-  flex: 1;
-}
-
-.bodyondes .titre_carousel a,
-.bodyondes .titre_carousel .carousel-title {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin: 0;
-  text-decoration: none;
-  font-weight: 900;
-  color: #1c1c1a;
-  line-height: 1.25;
-  font-size: 19px;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-
-.bodyondes .titre_carousel a:hover {
-  text-decoration: underline;
-}
-
-.bodyondes .categorie_carousel {
-  min-height: 64px;
-  padding: 12px 18px;
-  background: #35BAC0;
-  font-family: "Source Code Pro", monospace;
-  font-weight: 700;
-  font-size: 15px;
-  line-height: 1.15;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-/* La vraie carte en direct, pas seulement la slide active Glide */
-
-.bodyondes .glide__slide--live .date_carousel p {
-  background: #7E4093;
-  color: #fff;
-}
-
-.bodyondes .glide__slide--live .titre_carousel a,
-.bodyondes .glide__slide--live .titre_carousel .carousel-title {
-  color: #7E4093;
-}
-
-.bodyondes .glide__slide--live .categorie_carousel {
-  background: linear-gradient(90deg, #7E4093, #6B3B7F);
-}
-
-/* =========================
-   Flèches
-   ========================= */
-
-.bodyondes .glide__arrows {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.bodyondes .glide__arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 46px;
-  height: 46px;
-  border: 1px solid #eadff0;
-  border-radius: 999px;
-  background: #fff;
-  cursor: pointer;
-  pointer-events: auto;
-  z-index: 10;
-  box-shadow: 0 10px 24px rgba(28, 28, 26, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bodyondes .glide__arrow:hover {
-  background: #f8f1fa;
-}
-
-.bodyondes .glide__arrow--left {
-  left: 4px;
-}
-
-.bodyondes .glide__arrow--right {
-  right: 4px;
-}
-
-.bodyondes .glide__arrow img {
-  width: 26px;
-  height: 26px;
-  object-fit: contain;
-}
-
-/* =========================
-   Responsive
-   ========================= */
-
-@media (max-width: 1200px) {
-  .bodyondes {
-    padding: 0 42px 34px;
-  }
-
-  .bodyondes .glide {
-    padding: 0 44px;
-  }
-
-  .bodyondes .carousel {
-    max-width: 320px;
-    min-height: 400px;
-  }
-
-  .bodyondes .image_carousel {
-    height: 190px;
-  }
-}
-
-@media (max-width: 768px) {
-
-  .bodyondes {
-    padding: 0 16px 28px;
-  }
-
-  .bodyondes .ondestitres {
-    gap: 16px;
-    padding: 18px 0 4px;
-  }
-
-  .bodyondes .ondestitres img {
-    max-height: 88px;
-  }
-
-  .bodyondes h1 {
-    font-size: clamp(22px, 7vw, 32px);
-  }
-
-  .bodyondes h3 {
-    font-size: clamp(13px, 4vw, 17px);
-  }
-
-  .bodyondes .glide {
-    padding: 0;
-    overflow: hidden;
-  }
-
-  .bodyondes .glide__track {
-    padding: 25px 0 35px;
-    overflow: visible;
-  }
-
-  .bodyondes .carousel {
-    max-width: none;
-    min-height: 360px;
-    transform: scale(.96);
-    opacity: .8;
-
-    transition:
-      transform .25s ease,
-      opacity .25s ease,
-      box-shadow .25s ease,
-      border-color .25s ease,
-      background .25s ease;
-  }
-
-  .bodyondes .glide__slide--active .carousel {
-    transform: scale(1);
-    opacity: 1;
-  }
-
-  .bodyondes .glide__slide--live .carousel {
-    transform: scale(1);
-    opacity: 1;
-  }
-
-  .bodyondes .image_carousel {
-    height: 170px;
-  }
-
-  .bodyondes .titre_carousel a,
-  .bodyondes .titre_carousel .carousel-title {
-    font-size: 17px;
-  }
-
-  .bodyondes .categorie_carousel {
-    min-height: 54px;
-    font-size: 14px;
-  }
-
-  .bodyondes .glide__arrows {
-    display: none;
-  }
-}
-
-@media (max-width: 420px) {
-  .bodyondes .ondestitres {
-    align-items: center;
-  }
-
-  .bodyondes .ondestitres img {
-    max-height: 72px;
-  }
-
-  .bodyondes .carousel {
-    min-height: 340px;
-  }
-
-  .bodyondes .image_carousel {
-    height: 150px;
-  }
-
-  .bodyondes .date_carousel {
-    padding: 14px 16px 2px;
-  }
-
-  .bodyondes .titre_carousel {
-    padding: 12px 16px 14px;
-  }
-}
+    .ondes-section,
+    .ondes-section * {
+        box-sizing: border-box;
+    }
+
+    .ondes-section {
+        width: 100%;
+        background: #fff;
+        font-family: "Montserrat Alternates", sans-serif;
+    }
+
+    .bodyondes {
+        width: min(100%, 1900px);
+        margin: 0 auto;
+        padding: 0 20px 40px;
+        position: relative;
+    }
+
+    .bodyondes .ondestitres {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 32px;
+        padding: 24px 0 10px;
+    }
+
+    .bodyondes .ondestitres img {
+        display: block;
+        max-height: 130px;
+        width: auto;
+        object-fit: contain;
+    }
+
+    .bodyondes .ondestitres > div {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0;
+    }
+
+    .bodyondes h1 {
+        margin: 0;
+        font-weight: 900;
+        color: #7E4093;
+        text-align: left;
+        line-height: 1.05;
+        font-size: clamp(28px, 4vw, 54px);
+    }
+
+    .bodyondes h3 {
+        margin: 8px 0 0;
+        font-weight: 300;
+        color: #7E4093;
+        text-align: left;
+        line-height: 1.15;
+        font-size: clamp(16px, 2vw, 28px);
+    }
+
+    /* =========================
+       Glide
+       ========================= */
+
+    .bodyondes {
+        overflow-x: hidden;
+        overflow-y: visible;
+    }
+
+    .bodyondes .glide {
+        position: relative;
+        width: 100%;
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 54px;
+        overflow: hidden;
+    }
+
+    .bodyondes .glide__track {
+        cursor: grab;
+        overflow: visible;
+        padding: 80px 0 110px;
+    }
+
+    .bodyondes .glide__track:active {
+        cursor: grabbing;
+    }
+
+    .bodyondes .glide__slides {
+        display: flex;
+        align-items: stretch;
+        margin: 0;
+        padding: 0;
+    }
+
+    .bodyondes .glide__slide {
+        user-select: none;
+        -webkit-user-drag: none;
+        position: relative;
+        z-index: 0;
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+        min-width: 0;
+        padding: 10px 0;
+    }
+
+    .bodyondes .glide__slide--active,
+    .bodyondes .glide__slide--live {
+        z-index: 4;
+    }
+
+    /* =========================
+       Carte
+       ========================= */
+
+    .bodyondes .carousel {
+        width: 100%;
+        max-width: 340px;
+        min-height: 430px;
+        background: #fff;
+        border: 1px solid #eadff0;
+        border-radius: 22px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 28px rgba(28, 28, 26, 0.08);
+        transform: scale(.96);
+        transition:
+            transform .25s ease,
+            box-shadow .25s ease,
+            border-color .25s ease,
+            background .25s ease;
+    }
+
+    .bodyondes .glide__slide--active .carousel {
+        transform: scale(1);
+    }
+
+    /* L'émission en cours reste visuellement identifiable */
+    .bodyondes .glide__slide--live .carousel {
+        border-color: #7E4093;
+        box-shadow:
+            0 14px 36px rgba(126, 64, 147, .20),
+            0 8px 20px rgba(0, 0, 0, .10);
+    }
+
+    /* Elle n'est agrandie que lorsqu'elle est aussi la slide active */
+    .bodyondes .glide__slide--live.glide__slide--active .carousel {
+        transform: scale(1);
+        border-color: #7E4093;
+        box-shadow:
+            0 24px 60px rgba(126, 64, 147, .30),
+            0 10px 25px rgba(0, 0, 0, .12);
+    }
+
+    /* =========================
+       Image + badge
+       ========================= */
+
+    .bodyondes .image_carousel {
+        width: 100%;
+        height: 210px;
+        overflow: hidden;
+        position: relative;
+        background: #f2eef5;
+    }
+
+    .bodyondes .image_carousel img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .bodyondes .live-badge {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        z-index: 4;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: #E4013A;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        box-shadow: 0 8px 18px rgba(228, 1, 58, 0.28);
+    }
+
+    /* =========================
+       Texte
+       ========================= */
+
+    .bodyondes .date_carousel {
+        padding: 18px 22px 4px;
+    }
+
+    .bodyondes .date_carousel p,
+    .bodyondes .titre_carousel p,
+    .bodyondes .categorie_carousel p {
+        margin: 0;
+    }
+
+    .bodyondes .date_carousel p {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #f5edf8;
+        color: #7E4093;
+        font-size: 18px;
+        font-weight: 900;
+    }
+
+    .bodyondes .titre_carousel {
+        padding: 14px 22px 18px;
+        flex: 1;
+    }
+
+    .bodyondes .titre_carousel a,
+    .bodyondes .titre_carousel .carousel-title {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        margin: 0;
+        text-decoration: none;
+        font-weight: 900;
+        color: #1c1c1a;
+        line-height: 1.25;
+        font-size: 19px;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    .bodyondes .titre_carousel a:hover {
+        text-decoration: underline;
+    }
+
+    .bodyondes .categorie_carousel {
+        min-height: 64px;
+        padding: 12px 18px;
+        background: #35BAC0;
+        font-family: "Source Code Pro", monospace;
+        font-weight: 700;
+        font-size: 15px;
+        line-height: 1.15;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    /* La vraie carte en direct, pas seulement la slide active Glide */
+
+    .bodyondes .glide__slide--live .date_carousel p {
+        background: #7E4093;
+        color: #fff;
+    }
+
+    .bodyondes .glide__slide--live .titre_carousel a,
+    .bodyondes .glide__slide--live .titre_carousel .carousel-title {
+        color: #7E4093;
+    }
+
+    .bodyondes .glide__slide--live .categorie_carousel {
+        background: linear-gradient(90deg, #7E4093, #6B3B7F);
+    }
+
+    /* =========================
+       Flèches
+       ========================= */
+
+    .bodyondes .glide__arrows {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+
+    .bodyondes .glide__arrow {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 46px;
+        height: 46px;
+        border: 1px solid #eadff0;
+        border-radius: 999px;
+        background: #fff;
+        cursor: pointer;
+        pointer-events: auto;
+        z-index: 10;
+        box-shadow: 0 10px 24px rgba(28, 28, 26, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .bodyondes .glide__arrow:hover {
+        background: #f8f1fa;
+    }
+
+    .bodyondes .glide__arrow--left {
+        left: 4px;
+    }
+
+    .bodyondes .glide__arrow--right {
+        right: 4px;
+    }
+
+    .bodyondes .glide__arrow img {
+        width: 26px;
+        height: 26px;
+        object-fit: contain;
+    }
+
+    /* =========================
+       Responsive
+       ========================= */
+
+    @media (max-width: 1200px) {
+        .bodyondes {
+            padding: 0 42px 34px;
+        }
+
+        .bodyondes .glide {
+            padding: 0 44px;
+        }
+
+        .bodyondes .carousel {
+            max-width: 320px;
+            min-height: 400px;
+        }
+
+        .bodyondes .image_carousel {
+            height: 190px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .bodyondes {
+            padding: 0 16px 28px;
+        }
+
+        .bodyondes .ondestitres {
+            gap: 16px;
+            padding: 18px 0 4px;
+        }
+
+        .bodyondes .ondestitres img {
+            max-height: 88px;
+        }
+
+        .bodyondes h1 {
+            font-size: clamp(22px, 7vw, 32px);
+        }
+
+        .bodyondes h3 {
+            font-size: clamp(13px, 4vw, 17px);
+        }
+
+        .bodyondes .glide {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .bodyondes .glide__track {
+            padding: 25px 0 35px;
+            overflow: visible;
+        }
+
+        .bodyondes .carousel {
+            max-width: none;
+            min-height: 360px;
+            transform: scale(.96);
+            opacity: .8;
+            transition:
+                transform .25s ease,
+                opacity .25s ease,
+                box-shadow .25s ease,
+                border-color .25s ease,
+                background .25s ease;
+        }
+
+        .bodyondes .glide__slide--active .carousel {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .bodyondes .glide__slide--live .carousel {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .bodyondes .image_carousel {
+            height: 170px;
+        }
+
+        .bodyondes .titre_carousel a,
+        .bodyondes .titre_carousel .carousel-title {
+            font-size: 17px;
+        }
+
+        .bodyondes .categorie_carousel {
+            min-height: 54px;
+            font-size: 14px;
+        }
+
+        .bodyondes .glide__arrows {
+            display: none;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .bodyondes .ondestitres {
+            align-items: center;
+        }
+
+        .bodyondes .ondestitres img {
+            max-height: 72px;
+        }
+
+        .bodyondes .carousel {
+            min-height: 340px;
+        }
+
+        .bodyondes .image_carousel {
+            height: 150px;
+        }
+
+        .bodyondes .date_carousel {
+            padding: 14px 16px 2px;
+        }
+
+        .bodyondes .titre_carousel {
+            padding: 12px 16px 14px;
+        }
+    }
 </style>
 <div class="ondes-section">
   <div class="bodyondes">
@@ -451,10 +459,20 @@
           <ul class="glide__slides">
             {% for row in lastEmissions %}
               {% set type = row.type %}
+              {% set type = row.type %}
               {% set emission = row.emission %}
-              {% set category = row.category %}
-              {% set diffusion = row.diffusion %}
-              {% set endDiffusion = row.endDiffusion %}
+              {#
+                Pour une diffusion, la catégorie portée par
+                l'émission est la source de référence.
+                
+                Pour un créneau régulier vide, on conserve
+                la catégorie fournie par le builder.
+              #}
+              {% set category = emission and emission.categorie
+                            ? emission.categorie
+                            : row.category|default(null) %}
+              {% set startsAt = row.startsAt %}
+              {% set endsAt = row.endsAt %}
               {% set isCurrent = row.isCurrent %}
               <li class="glide__slide {{ isCurrent ? 'glide__slide--live' : '' }}">
                 <div class="carousel">
@@ -463,10 +481,17 @@
                   ========================= #}
                   <div class="image_carousel">
                     {% if type == 'diffusion' and emission %}
-                      {% set imagePathEmission = vich_uploader_asset(emission, 'thumbnailFile') %}
+                      {% set imagePathEmission =
+                                            vich_uploader_asset(
+                                                emission,
+                                                'thumbnailFile'
+                                            ) %}
                       {% set imagePathCategorie = category
-                      ? vich_uploader_asset(category, 'thumbnailFile')
-                      : null %}
+                                            ? vich_uploader_asset(
+                                                category,
+                                                'thumbnailFile'
+                                            )
+                                            : null %}
                       {% if imagePathEmission %}
                         <img
                         src="{{ imagePathEmission }}" alt="{{ emission.titre }}">
@@ -477,7 +502,11 @@
                             <img src="{{ asset('uploads/images/emission-zinzine.jpg') }}" alt="Image par défaut">
                             {% endif %}
                           {% elseif type == 'empty_regular' and category %}
-                            {% set imagePathCategorie = vich_uploader_asset(category, 'thumbnailFile') %}
+                            {% set imagePathCategorie =
+                                            vich_uploader_asset(
+                                                category,
+                                                'thumbnailFile'
+                                            ) %}
                             {% if imagePathCategorie %}
                               <img
                               src="{{ imagePathCategorie }}" alt="{{ category.titre }}">
@@ -485,99 +514,110 @@
                                 <img src="{{ asset('uploads/images/emission-zinzine.jpg') }}" alt="Image par défaut">
                                 {% endif %}
                               {% elseif type == 'playlist' %}
-                                {#
-                                  Image temporaire pour la Playlist.
-                                  
-                                  Quand tu auras choisi l'image définitive, il suffira
-                                  de remplacer ce chemin.
-                                #}
-                                <img
-                                src="{{ asset('uploads/images/emission-zinzine.jpg') }}" alt="Musiques et chansons">
+                                {% set playlistImage =
+                                            playlistImages[row.playlistKey]|default(null) %}
+                                {% if playlistImage and playlistImage.thumbnail %}
+                                  <img
+                                  src="{{ vich_uploader_asset(
+                                                    playlistImage,
+                                                    'thumbnailFile'
+                                                ) }}" alt="{{ row.title }}">
+                                    {% else %}
+                                    <img src="{{ asset('uploads/images/emission-zinzine.jpg') }}" alt="{{ row.title }}">
+                                    {% endif %}
                                   {% else %}
-                                  <img src="{{ asset('uploads/images/emission-zinzine.jpg') }}" alt="Image par défaut">
-                                  {% endif %}
-                                  {% if isCurrent %}
-                                    <div class="live-badge">
-                                      ● EN CE MOMENT
+                                    <img src="{{ asset('uploads/images/emission-zinzine.jpg') }}" alt="Image par défaut">
+                                    {% endif %}
+                                    {% if isCurrent %}
+                                      <div class="live-badge">
+                                        ● EN CE MOMENT
+                                      </div>
+                                    {% endif %}
+                                  </div>
+                                  {# =========================
+                                    HORAIRES
+                                  ========================= #}
+                                  <div class="date_carousel">
+                                    <p>
+                                      {{ startsAt|date('H:i', 'Europe/Paris') }}
+                                      -
+                                      {{ endsAt|date('H:i', 'Europe/Paris') }}
+                                    </p>
+                                  </div>
+                                  {# =========================
+                                    TITRE
+                                  ========================= #}
+                                  <div class="titre_carousel">
+                                    <p>
+                                      {% if type == 'diffusion' and emission %}
+                                        <a href="{{ path('emission.show', {
+                                                id: emission.id
+                                            }) }}">
+                                          {{ emission.titre|upper }}
+                                        </a>
+                                      {% elseif type == 'empty_regular' and category %}
+                                        <span class="carousel-title">
+                                          {{ category.titre|upper }}
+                                        </span>
+                                      {% elseif type == 'playlist' %}
+                                        <span class="carousel-title">
+                                          {{ row.title|upper }}
+                                        </span>
+                                      {% else %}
+                                        <span class="carousel-title">
+                                          PROGRAMMATION
+                                        </span>
+                                      {% endif %}
+                                    </p>
+                                  </div>
+                                  {# =========================
+                                    BANDEAU INFÉRIEUR
+                                  ========================= #}
+                                  {% if type == 'diffusion' and category %}
+                                    <div class="categorie_carousel">
+                                      <p>
+                                        {{ category.titre|upper }}
+                                      </p>
+                                    </div>
+                                  {% elseif type == 'empty_regular' %}
+                                    <div class="categorie_carousel">
+                                      <p>
+                                        ÉMISSION
+                                      </p>
+                                    </div>
+                                  {% elseif type == 'playlist' %}
+                                    <div class="categorie_carousel">
+                                      <p>
+                                        PLAYLIST
+                                      </p>
                                     </div>
                                   {% endif %}
                                 </div>
-                                {# =========================
-                                  HORAIRES
-                                ========================= #}
-                                <div class="date_carousel">
-                                  <p>
-                                    {{ diffusion|date('H:i', 'Europe/Paris') }}
-                                    -
-                                    {{ endDiffusion|date('H:i', 'Europe/Paris') }}
-                                  </p>
-                                </div>
-                                {# =========================
-                                  TITRE
-                                ========================= #}
-                                <div class="titre_carousel">
-                                  <p>
-                                    {% if type == 'diffusion' and emission %}
-                                      <a href="{{ path('emission.show', { id: emission.id }) }}">
-                                        {{ emission.titre|upper }}
-                                      </a>
-                                    {% elseif type == 'empty_regular' and category %}
-                                      <span class="carousel-title">
-                                        {{ category.titre|upper }}
-                                      </span>
-                                    {% elseif type == 'playlist' %}
-                                      <span class="carousel-title">
-                                        {{ row.title|upper }}
-                                      </span>
-                                    {% else %}
-                                      <span class="carousel-title">
-                                        PROGRAMMATION
-                                      </span>
-                                    {% endif %}
-                                  </p>
-                                </div>
-                                {# =========================
-                                  BANDEAU INFÉRIEUR
-                                ========================= #}
-                                {% if type == 'diffusion' and category %}
-                                  <div class="categorie_carousel">
-                                    <p>
-                                      {{ category.titre|upper }}
-                                    </p>
-                                  </div>
-                                {% elseif type == 'playlist' %}
-                                  <div class="categorie_carousel">
-                                    <p>
-                                      PLAYLIST
-                                    </p>
-                                  </div>
-                                {% endif %}
-                              </div>
-                            </li>
-                          {% endfor %}
-                        </ul>
-                      </div>
-                      <div class="glide__arrows" data-glide-el="controls">
-                        <button class="glide__arrow glide__arrow--left" data-glide-dir="<"
-                          type="button"
-                          aria-label="Programme précédent"
-                          >
-                          <img
-                        src=" /images/previous.png"
-                        alt=" "
-                          >
-                          </button>
-                          
-                          <button
-                        class=" glide__arrow glide__arrow--right"
-                          data-glide-dir=">
-                          "
+                              </li>
+                            {% endfor %}
+                          </ul>
+                        </div>
+                        <div class="glide__arrows" data-glide-el="controls">
+                          <button class="glide__arrow glide__arrow--left" data-glide-dir="<"
                             type="button"
-                            aria-label="Programme suivant"
-                          >
-                          <img src="/images/next.png" alt=""></button>
+                            aria-label="Programme précédent"
+                            >
+                            <img
+                          src=" /images/previous.png"
+                          alt=" "
+                            >
+                            </button>
+                            
+                            <button
+                          class=" glide__arrow glide__arrow--right"
+                            data-glide-dir=">
+                            "
+                              type="button"
+                              aria-label="Programme suivant"
+                            >
+                            <img src="/images/next.png" alt=""></button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  
+                    
