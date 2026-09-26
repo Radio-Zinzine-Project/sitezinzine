@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.119] - 2026-09-27
+OK (1621 tests, 8821 assertions)
+### Ajout
+- Parc à rediff — Frontend : ajout de l’affichage/recherche et du compteur du parc dans la sidebar « Non régulières », envoi d’une première diffusion régulière vers le parc, drag & drop des Pending vers la grille, duplication et suppression, synchronisation des états/compteurs et désactivation du drag des créneaux réguliers.
+### Correction
+- Correction des faux positifs des règles de programmation. (semaines paires et impaires)
+
+
 ## [1.0.118] - 2026-09-26
 ### Ajout
 - Ajout des SiteImage pour gérer les images du site (playlist du carrousel, loupe de recherche ?).

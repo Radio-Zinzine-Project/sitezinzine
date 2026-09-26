@@ -158,6 +158,13 @@ export async function selectSlot(context, event) {
     context.selectedPostit = postit
     context.selectedPostit.classList.add('is-selected')
 
+    /*
+     * On masque systématiquement l'action du parc au début
+     * d'une nouvelle sélection. Elle sera réévaluée plus bas
+     * uniquement pour une première diffusion régulière valide.
+     */
+    context.updatePendingRebroadcastAction(postit)
+
     if (context.currentMode === 'special' || isManualDraft) {
         context.specialEmptyStateTarget.style.display = 'none'
         context.specialSidebarPanelTarget.style.display = 'block'
@@ -190,6 +197,48 @@ export async function selectSlot(context, event) {
         )
 
     await context.loadLinkedDiffusions()
+
+    /*
+     * Le GET /group vient maintenant de nous fournir
+     * assignmentGroupKey.
+     *
+     * Pour une première diffusion régulière, on charge également
+     * le parc une seule fois afin de savoir si ce groupe y existe
+     * déjà avant d'afficher l'action.
+     */
+    const broadcastRank = Number.parseInt(
+        postit.dataset.broadcastRank || '1',
+        10
+    )
+
+    const draftId = Number.parseInt(
+        postit.dataset.draftId || '',
+        10
+    )
+
+    const canUsePendingRebroadcast =
+        !isManualDraft
+        && !isGhost
+        && broadcastRank === 1
+        && !Number.isNaN(draftId)
+        && draftId > 0
+        && assignedEmissionTitle !== ''
+
+    if (
+        canUsePendingRebroadcast
+        && !context.pendingRebroadcastLoaded
+    ) {
+        await context.loadPendingRebroadcasts()
+    }
+
+    /*
+     * La sélection peut avoir changé pendant les requêtes.
+     */
+    if (context.selectedPostit !== postit) {
+        return
+    }
+
+    context.updatePendingRebroadcastAction(postit)
 
     if (context.isReadonly()) {
         context.arbitrationActionsTarget.innerHTML = ''
@@ -244,7 +293,8 @@ export async function loadLinkedDiffusions() {
         return
     }
 
-    const draftId = this.selectedPostit.dataset.draftId || ''
+    const postit = this.selectedPostit
+    const draftId = postit.dataset.draftId || ''
 
     if (!draftId) {
         return
@@ -252,7 +302,7 @@ export async function loadLinkedDiffusions() {
 
     const root =
         this.currentMode === 'special' ||
-            this.selectedPostit.dataset.isManualDraft === 'true'
+            postit.dataset.isManualDraft === 'true'
             ? this.specialSlotSummaryTarget
             : this.slotSummaryTarget
 
@@ -269,6 +319,24 @@ export async function loadLinkedDiffusions() {
         )
 
         const data = await response.json()
+
+        /*
+         * La sélection peut avoir changé pendant la requête.
+         * Dans ce cas, on ne modifie pas le nouveau post-it
+         * avec les données de l'ancien.
+         */
+        if (this.selectedPostit !== postit) {
+            return
+        }
+
+        if (
+            response.ok
+            && data?.success !== false
+            && typeof data.assignmentGroupKey === 'string'
+        ) {
+            postit.dataset.assignmentGroupKey =
+                data.assignmentGroupKey
+        }
 
         const items = Array.isArray(data.items)
             ? data.items
@@ -300,8 +368,10 @@ export async function loadLinkedDiffusions() {
             </div>
         `
     } catch {
-        container.innerHTML =
-            '<div>Impossible de charger les diffusions liées.</div>'
+        if (this.selectedPostit === postit) {
+            container.innerHTML =
+                '<div>Impossible de charger les diffusions liées.</div>'
+        }
     }
 }
 

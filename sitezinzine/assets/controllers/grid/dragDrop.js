@@ -55,32 +55,64 @@ export function makeDraggable(el, source) {
 export function dropOnDay(e, dayEl) {
     dayEl.classList.remove('drag-over')
 
-    if (!this.dragged || this.dragged.dataset.slotLocked === 'true') {
+    if (
+        !this.dragged
+        || this.dragged.dataset.slotLocked === 'true'
+    ) {
         return
     }
 
     const rect = dayEl.getBoundingClientRect()
-    const startIndex = Math.floor((e.clientY - rect.top) / this.CELL_H)
+
+    const startIndex = Math.floor(
+        (e.clientY - rect.top) / this.CELL_H
+    )
 
     if (
-        this.dragged.dataset.source === 'pool' &&
-        this.dragged.dataset.specialItemType
+        this.dragged.dataset.source === 'pending-rebroadcast'
     ) {
         e.preventDefault()
-        this.createSpecialDraftFromDrop(dayEl, startIndex)
+
+        this.placePendingRebroadcastFromDrop(
+            dayEl,
+            startIndex
+        )
+
         return
     }
 
     if (
-        this.dragged.dataset.source === 'grid' &&
-        this.dragged.dataset.isManualDraft === 'true'
+        this.dragged.dataset.source === 'pool'
+        && this.dragged.dataset.specialItemType
     ) {
         e.preventDefault()
-        this.moveManualDraftFromDrop(dayEl, startIndex)
+
+        this.createSpecialDraftFromDrop(
+            dayEl,
+            startIndex
+        )
+
         return
     }
 
-    this.placePostIt(dayEl, startIndex)
+    if (
+        this.dragged.dataset.source === 'grid'
+        && this.dragged.dataset.isManualDraft === 'true'
+    ) {
+        e.preventDefault()
+
+        this.moveManualDraftFromDrop(
+            dayEl,
+            startIndex
+        )
+
+        return
+    }
+
+    this.placePostIt(
+        dayEl,
+        startIndex
+    )
 }
 
 export function placePostIt(dayEl, startIndex) {

@@ -306,6 +306,16 @@ final class ProgrammationRuleConflictChecker
      * Si leurs deux premières diffusions sont mensuelles, on compare donc
      * les cycles mensuels d'origine avant de comparer la position des
      * rediffusions elles-mêmes.
+     *
+     * Si les deux rediffusions sont réellement hebdomadaires, leur
+     * weekParity doit être respectée :
+     *
+     * - null + null       => conflit possible
+     * - null + even/odd   => conflit possible
+     * - even + even       => conflit possible
+     * - odd + odd         => conflit possible
+     * - even + odd        => aucun conflit possible
+     * - odd + even        => aucun conflit possible
      */
         if (
             $this->isRebroadcast($candidate)
@@ -326,13 +336,22 @@ final class ProgrammationRuleConflictChecker
                 );
             }
 
+            if ($candidate->isWeekly() && $existing->isWeekly()) {
+                return $this->weeklyCyclesCanCoincide(
+                    $candidate,
+                    $existing
+                );
+            }
+
             return true;
         }
 
         /*
      * Lorsqu'un seul des deux créneaux est une rediffusion, sa position
-     * dépend de la première diffusion de sa règle. On conserve ici le
-     * comportement structurel existant.
+     * dépend de la première diffusion de sa règle.
+     *
+     * On conserve ici le comportement structurel existant : le checker
+     * considère que les deux créneaux peuvent appartenir au même cycle.
      */
         if (
             $this->isRebroadcast($candidate)
@@ -341,6 +360,10 @@ final class ProgrammationRuleConflictChecker
             return true;
         }
 
+        /*
+     * Deux créneaux hebdomadaires ordinaires doivent respecter leur
+     * rythme paire/impaire.
+     */
         if ($candidate->isWeekly() && $existing->isWeekly()) {
             return $this->weeklyCyclesCanCoincide(
                 $candidate,

@@ -21,6 +21,54 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ADMIN')]
 class PendingRebroadcastController extends AbstractController
 {
+
+    #[Route('', name: 'index', methods: ['GET'])]
+    public function index(
+        PendingRebroadcastRepository $pendingRepository
+    ): JsonResponse {
+        $pendingRebroadcasts = $pendingRepository->findAllForPool();
+
+        $items = [];
+
+        foreach ($pendingRebroadcasts as $pendingRebroadcast) {
+            $emission = $pendingRebroadcast->getEmission();
+
+            if (!$emission instanceof Emission) {
+                continue;
+            }
+
+            $category = $emission->getCategorie();
+
+            $durationMinutes = $emission->getDuree();
+
+            if (
+                !\is_int($durationMinutes)
+                || $durationMinutes <= 0
+            ) {
+                $durationMinutes = 15;
+            }
+
+            $items[] = [
+                'id' => $pendingRebroadcast->getId(),
+                'emissionId' => $emission->getId(),
+                'title' => $emission->getTitre(),
+                'category' => $category?->getTitre(),
+                'durationMinutes' => $durationMinutes,
+                'assignmentGroupKey' =>
+                $pendingRebroadcast->getAssignmentGroupKey(),
+                'createdAt' => $pendingRebroadcast
+                    ->getCreatedAt()
+                    ->format(\DateTimeInterface::ATOM),
+            ];
+        }
+
+        return $this->json([
+            'success' => true,
+            'count' => \count($items),
+            'items' => $items,
+        ]);
+    }
+
     #[Route('', name: 'create', methods: ['POST'])]
     public function create(
         Request $request,

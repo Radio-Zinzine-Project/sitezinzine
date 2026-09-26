@@ -1,8 +1,10 @@
 import { Controller } from '@hotwired/stimulus'
+
 import {
   askRebroadcastStrategy,
   askRestoreRebroadcastStrategy
 } from './grid/rebroadcastModal'
+
 import * as arbitration from './grid/arbitration'
 import * as drafts from './grid/drafts'
 import * as emissions from './grid/emissions'
@@ -10,6 +12,7 @@ import * as conflicts from './grid/conflicts'
 import * as sidebar from './grid/sidebar'
 import * as postitRenderer from './grid/postitRenderer'
 import * as dragDrop from './grid/dragDrop'
+import * as pendingRebroadcasts from './grid/pendingRebroadcasts'
 import { escapeHtml } from './grid/utils'
 
 export default class extends Controller {
@@ -36,6 +39,14 @@ export default class extends Controller {
     'specialEmptyState',
     'specialSidebarPanel',
     'specialSlotSummary',
+    'pendingRebroadcastToggle',
+    'pendingRebroadcastCount',
+    'pendingRebroadcastPanel',
+    'pendingRebroadcastSearch',
+    'pendingRebroadcastStatus',
+    'pendingRebroadcastList',
+    'pendingRebroadcastAction',
+    'pendingRebroadcastActionButton',
     'trashZone'
   ]
 
@@ -65,6 +76,8 @@ export default class extends Controller {
     this.regularSearchTimeout = null
     this.regularOtherCategory = false
     this.specialSearchTimeout = null
+    this.pendingRebroadcastItems = []
+    this.pendingRebroadcastLoaded = false
 
     this.syncSidebarHeight = this.syncSidebarHeight.bind(this)
 
@@ -75,9 +88,11 @@ export default class extends Controller {
     }
 
     if (!this.isReadonly()) {
-      this.element.querySelectorAll('.postit').forEach((el) => {
-        this.makeDraggable(el, 'grid')
-      })
+      this.element
+        .querySelectorAll('.postit[data-is-manual-draft="true"]')
+        .forEach((el) => {
+          this.makeDraggable(el, 'grid')
+        })
     }
 
     this.dayTargets.forEach((day) => {
@@ -319,7 +334,7 @@ export default class extends Controller {
     }
   }
 
-  showSpecialMode() {
+  async showSpecialMode() {
     this.clearRegularSearch()
     this.currentMode = 'special'
     this.saveCurrentMode()
@@ -334,10 +349,15 @@ export default class extends Controller {
     this.modeSpecialBtnTarget.setAttribute('aria-pressed', 'true')
 
     this.specialShowAllBtnTarget.style.display = 'none'
-    this.specialStatusTarget.textContent = 'Sélectionne une catégorie pour charger les émissions.'
+    this.specialStatusTarget.textContent =
+      'Sélectionne une catégorie pour charger les émissions.'
     this.specialEmptyStateTarget.style.display = 'block'
     this.specialSidebarPanelTarget.style.display = 'none'
     this.setEmissionsListHtml('')
+
+    if (!this.pendingRebroadcastLoaded) {
+      await this.loadPendingRebroadcasts()
+    }
   }
 
   specialCategoryChanged() {
@@ -779,6 +799,51 @@ export default class extends Controller {
     return arbitration.callConflictCancel.call(this, item)
   }
 
+  async togglePendingRebroadcastPool() {
+    return pendingRebroadcasts.togglePendingRebroadcastPool.call(this)
+  }
+
+  async sendSelectedToPendingRebroadcast() {
+    return pendingRebroadcasts.sendSelectedToPendingRebroadcast.call(this)
+  }
+
+  updatePendingRebroadcastAction(postit = this.selectedPostit) {
+    return pendingRebroadcasts.updatePendingRebroadcastAction.call(
+      this,
+      postit
+    )
+  }
+
+  async loadPendingRebroadcasts() {
+    return pendingRebroadcasts.loadPendingRebroadcasts.call(this)
+  }
+
+  async reloadPendingRebroadcasts() {
+    return pendingRebroadcasts.reloadPendingRebroadcasts.call(this)
+  }
+
+  searchPendingRebroadcasts() {
+    return pendingRebroadcasts.searchPendingRebroadcasts.call(this)
+  }
+
+  renderPendingRebroadcasts() {
+    return pendingRebroadcasts.renderPendingRebroadcasts.call(this)
+  }
+
+  updatePendingRebroadcastCount(count) {
+    return pendingRebroadcasts.updatePendingRebroadcastCount.call(
+      this,
+      count
+    )
+  }
+
+  updatePendingRebroadcastToggle(isOpen) {
+    return pendingRebroadcasts.updatePendingRebroadcastToggle.call(
+      this,
+      isOpen
+    )
+  }
+
   saveCurrentMode() {
     sessionStorage.setItem('gridCurrentMode', this.currentMode || 'regular')
   }
@@ -830,6 +895,35 @@ export default class extends Controller {
 
   openRebroadcastModal() {
     return drafts.openRebroadcastModal.call(this)
+  }
+
+  async duplicatePendingRebroadcast(event) {
+    return pendingRebroadcasts
+      .duplicatePendingRebroadcast
+      .call(
+        this,
+        event
+      )
+  }
+
+  async deletePendingRebroadcast(event) {
+    return pendingRebroadcasts.deletePendingRebroadcast.call(
+      this,
+      event
+    )
+  }
+
+  async placePendingRebroadcastFromDrop(
+    dayEl,
+    startIndex
+  ) {
+    return pendingRebroadcasts
+      .placePendingRebroadcastFromDrop
+      .call(
+        this,
+        dayEl,
+        startIndex
+      )
   }
 
   loadLinkedDiffusions() {

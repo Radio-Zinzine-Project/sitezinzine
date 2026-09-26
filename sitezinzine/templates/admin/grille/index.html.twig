@@ -1260,6 +1260,302 @@
     }
 
     /* =========================================================
+   Sidebar : parc à rediff
+   ========================================================= */
+
+.pending-rebroadcast-section {
+    padding: 0;
+    overflow: hidden;
+}
+
+.pending-rebroadcast-toggle {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) 24px;
+    align-items: center;
+    gap: 8px;
+
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+
+    color: #1c1c1a;
+    background: #ffffff;
+    border: 0;
+    border-radius: 8px;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.pending-rebroadcast-toggle__spacer {
+    display: block;
+    width: 24px;
+}
+
+.pending-rebroadcast-toggle__title {
+    min-width: 0;
+    text-align: center;
+}
+
+.pending-rebroadcast-toggle:hover {
+    background: #f8f8f8;
+}
+
+.pending-rebroadcast-toggle:focus-visible {
+    outline: 3px solid #1c1c1a;
+    outline-offset: -3px;
+}
+
+.pending-rebroadcast-toggle__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 24px;
+
+    color: #555555;
+    font-size: 11px;
+}
+
+.pending-rebroadcast-panel {
+    padding: 0 12px 12px;
+    border-top: 1px solid #eeeeee;
+}
+
+.pending-rebroadcast-panel[hidden] {
+    display: none;
+}
+
+.pending-rebroadcast-search-label {
+    display: block;
+    margin: 12px 0 6px;
+
+    color: #1c1c1a;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.pending-rebroadcast-search {
+    width: 100%;
+    min-height: 38px;
+    box-sizing: border-box;
+    padding: 0 10px;
+
+    color: #1c1c1a;
+    background: #ffffff;
+    border: 1px solid #d6d6d6;
+    border-radius: 6px;
+
+    font-size: 13px;
+}
+
+.pending-rebroadcast-search:focus {
+    border-color: #999999;
+    outline: 2px solid rgba(28, 28, 26, 0.12);
+    outline-offset: 1px;
+}
+
+.pending-rebroadcast-status {
+    margin: 8px 0;
+
+    color: #555555;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.pending-rebroadcast-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    max-height: 320px;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    padding-right: 3px;
+}
+
+.pending-rebroadcast-card {
+    padding: 9px 10px;
+
+    color: var(--postit-manual-rebroadcast-text);
+    background: #eff6ff;
+    border: 1px solid var(--postit-manual-rebroadcast-border);
+    border-radius: 6px;
+
+    font-size: 12px;
+}
+
+.pending-rebroadcast-card__title {
+    overflow: hidden;
+
+    font-weight: 800;
+    line-height: 1.3;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pending-rebroadcast-card__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+
+    margin-top: 4px;
+
+    color: #475569;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.pending-rebroadcast-card__content {
+    min-width: 0;
+}
+
+.pending-rebroadcast-card__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+
+    margin-top: 8px;
+    padding-top: 7px;
+
+    border-top: 1px solid #ececec;
+}
+
+.pending-rebroadcast-card__duplicate,
+.pending-rebroadcast-card__delete {
+    padding: 4px 8px;
+
+    background: #ffffff;
+    border: 1px solid #c9c9c9;
+    border-radius: 5px;
+
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.2;
+
+    cursor: pointer;
+}
+
+.pending-rebroadcast-card__duplicate {
+    color: #333333;
+}
+
+.pending-rebroadcast-card__delete {
+    color: #8b1e1e;
+}
+
+.pending-rebroadcast-card__duplicate:hover:not(:disabled),
+.pending-rebroadcast-card__delete:hover:not(:disabled) {
+    background: #f3f3f3;
+}
+
+.pending-rebroadcast-card__duplicate:focus-visible,
+.pending-rebroadcast-card__delete:focus-visible {
+    outline: 2px solid #1c1c1a;
+    outline-offset: 2px;
+}
+
+.pending-rebroadcast-card__duplicate:disabled,
+.pending-rebroadcast-card__delete:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.pending-rebroadcast-empty,
+.pending-rebroadcast-error {
+    padding: 12px;
+
+    color: #555555;
+    background: #fafafa;
+    border: 1px dashed #d0d0d0;
+    border-radius: 6px;
+
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.pending-rebroadcast-error {
+    color: #8f2638;
+    background: #fff7f8;
+    border-color: #d9a5ae;
+}
+
+.pending-rebroadcast-retry {
+    display: block;
+
+    width: 100%;
+    margin-top: 8px;
+    padding: 7px 9px;
+
+    color: #1c1c1a;
+    background: #ffffff;
+    border: 1px solid #d6d6d6;
+    border-radius: 5px;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.pending-rebroadcast-retry:hover {
+    background: #f5f5f5;
+}
+
+.pending-rebroadcast-action {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #ececec;
+}
+
+.btn-pending-rebroadcast {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 10px;
+
+    color: #1c1c1a;
+    background: #ffffff;
+    border: 1px solid #bfc7d1;
+    border-radius: 6px;
+
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.3;
+    text-align: center;
+
+    cursor: pointer;
+}
+
+.btn-pending-rebroadcast:hover:not(:disabled) {
+    background: #eff6ff;
+    border-color: #8da4bf;
+}
+
+.btn-pending-rebroadcast:focus-visible {
+    outline: 2px solid #1c1c1a;
+    outline-offset: 2px;
+}
+
+.btn-pending-rebroadcast:disabled {
+    color: #666666;
+    background: #f3f3f3;
+    border-color: #d5d5d5;
+    cursor: default;
+    opacity: 0.8;
+}
+
+    /* =========================================================
        Responsive
        ========================================================= */
 
@@ -1478,6 +1774,11 @@
                     Créneau sélectionné
                   </h3>
                   <div class="slot-summary" data-grid-target="slotSummary"></div>
+                  <div class="pending-rebroadcast-action" data-grid-target="pendingRebroadcastAction" style="display:none;">
+                    <button type="button" class="btn-pending-rebroadcast" data-grid-target="pendingRebroadcastActionButton" data-action="click->grid#sendSelectedToPendingRebroadcast">
+                      Envoyer au parc à rediff
+                    </button>
+                  </div>
                   <div class="slot-actions" data-grid-target="slotActions" style="display:none;">
                     <button type="button" class="btn-remove-assignment" data-action="click->grid#removeAssignment">
                       Retirer l’émission
@@ -1519,63 +1820,89 @@
                 <h2>
                   Émissions non régulières
                 </h2>
-                <div class="sidebar-section">
-                  <h3>
-                    Filtre
-                  </h3>
-                  <label for="special-category-select" class="special-filter-label">
-                    Catégorie
-                  </label>
-                  <select id="special-category-select" class="special-filter-select" data-grid-target="specialCategorySelect" data-action="change->grid#specialCategoryChanged">
-                    <option value="">
-                      Choisir une catégorie
-                    </option>
-                    {% for category in specialCategories %}
-                      <option value="{{ category.id }}">
-                        {{ category.titre }}
-                      </option>
-                    {% endfor %}
-                  </select>
-                  <input type="search" class="regular-search-input" placeholder="Rechercher une émission..." data-grid-target="specialSearch" data-action="input->grid#specialSearch">
-                    <div class="special-filter-help">
-                      Choisis une catégorie puis glisse une émission dans la grille.
-                    </div>
-                  </div>
-                  <div id="special-selection-empty" data-grid-target="specialEmptyState">
-                    Sélectionne une catégorie.
-                  </div>
-                  <div data-grid-target="specialSidebarPanel" style="display:none;">
-                    <div class="sidebar-section">
-                      <h3>
-                        Programmation sélectionnée
-                      </h3>
-                      <div class="slot-summary" data-grid-target="specialSlotSummary"></div>
-                    </div>
-                  </div>
-                  <div class="sidebar-section">
-                    <div class="special-toolbar">
-                      <h3>
-                        Émissions ponctuelles
-                      </h3>
-                      <div class="special-toolbar__status" data-grid-target="specialStatus">
-                        Sélectionne une catégorie.
+                <div class="sidebar-section pending-rebroadcast-section">
+                  <button type="button" class="pending-rebroadcast-toggle" data-grid-target="pendingRebroadcastToggle" data-action="click->grid#togglePendingRebroadcastPool" aria-expanded="false" aria-controls="pending-rebroadcast-panel">
+                    <span class="pending-rebroadcast-toggle__spacer" aria-hidden="true"></span>
+                    <span class="pending-rebroadcast-toggle__title">
+                      Parc à rediff
+                      (
+                      <span data-grid-target="pendingRebroadcastCount">
+                        0
+                      </span>
+                      )
+                    </span>
+                    <span class="pending-rebroadcast-toggle__icon" data-pending-rebroadcast-toggle-icon aria-hidden="true">
+                      ▼
+                    </span>
+                  </button>
+                  <div id="pending-rebroadcast-panel" class="pending-rebroadcast-panel" data-grid-target="pendingRebroadcastPanel" hidden>
+                    <label for="pending-rebroadcast-search" class="pending-rebroadcast-search-label">
+                      Rechercher dans le parc
+                    </label>
+                    <input id="pending-rebroadcast-search" type="search" class="pending-rebroadcast-search" placeholder="Titre ou catégorie..." autocomplete="off" data-grid-target="pendingRebroadcastSearch" data-action="input->grid#searchPendingRebroadcasts">
+                      <div class="pending-rebroadcast-status" data-grid-target="pendingRebroadcastStatus" aria-live="polite">
+                        Ouvre le parc pour charger les émissions.
                       </div>
-                      <button type="button" class="btn-show-all" data-grid-target="specialShowAllBtn" data-action="click->grid#loadAllSpecialCandidates">
-                        Afficher tout
-                      </button>
+                      <div class="pending-rebroadcast-list" data-grid-target="pendingRebroadcastList"></div>
                     </div>
-                    <div id="emissions-pool-special" data-grid-target="emissionsList"></div>
                   </div>
                   <div class="sidebar-section">
                     <h3>
-                      Suppression
+                      Filtre
                     </h3>
-                    <div class="trash-zone" data-grid-target="trashZone">
-                      🗑️ Glisser ici un draft manuel pour le supprimer
+                    <label for="special-category-select" class="special-filter-label">
+                      Catégorie
+                    </label>
+                    <select id="special-category-select" class="special-filter-select" data-grid-target="specialCategorySelect" data-action="change->grid#specialCategoryChanged">
+                      <option value="">
+                        Choisir une catégorie
+                      </option>
+                      {% for category in specialCategories %}
+                        <option value="{{ category.id }}">
+                          {{ category.titre }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                    <input type="search" class="regular-search-input" placeholder="Rechercher une émission..." data-grid-target="specialSearch" data-action="input->grid#specialSearch">
+                      <div class="special-filter-help">
+                        Choisis une catégorie puis glisse une émission dans la grille.
+                      </div>
+                    </div>
+                    <div id="special-selection-empty" data-grid-target="specialEmptyState">
+                      Sélectionne une catégorie.
+                    </div>
+                    <div data-grid-target="specialSidebarPanel" style="display:none;">
+                      <div class="sidebar-section">
+                        <h3>
+                          Programmation sélectionnée
+                        </h3>
+                        <div class="slot-summary" data-grid-target="specialSlotSummary"></div>
+                      </div>
+                    </div>
+                    <div class="sidebar-section">
+                      <div class="special-toolbar">
+                        <h3>
+                          Émissions ponctuelles
+                        </h3>
+                        <div class="special-toolbar__status" data-grid-target="specialStatus">
+                          Sélectionne une catégorie.
+                        </div>
+                        <button type="button" class="btn-show-all" data-grid-target="specialShowAllBtn" data-action="click->grid#loadAllSpecialCandidates">
+                          Afficher tout
+                        </button>
+                      </div>
+                      <div id="emissions-pool-special" data-grid-target="emissionsList"></div>
+                    </div>
+                    <div class="sidebar-section">
+                      <h3>
+                        Suppression
+                      </h3>
+                      <div class="trash-zone" data-grid-target="trashZone">
+                        🗑️ Glisser ici un draft manuel pour le supprimer
+                      </div>
                     </div>
                   </div>
-                </div>
-              </aside>
-            </div>
-          {% endblock %}
-          
+                </aside>
+              </div>
+            {% endblock %}
+            
