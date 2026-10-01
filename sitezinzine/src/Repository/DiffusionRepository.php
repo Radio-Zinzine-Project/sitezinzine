@@ -127,6 +127,61 @@ class DiffusionRepository extends ServiceEntityRepository
     }
 
     /**
+     * Retourne, pour chaque émission demandée, le nombre de diffusions publiées
+     * dont l'horaire est strictement antérieur à la borne fournie.
+     *
+     * Cette méthode est destinée aux règles métier qui doivent raisonner sur
+     * les passages réellement publiés jusqu'à une date donnée.
+     *
+     * Les diffusions non publiées sont volontairement exclues.
+     * Les émissions sans diffusion publiée ne sont pas présentes dans le résultat.
+     *
+     * @param int[] $emissionIds
+     *
+     * @return array<int, int> Tableau sous la forme [emissionId => nombreDeDiffusions]
+     */
+    public function countPublishedBeforeForEmissionIds(
+        array $emissionIds,
+        \DateTimeInterface $before
+    ): array {
+        $emissionIds = array_values(array_unique(array_filter(
+            array_map('intval', $emissionIds),
+            static fn(int $id): bool => $id > 0
+        )));
+
+        if ([] === $emissionIds) {
+            return [];
+        }
+
+        $rows = $this->createQueryBuilder('d')
+            ->select('IDENTITY(d.emission) AS emissionId')
+            ->addSelect('COUNT(d.id) AS diffusionCount')
+            ->andWhere('d.emission IN (:emissionIds)')
+            ->andWhere('d.horaireDiffusion < :before')
+            ->andWhere('d.publicationStatus = :status')
+            ->setParameter('emissionIds', $emissionIds)
+            ->setParameter('before', $before)
+            ->setParameter('status', Diffusion::STATUS_PUBLISHED)
+            ->groupBy('d.emission')
+            ->getQuery()
+            ->getArrayResult();
+
+        $result = [];
+
+        foreach ($rows as $row) {
+            $emissionId = (int) ($row['emissionId'] ?? 0);
+
+            if ($emissionId <= 0) {
+                continue;
+            }
+
+            $result[$emissionId] = (int) ($row['diffusionCount'] ?? 0);
+        }
+
+        return $result;
+    }
+
+    /**
      * @return Diffusion[]
      */
     public function findPublishedByWeek(
@@ -199,5 +254,55 @@ class DiffusionRepository extends ServiceEntityRepository
             ->addOrderBy('d.id', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Retourne, pour chaque groupe demandé, le nombre de diffusions publiées
+     * dont l'horaire est strictement antérieur à la borne fournie.
+     *
+     * @param string[] $assignmentGroupKeys
+     *
+     * @return array<string, int>
+     */
+    public function countPublishedBeforeForAssignmentGroupKeys(
+        array $assignmentGroupKeys,
+        \DateTimeInterface $before
+    ): array {
+        $assignmentGroupKeys = array_values(array_unique(array_filter(
+            array_map('trim', $assignmentGroupKeys),
+            static fn(string $key): bool => '' !== $key
+        )));
+
+        if ([] === $assignmentGroupKeys) {
+            return [];
+        }
+
+        $rows = $this->createQueryBuilder('d')
+            ->select('d.assignmentGroupKey AS assignmentGroupKey')
+            ->addSelect('COUNT(d.id) AS diffusionCount')
+            ->andWhere('d.assignmentGroupKey IN (:assignmentGroupKeys)')
+            ->andWhere('d.horaireDiffusion < :before')
+            ->andWhere('d.publicationStatus = :status')
+            ->setParameter('assignmentGroupKeys', $assignmentGroupKeys)
+            ->setParameter('before', $before)
+            ->setParameter('status', Diffusion::STATUS_PUBLISHED)
+            ->groupBy('d.assignmentGroupKey')
+            ->getQuery()
+            ->getArrayResult();
+
+        $result = [];
+
+        foreach ($rows as $row) {
+            $assignmentGroupKey = (string) ($row['assignmentGroupKey'] ?? '');
+
+            if ('' === $assignmentGroupKey) {
+                continue;
+            }
+
+            $result[$assignmentGroupKey] =
+                (int) ($row['diffusionCount'] ?? 0);
+        }
+
+        return $result;
     }
 }

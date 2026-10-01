@@ -45,8 +45,6 @@ export default class extends Controller {
     'pendingRebroadcastSearch',
     'pendingRebroadcastStatus',
     'pendingRebroadcastList',
-    'pendingRebroadcastAction',
-    'pendingRebroadcastActionButton',
     'trashZone'
   ]
 
@@ -801,17 +799,6 @@ export default class extends Controller {
 
   async togglePendingRebroadcastPool() {
     return pendingRebroadcasts.togglePendingRebroadcastPool.call(this)
-  }
-
-  async sendSelectedToPendingRebroadcast() {
-    return pendingRebroadcasts.sendSelectedToPendingRebroadcast.call(this)
-  }
-
-  updatePendingRebroadcastAction(postit = this.selectedPostit) {
-    return pendingRebroadcasts.updatePendingRebroadcastAction.call(
-      this,
-      postit
-    )
   }
 
   async loadPendingRebroadcasts() {

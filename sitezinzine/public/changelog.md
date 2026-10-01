@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.120] - 2026-10-01
+### Correction
+- Correction de l'affichage des rangs pour les non régulières quand la grille est validée.
+- Récupération des émissions oubliées lors d'un transfert de data de l'ancienne à la nouvelle BDD.
+- Correction métier du parc à rediff.
+
 ## [1.0.119] - 2026-09-27
 OK (1621 tests, 8821 assertions)
 ### Ajout

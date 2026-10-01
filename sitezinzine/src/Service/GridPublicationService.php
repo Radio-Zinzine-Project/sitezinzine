@@ -9,6 +9,7 @@ use App\Entity\DiffusionDraft;
 use App\Repository\DiffusionDraftRepository;
 use App\Repository\DiffusionRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 
 final class GridPublicationService
 {
@@ -16,6 +17,8 @@ final class GridPublicationService
         private readonly DiffusionDraftRepository $draftRepository,
         private readonly DiffusionRepository $diffusionRepository,
         private readonly EntityManagerInterface $entityManager,
+        private readonly PendingRebroadcastPopulatorInterface $pendingRebroadcastService,
+        private readonly ClockInterface $clock,
     ) {}
 
     /**
@@ -475,8 +478,8 @@ final class GridPublicationService
                 }
 
                 /*
-                 * On conserve un ordre de traitement stable.
-                 */
+             * On conserve un ordre de traitement stable.
+             */
                 $items = $preview['items'];
 
                 usort(
@@ -518,6 +521,7 @@ final class GridPublicationService
                 $created = [];
                 $updated = [];
                 $publishedDrafts = [];
+                $publishedDiffusions = [];
 
                 foreach ($items as $item) {
                     $draft = $item['draft'] ?? null;
@@ -562,9 +566,9 @@ final class GridPublicationService
                     }
 
                     /*
-                     * Le rang est déjà déterminé dans DiffusionDraft.
-                     * On ne le recalcule pas depuis l'historique.
-                     */
+                 * Le rang est déjà déterminé dans DiffusionDraft.
+                 * On ne le recalcule pas depuis l'historique.
+                 */
                     $nombreDiffusion = $draft->getNombreDiffusion();
 
                     if (
@@ -580,16 +584,16 @@ final class GridPublicationService
                     }
 
                     /*
-                     * IMPORTANT :
-                     *
-                     * On utilise la targetDiffusion déterminée pendant
-                     * la preview.
-                     *
-                     * Elle peut être :
-                     * - la publishedDiffusion historique du Draft ;
-                     * - une ancienne Diffusion réutilisée au même horaire ;
-                     * - null pour un nouveau créneau.
-                     */
+                 * IMPORTANT :
+                 *
+                 * On utilise la targetDiffusion déterminée pendant
+                 * la preview.
+                 *
+                 * Elle peut être :
+                 * - la publishedDiffusion historique du Draft ;
+                 * - une ancienne Diffusion réutilisée au même horaire ;
+                 * - null pour un nouveau créneau.
+                 */
                     $diffusion = $item['targetDiffusion'] ?? null;
 
                     if ($diffusion instanceof Diffusion) {
@@ -641,9 +645,9 @@ final class GridPublicationService
                     }
 
                     /*
-                     * Le Draft est la source de vérité :
-                     * toutes les valeurs publiées proviennent de lui.
-                     */
+                 * Le Draft est la source de vérité :
+                 * toutes les valeurs publiées proviennent de lui.
+                 */
                     $diffusion
                         ->setEmission($emission)
                         ->setNombreDiffusion($nombreDiffusion)
@@ -665,21 +669,51 @@ final class GridPublicationService
                     }
 
                     /*
-                     * markAsPublished() rattache également le Draft
-                     * à la Diffusion réellement utilisée.
-                     *
-                     * C'est particulièrement important lorsqu'on vient
-                     * de récupérer une ancienne Diffusion qui n'était
-                     * plus liée au Draft.
-                     */
+                 * markAsPublished() rattache également le Draft
+                 * à la Diffusion réellement utilisée.
+                 */
                     $draft->markAsPublished(
                         $diffusion,
                         new \DateTimeImmutable()
                     );
 
                     $publishedDrafts[] = $draft;
+                    $publishedDiffusions[] = $diffusion;
                 }
 
+                /*
+             * Alimentation automatique du parc à rediff.
+             *
+             * La borne correspond à la fin de la semaine radio contenant
+             * le présent lorsque la semaine publiée est passée ou présente.
+             *
+             * Une semaine future ne doit jamais étendre cette borne.
+             */
+                $poolBefore = $this->resolvePendingRebroadcastUpperBound();
+
+                /*
+ * Les Diffusion doivent être synchronisées en base avant
+ * l'alimentation du parc.
+ *
+ * PendingRebroadcastService compte les Diffusion publiées via une
+ * requête SQL. Sans ce flush intermédiaire, les nouvelles Diffusion
+ * de la semaine courante ne sont pas encore visibles par cette requête.
+ *
+ * Ce flush reste dans la même transaction Doctrine :
+ * il ne valide donc pas définitivement la publication si la suite
+ * de l'opération échoue.
+ */
+                $this->entityManager->flush();
+
+                $this->pendingRebroadcastService
+                    ->populateFromPublishedDiffusions(
+                        $publishedDiffusions,
+                        $poolBefore
+                    );
+
+                /*
+ * Flush des éventuels PendingRebroadcast créés par la synchronisation.
+ */
                 $this->entityManager->flush();
 
                 return [
@@ -703,5 +737,25 @@ final class GridPublicationService
                 ];
             }
         );
+    }
+
+
+    /**
+     * Détermine la borne temporelle exclusive utilisée pour alimenter
+     * automatiquement le parc à rediff.
+     *
+     * Le présent constitue la limite métier : on tient compte des Diffusion
+     * publiées jusqu'à la fin de la semaine radio contenant aujourd'hui,
+     * jamais au-delà.
+     */
+    private function resolvePendingRebroadcastUpperBound(): \DateTimeImmutable
+    {
+        $now = \DateTimeImmutable::createFromInterface(
+            $this->clock->now()
+        );
+
+        [, $currentWeekEnd] = $this->resolveRadioWeekBounds($now);
+
+        return $currentWeekEnd;
     }
 }

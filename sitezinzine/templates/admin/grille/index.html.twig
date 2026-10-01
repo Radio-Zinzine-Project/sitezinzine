@@ -1509,51 +1509,6 @@
     background: #f5f5f5;
 }
 
-.pending-rebroadcast-action {
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px solid #ececec;
-}
-
-.btn-pending-rebroadcast {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    width: 100%;
-    min-height: 38px;
-    padding: 8px 10px;
-
-    color: #1c1c1a;
-    background: #ffffff;
-    border: 1px solid #bfc7d1;
-    border-radius: 6px;
-
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1.3;
-    text-align: center;
-
-    cursor: pointer;
-}
-
-.btn-pending-rebroadcast:hover:not(:disabled) {
-    background: #eff6ff;
-    border-color: #8da4bf;
-}
-
-.btn-pending-rebroadcast:focus-visible {
-    outline: 2px solid #1c1c1a;
-    outline-offset: 2px;
-}
-
-.btn-pending-rebroadcast:disabled {
-    color: #666666;
-    background: #f3f3f3;
-    border-color: #d5d5d5;
-    cursor: default;
-    opacity: 0.8;
-}
 
     /* =========================================================
        Responsive
@@ -1774,11 +1729,6 @@
                     Créneau sélectionné
                   </h3>
                   <div class="slot-summary" data-grid-target="slotSummary"></div>
-                  <div class="pending-rebroadcast-action" data-grid-target="pendingRebroadcastAction" style="display:none;">
-                    <button type="button" class="btn-pending-rebroadcast" data-grid-target="pendingRebroadcastActionButton" data-action="click->grid#sendSelectedToPendingRebroadcast">
-                      Envoyer au parc à rediff
-                    </button>
-                  </div>
                   <div class="slot-actions" data-grid-target="slotActions" style="display:none;">
                     <button type="button" class="btn-remove-assignment" data-action="click->grid#removeAssignment">
                       Retirer l’émission

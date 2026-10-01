@@ -158,21 +158,12 @@ export async function selectSlot(context, event) {
     context.selectedPostit = postit
     context.selectedPostit.classList.add('is-selected')
 
-    /*
-     * On masque systématiquement l'action du parc au début
-     * d'une nouvelle sélection. Elle sera réévaluée plus bas
-     * uniquement pour une première diffusion régulière valide.
-     */
-    context.updatePendingRebroadcastAction(postit)
-
     if (context.currentMode === 'special' || isManualDraft) {
         context.specialEmptyStateTarget.style.display = 'none'
         context.specialSidebarPanelTarget.style.display = 'block'
 
         context.specialSlotSummaryTarget.innerHTML =
             context.buildSpecialSlotSummary(postit)
-
-        await context.loadLinkedDiffusions()
 
         if (context.isReadonly()) {
             return
@@ -197,48 +188,6 @@ export async function selectSlot(context, event) {
         )
 
     await context.loadLinkedDiffusions()
-
-    /*
-     * Le GET /group vient maintenant de nous fournir
-     * assignmentGroupKey.
-     *
-     * Pour une première diffusion régulière, on charge également
-     * le parc une seule fois afin de savoir si ce groupe y existe
-     * déjà avant d'afficher l'action.
-     */
-    const broadcastRank = Number.parseInt(
-        postit.dataset.broadcastRank || '1',
-        10
-    )
-
-    const draftId = Number.parseInt(
-        postit.dataset.draftId || '',
-        10
-    )
-
-    const canUsePendingRebroadcast =
-        !isManualDraft
-        && !isGhost
-        && broadcastRank === 1
-        && !Number.isNaN(draftId)
-        && draftId > 0
-        && assignedEmissionTitle !== ''
-
-    if (
-        canUsePendingRebroadcast
-        && !context.pendingRebroadcastLoaded
-    ) {
-        await context.loadPendingRebroadcasts()
-    }
-
-    /*
-     * La sélection peut avoir changé pendant les requêtes.
-     */
-    if (context.selectedPostit !== postit) {
-        return
-    }
-
-    context.updatePendingRebroadcastAction(postit)
 
     if (context.isReadonly()) {
         context.arbitrationActionsTarget.innerHTML = ''

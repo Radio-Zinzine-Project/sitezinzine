@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
-use App\Entity\DiffusionDraft;
 use App\Entity\Emission;
 use App\Entity\PendingRebroadcast;
-use App\Repository\DiffusionDraftRepository;
 use App\Repository\PendingRebroadcastRepository;
 use App\Service\RegularRebroadcastPlacementService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -66,92 +64,6 @@ class PendingRebroadcastController extends AbstractController
             'success' => true,
             'count' => \count($items),
             'items' => $items,
-        ]);
-    }
-
-    #[Route('', name: 'create', methods: ['POST'])]
-    public function create(
-        Request $request,
-        DiffusionDraftRepository $draftRepository,
-        PendingRebroadcastRepository $pendingRepository,
-        EntityManagerInterface $entityManager
-    ): JsonResponse {
-        $data = json_decode($request->getContent(), true);
-
-        if (!\is_array($data)) {
-            return $this->json([
-                'success' => false,
-                'error' => 'Payload JSON invalide.',
-            ], 400);
-        }
-
-        $draftId = (int) ($data['draftId'] ?? 0);
-
-        if ($draftId <= 0) {
-            return $this->json([
-                'success' => false,
-                'error' => 'Paramètre draftId manquant.',
-            ], 400);
-        }
-
-        $draft = $draftRepository->find($draftId);
-
-        if (
-            !$draft instanceof DiffusionDraft
-            || DiffusionDraft::TYPE_REGULAR !== $draft->getDraftType()
-            || 1 !== $draft->getNombreDiffusion()
-        ) {
-            return $this->json([
-                'success' => false,
-                'error' => 'Première diffusion régulière introuvable.',
-            ], 404);
-        }
-
-        $assignmentGroupKey = $draft->getAssignmentGroupKey();
-
-        if (!$assignmentGroupKey) {
-            return $this->json([
-                'success' => false,
-                'error' => 'Cette diffusion régulière ne possède pas de groupe.',
-            ], 400);
-        }
-
-        $emission = $draft->getEmission();
-
-        if (!$emission instanceof Emission) {
-            return $this->json([
-                'success' => false,
-                'error' => 'Émission introuvable.',
-            ], 404);
-        }
-
-        /*
-         * L'ajout direct depuis la grille n'est autorisé qu'une fois
-         * pour un même groupe.
-         *
-         * Les occurrences supplémentaires sont créées explicitement
-         * via l'action "Dupliquer" du parc.
-         */
-        if ($pendingRepository->existsForAssignmentGroupKey($assignmentGroupKey)) {
-            return $this->json([
-                'success' => false,
-                'error' => 'Ce groupe possède déjà une rediffusion dans le parc.',
-            ], 409);
-        }
-
-        $pendingRebroadcast = new PendingRebroadcast();
-
-        $pendingRebroadcast
-            ->setEmission($emission)
-            ->setAssignmentGroupKey($assignmentGroupKey);
-
-        $entityManager->persist($pendingRebroadcast);
-        $entityManager->flush();
-
-        return $this->json([
-            'success' => true,
-            'pendingRebroadcastId' => $pendingRebroadcast->getId(),
-            'assignmentGroupKey' => $assignmentGroupKey,
         ]);
     }
 

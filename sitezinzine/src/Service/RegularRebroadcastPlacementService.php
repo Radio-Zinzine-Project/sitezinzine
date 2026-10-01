@@ -16,8 +16,7 @@ class RegularRebroadcastPlacementService
         private readonly DiffusionDraftRepository $draftRepository,
         private readonly GridPlacementConflictService $placementConflictService,
         private readonly EntityManagerInterface $entityManager
-    ) {
-    }
+    ) {}
 
     public function place(
         PendingRebroadcast $pendingRebroadcast,
@@ -88,14 +87,29 @@ class RegularRebroadcastPlacementService
             }
         }
 
-        if (!$hasRegularDraft) {
+        /*
+     * Un groupe issu d'une règle doit toujours posséder au moins
+     * une diffusion régulière.
+     *
+     * À l'inverse, une rediffusion provenant d'une non-régulière
+     * peut avoir un groupe sans draft regular.
+     */
+        if (
+            str_starts_with($assignmentGroupKey, 'rule_')
+            && !$hasRegularDraft
+        ) {
             throw new \DomainException(
                 'Aucune diffusion régulière trouvée pour ce groupe.'
             );
         }
 
+        /*
+     * Pour un groupe régulier, la rediffusion doit être placée
+     * après la dernière diffusion régulière.
+     */
         if (
-            $lastRegularEndsAt instanceof \DateTimeImmutable
+            $hasRegularDraft
+            && $lastRegularEndsAt instanceof \DateTimeImmutable
             && $startsAt < $lastRegularEndsAt
         ) {
             throw new \DomainException(
@@ -141,9 +155,9 @@ class RegularRebroadcastPlacementService
         $this->entityManager->persist($draft);
 
         /*
-         * Premier flush :
-         * le nouveau draft devient visible par la requête de renumérotation.
-         */
+     * Premier flush :
+     * le nouveau draft devient visible par la requête de renumérotation.
+     */
         $this->entityManager->flush();
 
         $this->renumberManualRebroadcasts(
@@ -152,9 +166,9 @@ class RegularRebroadcastPlacementService
         );
 
         /*
-         * Le pending n'est supprimé qu'une fois toutes les validations
-         * terminées et le draft effectivement créé.
-         */
+     * Le pending n'est supprimé qu'une fois toutes les validations
+     * terminées et le draft effectivement créé.
+     */
         $this->entityManager->remove($pendingRebroadcast);
 
         $this->entityManager->flush();
