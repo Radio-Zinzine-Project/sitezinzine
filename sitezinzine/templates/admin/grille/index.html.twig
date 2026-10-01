@@ -1416,6 +1416,84 @@
     min-width: 0;
 }
 
+/* =========================================================
+   Parc à rediff : tooltip des diffusions précédentes
+   ========================================================= */
+
+.pending-rebroadcast-card {
+    position: relative;
+}
+
+.pending-rebroadcast-card__tooltip {
+    position: absolute;
+    z-index: 100;
+    top: calc(100% + 6px);
+    left: 0;
+    width: max-content;
+    max-width: 280px;
+    min-width: 220px;
+    box-sizing: border-box;
+    padding: 10px 12px;
+
+    color: #1c1c1a;
+    background: #ffffff;
+    border: 1px solid #d6d6d6;
+    border-radius: 7px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.4;
+
+    text-align: left;
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+
+    transform: translateY(-4px);
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease,
+        visibility 0.15s ease;
+}
+
+.pending-rebroadcast-card:hover
+.pending-rebroadcast-card__tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.pending-rebroadcast-card__tooltip strong {
+    display: block;
+    margin-bottom: 6px;
+
+    color: #1c1c1a;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.pending-rebroadcast-card__tooltip ul {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+
+    margin: 0;
+    padding: 0 0 0 16px;
+}
+
+.pending-rebroadcast-card__tooltip li {
+    margin: 0;
+    padding: 0;
+}
+
+.pending-rebroadcast-card__tooltip > span {
+    display: block;
+    color: #666666;
+    font-style: italic;
+}
+
 .pending-rebroadcast-card__actions {
     display: flex;
     align-items: center;

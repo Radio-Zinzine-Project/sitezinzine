@@ -1,10 +1,20 @@
 # Changelog
 
+## [1.0.121] - 2026-10-01
+OK (1660 tests, 9264 assertions)
+### Ajout
+- Tooltip sur les pendings pour afficher les diffusions.
+### Correction
+- Correction du parc à rediff, numérotation des rangs et suppression des non régulières.
+- Correction de l'affichage des diffusions sur la fiche émission.
+
+
 ## [1.0.120] - 2026-10-01
 ### Correction
 - Correction de l'affichage des rangs pour les non régulières quand la grille est validée.
 - Récupération des émissions oubliées lors d'un transfert de data de l'ancienne à la nouvelle BDD.
 - Correction métier du parc à rediff.
+
 
 ## [1.0.119] - 2026-09-27
 OK (1621 tests, 8821 assertions)

@@ -342,7 +342,9 @@ class GridDraftController extends AbstractController
         }
 
         $draftsToDelete = [$draft];
+
         $groupKey = $draft->getAssignmentGroupKey();
+
         $groupDrafts = [];
         $groupHasRegularDrafts = false;
 
@@ -409,18 +411,19 @@ class GridDraftController extends AbstractController
         }
 
         /*
-     * Une rediffusion retirée individuellement d'un groupe régulier
-     * retourne dans le Parc à rediff.
+     * Une rediffusion retirée individuellement d'un groupe retourne
+     * dans le Parc à rediff.
      *
-     * Les groupes entièrement manuels ne sont pas concernés.
+     * Cela concerne :
+     * - les groupes issus d'une programmation régulière ;
+     * - les groupes entièrement manuels provenant du Parc à rediff.
      *
-     * Les suppressions explicites "rebroadcasts" et "group" ne recréent
-     * pas de PendingRebroadcast.
+     * Les suppressions explicites "rebroadcasts" et "group"
+     * ne recréent pas de PendingRebroadcast.
      */
         if (
             'single' === $deleteMode
             && DiffusionDraft::TYPE_MANUAL_REBROADCAST === $draft->getDraftType()
-            && $groupHasRegularDrafts
             && null !== $groupKey
         ) {
             $emission = $draft->getEmission();

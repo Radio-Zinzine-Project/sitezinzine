@@ -480,84 +480,154 @@ export async function deletePendingRebroadcast(event) {
 }
 
 function buildPendingRebroadcastCard(controller, item) {
-  const pendingId = Number.parseInt(item.id, 10)
-  const emissionId = Number.parseInt(item.emissionId, 10)
-  const duration = Number.parseInt(
-    item.durationMinutes,
-    10
-  )
+    const pendingId = Number.parseInt(item.id, 10)
+    const emissionId = Number.parseInt(item.emissionId, 10)
+    const duration = Number.parseInt(
+        item.durationMinutes,
+        10
+    )
 
-  const safePendingId = Number.isNaN(pendingId)
-    ? ''
-    : String(pendingId)
+    const safePendingId = Number.isNaN(pendingId)
+        ? ''
+        : String(pendingId)
 
-  const safeEmissionId = Number.isNaN(emissionId)
-    ? ''
-    : String(emissionId)
+    const safeEmissionId = Number.isNaN(emissionId)
+        ? ''
+        : String(emissionId)
 
-  const safeDuration = Number.isNaN(duration)
-    ? 15
-    : Math.max(1, duration)
+    const safeDuration = Number.isNaN(duration)
+        ? 15
+        : Math.max(1, duration)
 
-  const title = controller.escapeHtml(
-    item.title || 'Émission sans titre'
-  )
+    const title = controller.escapeHtml(
+        item.title || 'Émission sans titre'
+    )
 
-  const category = controller.escapeHtml(
-    item.category || 'Sans catégorie'
-  )
+    const category = controller.escapeHtml(
+        item.category || 'Sans catégorie'
+    )
 
-  const assignmentGroupKey = controller.escapeHtml(
-    item.assignmentGroupKey || ''
-  )
+    const assignmentGroupKey = controller.escapeHtml(
+        item.assignmentGroupKey || ''
+    )
 
-  return `
-    <article
-      class="pending-rebroadcast-card"
-      data-pending-rebroadcast-id="${safePendingId}"
-      data-emission-id="${safeEmissionId}"
-      data-assignment-group-key="${assignmentGroupKey}"
-      data-duration="${safeDuration}"
-      draggable="false"
-      title="Glisser cette rediffusion dans la grille"
-    >
-      <div class="pending-rebroadcast-card__content">
-        <div class="pending-rebroadcast-card__title">
-          ${title}
-        </div>
+    const previousDiffusions = Array.isArray(
+        item.previousDiffusions
+    )
+        ? item.previousDiffusions
+        : []
 
-        <div class="pending-rebroadcast-card__meta">
-          <span>${category}</span>
-          <span aria-hidden="true">·</span>
-          <span>${safeDuration} min</span>
-        </div>
-      </div>
+    let previousDiffusionsHtml = ''
 
-      <div class="pending-rebroadcast-card__actions">
-        <button
-          type="button"
-          class="pending-rebroadcast-card__duplicate"
-          data-pending-rebroadcast-id="${safePendingId}"
-          data-action="click->grid#duplicatePendingRebroadcast"
-          draggable="false"
-          title="Créer une autre rediffusion en attente"
+    if (previousDiffusions.length > 0) {
+        const diffusionItems = previousDiffusions
+            .map((diffusion) => {
+                const rawDate = String(diffusion.date ?? '')
+                const number = Number.parseInt(
+                    diffusion.number,
+                    10
+                )
+
+                let formattedDate = rawDate
+
+                const parsedDate = new Date(
+                    rawDate.replace(' ', 'T')
+                )
+
+                if (!Number.isNaN(parsedDate.getTime())) {
+                    formattedDate = new Intl.DateTimeFormat(
+                        'fr-FR',
+                        {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                        }
+                    ).format(parsedDate)
+                }
+
+                const safeDate = controller.escapeHtml(
+                    formattedDate
+                )
+
+                const safeNumber = Number.isNaN(number)
+                    ? ''
+                    : ` · n°${number}`
+
+                return `
+                    <li>
+                        ${safeDate}${safeNumber}
+                    </li>
+                `
+            })
+            .join('')
+
+        previousDiffusionsHtml = `
+            <div class="pending-rebroadcast-card__tooltip">
+                <strong>Diffusions précédentes</strong>
+                <ul>
+                    ${diffusionItems}
+                </ul>
+            </div>
+        `
+    } else {
+        previousDiffusionsHtml = `
+            <div class="pending-rebroadcast-card__tooltip">
+                <strong>Diffusions précédentes</strong>
+                <span>Aucune diffusion publiée pour ce groupe.</span>
+            </div>
+        `
+    }
+
+    return `
+        <article
+            class="pending-rebroadcast-card"
+            data-pending-rebroadcast-id="${safePendingId}"
+            data-emission-id="${safeEmissionId}"
+            data-assignment-group-key="${assignmentGroupKey}"
+            data-duration="${safeDuration}"
+            draggable="false"
         >
-          Dupliquer
-        </button>
+            <div class="pending-rebroadcast-card__content">
+                <div class="pending-rebroadcast-card__title">
+                    ${title}
+                </div>
 
-        <button
-          type="button"
-          class="pending-rebroadcast-card__delete"
-          data-pending-rebroadcast-id="${safePendingId}"
-          data-action="click->grid#deletePendingRebroadcast"
-          draggable="false"
-          title="Supprimer cette rediffusion du parc"
-        >
-          Supprimer
-        </button>
-      </div>
-    </article>
-  `
+                <div class="pending-rebroadcast-card__meta">
+                    <span>${category}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>${safeDuration} min</span>
+                </div>
+            </div>
+
+            ${previousDiffusionsHtml}
+
+            <div class="pending-rebroadcast-card__actions">
+                <button
+                    type="button"
+                    class="pending-rebroadcast-card__duplicate"
+                    data-pending-rebroadcast-id="${safePendingId}"
+                    data-action="click->grid#duplicatePendingRebroadcast"
+                    draggable="false"
+                    title="Créer une autre rediffusion en attente"
+                >
+                    Dupliquer
+                </button>
+
+                <button
+                    type="button"
+                    class="pending-rebroadcast-card__delete"
+                    data-pending-rebroadcast-id="${safePendingId}"
+                    data-action="click->grid#deletePendingRebroadcast"
+                    draggable="false"
+                    title="Supprimer cette rediffusion du parc"
+                >
+                    Supprimer
+                </button>
+            </div>
+        </article>
+    `
 }
 
 function normalizeSearch(value) {

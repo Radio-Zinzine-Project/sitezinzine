@@ -208,7 +208,7 @@ class DiffusionRepository extends ServiceEntityRepository
      */
     public function findLatestByEmission(
         \App\Entity\Emission $emission,
-        int $limit = 5
+        int $limit = 6
     ): array {
         return $this->createQueryBuilder('d')
             ->andWhere('d.emission = :emission')
@@ -222,13 +222,17 @@ class DiffusionRepository extends ServiceEntityRepository
     }
 
     /**
+     * Retourne toutes les diffusions publiées d'une émission.
+     *
      * @return Diffusion[]
      */
     public function findAllByEmission(Emission $emission): array
     {
         return $this->createQueryBuilder('d')
             ->andWhere('d.emission = :emission')
+            ->andWhere('d.publicationStatus = :status')
             ->setParameter('emission', $emission)
+            ->setParameter('status', Diffusion::STATUS_PUBLISHED)
             ->orderBy('d.horaireDiffusion', SortDirection::Descending)
             ->getQuery()
             ->getResult();
@@ -255,6 +259,25 @@ class DiffusionRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+/**
+ * Retourne toutes les diffusions publiées d'un groupe.
+ *
+ * @return Diffusion[]
+ */
+public function findPublishedByAssignmentGroupKey(
+    string $assignmentGroupKey
+): array {
+    return $this->createQueryBuilder('d')
+        ->andWhere('d.assignmentGroupKey = :assignmentGroupKey')
+        ->andWhere('d.publicationStatus = :status')
+        ->setParameter('assignmentGroupKey', $assignmentGroupKey)
+        ->setParameter('status', Diffusion::STATUS_PUBLISHED)
+        ->orderBy('d.horaireDiffusion', SortDirection::Descending)
+        ->addOrderBy('d.id', SortDirection::Descending)
+        ->getQuery()
+        ->getResult();
+}
 
     /**
      * Retourne, pour chaque groupe demandé, le nombre de diffusions publiées

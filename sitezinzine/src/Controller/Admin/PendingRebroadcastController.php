@@ -7,6 +7,7 @@ namespace App\Controller\Admin;
 use App\Entity\Emission;
 use App\Entity\PendingRebroadcast;
 use App\Repository\PendingRebroadcastRepository;
+use App\Repository\DiffusionRepository;
 use App\Service\RegularRebroadcastPlacementService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,7 +23,8 @@ class PendingRebroadcastController extends AbstractController
 
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(
-        PendingRebroadcastRepository $pendingRepository
+        PendingRebroadcastRepository $pendingRepository,
+        DiffusionRepository $diffusionRepository
     ): JsonResponse {
         $pendingRebroadcasts = $pendingRepository->findAllForPool();
 
@@ -46,17 +48,43 @@ class PendingRebroadcastController extends AbstractController
                 $durationMinutes = 15;
             }
 
+            $assignmentGroupKey =
+                $pendingRebroadcast->getAssignmentGroupKey();
+
+            $previousDiffusions = [];
+
+            if (
+                '' !== trim($assignmentGroupKey)
+            ) {
+                foreach (
+                    $diffusionRepository->findPublishedByAssignmentGroupKey(
+                        $assignmentGroupKey
+                    ) as $diffusion
+                ) {
+                    $horaire = $diffusion->getHoraireDiffusion();
+
+                    if (!$horaire instanceof \DateTimeInterface) {
+                        continue;
+                    }
+
+                    $previousDiffusions[] = [
+                        'date' => $horaire->format('Y-m-d H:i:s'),
+                        'number' => $diffusion->getNombreDiffusion(),
+                    ];
+                }
+            }
+
             $items[] = [
                 'id' => $pendingRebroadcast->getId(),
                 'emissionId' => $emission->getId(),
                 'title' => $emission->getTitre(),
                 'category' => $category?->getTitre(),
                 'durationMinutes' => $durationMinutes,
-                'assignmentGroupKey' =>
-                $pendingRebroadcast->getAssignmentGroupKey(),
+                'assignmentGroupKey' => $assignmentGroupKey,
                 'createdAt' => $pendingRebroadcast
                     ->getCreatedAt()
                     ->format(\DateTimeInterface::ATOM),
+                'previousDiffusions' => $previousDiffusions,
             ];
         }
 
