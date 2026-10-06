@@ -565,7 +565,7 @@ function buildPendingRebroadcastCard(controller, item) {
 
         previousDiffusionsHtml = `
             <div class="pending-rebroadcast-card__tooltip">
-                <strong>Diffusions précédentes</strong>
+                <strong>Diffusions du groupe</strong>
                 <ul>
                     ${diffusionItems}
                 </ul>
@@ -574,8 +574,8 @@ function buildPendingRebroadcastCard(controller, item) {
     } else {
         previousDiffusionsHtml = `
             <div class="pending-rebroadcast-card__tooltip">
-                <strong>Diffusions précédentes</strong>
-                <span>Aucune diffusion publiée pour ce groupe.</span>
+                <strong>Diffusions du groupe</strong>
+                <span>Aucune diffusion planifiée pour ce groupe.</span>
             </div>
         `
     }

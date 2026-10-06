@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.122] - 2026-10-06
+### Correction
+- Correction de la publication des créneaux déplacés/annulés : les arbitrages sont désormais respectés lors de la validation de grille.
+- Correction de l’horaire réellement enregistré pour les créneaux replanifiés.
+-Amélioration du parc de rediffusions : affichage de toutes les diffusions du groupe, y compris les occurrences futures planifiées.
+- Suppression des doublons entre Diffusion et DiffusionDraft dans l’historique des rediffusions.
+- Ajout et mise à jour des tests de régression associés.
+
+
 ## [1.0.121] - 2026-10-01
 OK (1660 tests, 9264 assertions)
 ### Ajout

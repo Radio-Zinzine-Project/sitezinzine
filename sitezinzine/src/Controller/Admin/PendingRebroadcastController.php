@@ -8,6 +8,7 @@ use App\Entity\Emission;
 use App\Entity\PendingRebroadcast;
 use App\Repository\PendingRebroadcastRepository;
 use App\Repository\DiffusionRepository;
+use App\Repository\DiffusionDraftRepository;
 use App\Service\RegularRebroadcastPlacementService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,7 +25,8 @@ class PendingRebroadcastController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(
         PendingRebroadcastRepository $pendingRepository,
-        DiffusionRepository $diffusionRepository
+        DiffusionRepository $diffusionRepository,
+        DiffusionDraftRepository $diffusionDraftRepository
     ): JsonResponse {
         $pendingRebroadcasts = $pendingRepository->findAllForPool();
 
@@ -51,13 +53,15 @@ class PendingRebroadcastController extends AbstractController
             $assignmentGroupKey =
                 $pendingRebroadcast->getAssignmentGroupKey();
 
-            $previousDiffusions = [];
+            $groupDiffusions = [];
 
-            if (
-                '' !== trim($assignmentGroupKey)
-            ) {
+            if ('' !== trim($assignmentGroupKey)) {
+                /*
+             * Les Diffusion constituent les occurrences déjà matérialisées
+             * du groupe, qu'elles soient actuellement publiées ou non.
+             */
                 foreach (
-                    $diffusionRepository->findPublishedByAssignmentGroupKey(
+                    $diffusionRepository->findByAssignmentGroupKey(
                         $assignmentGroupKey
                     ) as $diffusion
                 ) {
@@ -67,11 +71,68 @@ class PendingRebroadcastController extends AbstractController
                         continue;
                     }
 
-                    $previousDiffusions[] = [
+                    $groupDiffusions[] = [
                         'date' => $horaire->format('Y-m-d H:i:s'),
                         'number' => $diffusion->getNombreDiffusion(),
                     ];
                 }
+
+                /*
+             * Les Drafts encore actifs représentent notamment les
+             * occurrences futures qui n'ont pas encore de Diffusion.
+             *
+             * Un Draft possédant déjà publishedDiffusion ne doit pas être
+             * ajouté : son occurrence est déjà représentée ci-dessus.
+             */
+                foreach (
+                    $diffusionDraftRepository->findByAssignmentGroupKey(
+                        $assignmentGroupKey
+                    ) as $draft
+                ) {
+                    if ($draft->isDeleted()) {
+                        continue;
+                    }
+
+                    if (!$draft->isDraft()) {
+                        continue;
+                    }
+
+                    if (null !== $draft->getPublishedDiffusion()) {
+                        continue;
+                    }
+
+                    $horaire = $draft->getHoraireDiffusion();
+
+                    if (!$horaire instanceof \DateTimeInterface) {
+                        continue;
+                    }
+
+                    $groupDiffusions[] = [
+                        'date' => $horaire->format('Y-m-d H:i:s'),
+                        'number' => $draft->getNombreDiffusion(),
+                    ];
+                }
+
+                /*
+             * Diffusion et DiffusionDraft proviennent de deux requêtes
+             * différentes : on rétablit ici l'ordre chronologique global.
+             */
+                usort(
+                    $groupDiffusions,
+                    static function (array $left, array $right): int {
+                        $dateComparison = strcmp(
+                            $left['date'],
+                            $right['date']
+                        );
+
+                        if (0 !== $dateComparison) {
+                            return $dateComparison;
+                        }
+
+                        return ($left['number'] ?? 0)
+                            <=> ($right['number'] ?? 0);
+                    }
+                );
             }
 
             $items[] = [
@@ -84,7 +145,12 @@ class PendingRebroadcastController extends AbstractController
                 'createdAt' => $pendingRebroadcast
                     ->getCreatedAt()
                     ->format(\DateTimeInterface::ATOM),
-                'previousDiffusions' => $previousDiffusions,
+                /*
+             * On conserve provisoirement le nom de la propriété JSON pour
+             * ne pas casser le JS existant. Son renommage pourra être fait
+             * séparément avec le changement du libellé du tooltip.
+             */
+                'previousDiffusions' => $groupDiffusions,
             ];
         }
 

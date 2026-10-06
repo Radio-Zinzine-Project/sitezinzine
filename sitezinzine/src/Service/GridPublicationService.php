@@ -6,8 +6,11 @@ namespace App\Service;
 
 use App\Entity\Diffusion;
 use App\Entity\DiffusionDraft;
+use App\Entity\GridSlotArbitration;
+use App\Entity\ProgrammationRuleSlot;
 use App\Repository\DiffusionDraftRepository;
 use App\Repository\DiffusionRepository;
+use App\Repository\GridSlotArbitrationRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
@@ -16,6 +19,7 @@ final class GridPublicationService
     public function __construct(
         private readonly DiffusionDraftRepository $draftRepository,
         private readonly DiffusionRepository $diffusionRepository,
+        private readonly GridSlotArbitrationRepository $arbitrationRepository,
         private readonly EntityManagerInterface $entityManager,
         private readonly PendingRebroadcastPopulatorInterface $pendingRebroadcastService,
         private readonly ClockInterface $clock,
@@ -32,6 +36,10 @@ final class GridPublicationService
      * - S'il n'existe aucune Diffusion réutilisable, une nouvelle sera créée.
      * - Une ancienne Diffusion non utilisée ne bloque pas la validation :
      *   elle reste simplement non publiée.
+     * - Une occurrence annulée par arbitrage n'est pas publiée.
+     * - Une occurrence déplacée est évaluée à son horaire effectif.
+     * - Une occurrence déplacée vers une autre semaine appartient à sa
+     *   semaine de destination pour la publication.
      *
      * @return array{
      *     weekStart: \DateTimeImmutable,
@@ -55,18 +63,38 @@ final class GridPublicationService
             $weekStart
         );
 
+        /*
+     * Drafts dont l'horaire brut appartient à la semaine.
+     *
+     * Cette liste n'est pas encore la liste réellement publiable :
+     * les arbitrages peuvent annuler une occurrence, la déplacer hors
+     * de la semaine, ou faire entrer dans la semaine une occurrence
+     * dont le Draft source appartient à une autre semaine.
+     */
         $drafts = $this->draftRepository->findPublishableByWeek(
             $weekStart,
             $weekEnd
         );
 
         /*
-         * Toutes les Diffusion encore présentes dans la semaine sont chargées.
-         *
-         * Après dévalidation, certaines représentent l'ancienne version
-         * validée de la grille. Elles ne doivent donc pas être considérées
-         * automatiquement comme des conflits.
-         */
+     * Résolution de la réalité métier après arbitrages.
+     *
+     * Chaque entrée conserve le DiffusionDraft source, mais possède
+     * l'horaire auquel cette occurrence doit réellement être publiée.
+     */
+        $effectiveDrafts = $this->resolveEffectivePublishableDrafts(
+            $drafts,
+            $weekStart,
+            $weekEnd
+        );
+
+        /*
+     * Toutes les Diffusion encore présentes dans la semaine sont chargées.
+     *
+     * Après dévalidation, certaines représentent l'ancienne version
+     * validée de la grille. Elles ne doivent donc pas être considérées
+     * automatiquement comme des conflits.
+     */
         $existingDiffusions = $this->diffusionRepository->findByWeek(
             $weekStart,
             $weekEnd
@@ -77,17 +105,21 @@ final class GridPublicationService
         );
 
         /*
-         * Une Diffusion déjà liée à un Draft publiable est réservée à ce Draft.
-         *
-         * Cela évite qu'un autre Draft sans publishedDiffusion récupère
-         * accidentellement cette même Diffusion.
-         *
-         * Structure :
-         * diffusionId => draftId
-         */
+     * Une Diffusion déjà liée à un Draft effectivement publiable est
+     * réservée à ce Draft.
+     *
+     * Important :
+     * un Draft annulé ou déplacé hors de cette semaine ne réserve plus
+     * sa publishedDiffusion pour cette validation.
+     *
+     * Structure :
+     * diffusionId => draftId
+     */
         $reservedDiffusionIds = [];
 
-        foreach ($drafts as $draft) {
+        foreach ($effectiveDrafts as $effectiveDraft) {
+            $draft = $effectiveDraft['draft'];
+
             if (!$draft instanceof DiffusionDraft) {
                 continue;
             }
@@ -114,13 +146,21 @@ final class GridPublicationService
         $createCount = 0;
         $updateCount = 0;
 
-        foreach ($drafts as $draft) {
+        foreach ($effectiveDrafts as $effectiveDraft) {
+            $draft = $effectiveDraft['draft'];
+            $startsAt = $effectiveDraft['startsAt'];
+
             if (!$draft instanceof DiffusionDraft) {
                 continue;
             }
 
-            $startsAt = $draft->getHoraireDiffusion();
-
+            /*
+         * On conserve le comportement historique pour un Draft invalide.
+         *
+         * resolveEffectivePublishableDrafts() laisse volontairement passer
+         * ces Drafts avec startsAt = null afin que la preview puisse signaler
+         * explicitement le problème.
+         */
             if (!$startsAt instanceof \DateTimeInterface) {
                 $conflict = [
                     'type' => 'invalid_draft',
@@ -143,6 +183,14 @@ final class GridPublicationService
                 continue;
             }
 
+            $startsAt = \DateTimeImmutable::createFromInterface(
+                $startsAt
+            );
+
+            /*
+         * Toutes les recherches de Diffusion se font désormais avec
+         * l'horaire EFFECTIF et non avec l'horaire brut du Draft.
+         */
             $horaireKey = $this->buildHoraireKey($startsAt);
 
             $diffusionsAtSameTime = $diffusionsByHoraire[$horaireKey] ?? [];
@@ -154,13 +202,17 @@ final class GridPublicationService
             $itemConflicts = [];
 
             /*
-             * CAS 1
-             * -----
-             * Le Draft possède encore la Diffusion à laquelle il était lié
-             * avant la dévalidation.
-             *
-             * On conserve cette même Diffusion et on la mettra à jour.
-             */
+         * CAS 1
+         * -----
+         * Le Draft possède encore la Diffusion à laquelle il était lié
+         * avant la dévalidation.
+         *
+         * On conserve cette même Diffusion et on la mettra à jour.
+         *
+         * Si l'occurrence a été déplacée, cette Diffusion pourra actuellement
+         * se trouver à l'ancien horaire. Cela ne change pas son appartenance
+         * au Draft : elle reste sa cible de mise à jour.
+         */
             if ($publishedDiffusion instanceof Diffusion) {
                 $targetDiffusion = $publishedDiffusion;
                 $action = 'update';
@@ -168,14 +220,14 @@ final class GridPublicationService
                 $targetDiffusionId = $publishedDiffusion->getId();
 
                 /*
-                 * On vérifie uniquement qu'aucune AUTRE Diffusion déjà
-                 * réservée à un autre Draft actif ne revendique exactement
-                 * le même horaire.
-                 *
-                 * Les anciennes Diffusion non revendiquées sont ignorées :
-                 * elles appartiennent à une ancienne version de la semaine
-                 * et restent non publiées.
-                 */
+             * On vérifie uniquement qu'aucune AUTRE Diffusion déjà
+             * réservée à un autre Draft actif ne revendique exactement
+             * le même horaire effectif.
+             *
+             * Les anciennes Diffusion non revendiquées sont ignorées :
+             * elles appartiennent à une ancienne version de la semaine
+             * et restent non publiées.
+             */
                 foreach ($diffusionsAtSameTime as $existing) {
                     if (!$existing instanceof Diffusion) {
                         continue;
@@ -216,17 +268,17 @@ final class GridPublicationService
                 }
             } else {
                 /*
-                 * CAS 2
-                 * -----
-                 * Draft sans publishedDiffusion.
-                 *
-                 * Cela peut arriver :
-                 * - pour un nouveau créneau ajouté après dévalidation ;
-                 * - pour un Draft dont l'ancien lien a disparu ;
-                 * - pour une nouvelle série générée dans la semaine brouillon.
-                 *
-                 * DiffusionDraft reste la source de vérité.
-                 */
+             * CAS 2
+             * -----
+             * Draft sans publishedDiffusion.
+             *
+             * Cela peut arriver :
+             * - pour un nouveau créneau ajouté après dévalidation ;
+             * - pour un Draft dont l'ancien lien a disparu ;
+             * - pour une nouvelle série générée dans la semaine brouillon.
+             *
+             * DiffusionDraft reste la source de vérité.
+             */
 
                 $diffusionsReservedByOtherDraft = [];
                 $reusableDiffusions = [];
@@ -249,21 +301,19 @@ final class GridPublicationService
                     }
 
                     /*
-                     * Cette Diffusion n'est utilisée par aucun autre Draft
-                     * publiable de la semaine.
-                     *
-                     * Elle appartient donc potentiellement à l'ancienne
-                     * version dévalidée et peut être réutilisée.
-                     */
+                 * Cette Diffusion n'est utilisée par aucun autre Draft
+                 * effectivement publiable de la semaine.
+                 *
+                 * Elle appartient donc potentiellement à l'ancienne
+                 * version dévalidée et peut être réutilisée.
+                 */
                     $reusableDiffusions[] = $existing;
                 }
 
                 /*
-                 * Si une Diffusion au même horaire est déjà réservée à
-                 * un autre Draft actif, on ne peut pas la voler.
-                 *
-                 * C'est un vrai conflit de brouillon.
-                 */
+             * Si une Diffusion au même horaire effectif est déjà réservée
+             * à un autre Draft actif, on ne peut pas la voler.
+             */
                 if ([] !== $diffusionsReservedByOtherDraft) {
                     $itemConflicts[] = [
                         'type' => 'diffusion_reserved_by_other_draft',
@@ -276,19 +326,9 @@ final class GridPublicationService
                     ];
                 } elseif (1 === count($reusableDiffusions)) {
                     /*
-                     * Une seule ancienne Diffusion libre existe au même
-                     * horaire : on la réutilise.
-                     *
-                     * Exemple :
-                     *
-                     * ancienne Diffusion :
-                     * 06/09 19h -> émission 11931
-                     *
-                     * nouveau Draft :
-                     * 06/09 19h -> émission 11945
-                     *
-                     * => UPDATE de l'ancienne Diffusion.
-                     */
+                 * Une seule ancienne Diffusion libre existe au même
+                 * horaire effectif : on la réutilise.
+                 */
                     $targetDiffusion = $reusableDiffusions[0];
                     $action = 'update';
 
@@ -299,15 +339,15 @@ final class GridPublicationService
                     }
                 } else {
                     /*
-                     * Aucune ancienne Diffusion réutilisable.
-                     *
-                     * C'est donc un véritable nouveau créneau.
-                     *
-                     * Si plusieurs anciennes Diffusion non revendiquées
-                     * existent au même horaire, on ne choisit pas arbitrairement
-                     * laquelle réutiliser : on crée une nouvelle ligne propre.
-                     * Les anciennes restent non publiées.
-                     */
+                 * Aucune ancienne Diffusion réutilisable.
+                 *
+                 * C'est donc un véritable nouveau créneau.
+                 *
+                 * Si plusieurs anciennes Diffusion non revendiquées
+                 * existent au même horaire, on ne choisit pas
+                 * arbitrairement laquelle réutiliser : on crée une
+                 * nouvelle ligne propre.
+                 */
                     $action = 'create';
                 }
             }
@@ -326,13 +366,15 @@ final class GridPublicationService
                 'draft' => $draft,
                 'action' => $action,
                 'targetDiffusion' => $targetDiffusion,
-                'startsAt' => \DateTimeImmutable::createFromInterface(
-                    $startsAt
-                ),
+                'startsAt' => $startsAt,
                 'hasConflict' => [] !== $itemConflicts,
                 'conflicts' => $itemConflicts,
             ];
 
+            /*
+         * Seuls les groupes réellement présents dans la semaine après
+         * arbitrage participent à la recherche des rediffusions futures.
+         */
             $assignmentGroupKey = $draft->getAssignmentGroupKey();
 
             if (
@@ -361,14 +403,20 @@ final class GridPublicationService
             'conflicts' => $conflicts,
             'futureDraftsLeft' => $futureDraftsLeft,
 
-            'publishableDraftCount' => count($drafts),
+            /*
+         * Ce compteur représente désormais les occurrences réellement
+         * publiables dans cette semaine et non les Drafts bruts dont
+         * l'horaire source appartient à la semaine.
+         */
+            'publishableDraftCount' => count($effectiveDrafts),
+
             'createCount' => $createCount,
             'updateCount' => $updateCount,
             'conflictCount' => count($conflicts),
             'futureDraftCount' => count($futureDraftsLeft),
 
             'hasBlockingConflicts' => [] !== $conflicts,
-            'canPublish' => [] !== $drafts && [] === $conflicts,
+            'canPublish' => [] !== $effectiveDrafts && [] === $conflicts,
         ];
     }
 
@@ -445,17 +493,6 @@ final class GridPublicationService
         return $horaire->format('Y-m-d H:i:s');
     }
 
-    /**
-     * Valide intégralement une semaine radio.
-     *
-     * La preview est recalculée dans la transaction afin d’éviter
-     * de publier des données qui auraient changé entre l’affichage
-     * et la confirmation.
-     *
-     * DiffusionDraft constitue la source de vérité de la semaine.
-     *
-     * @return array<string, mixed>
-     */
     public function publishWeek(
         \DateTimeImmutable $weekStart
     ): array {
@@ -479,6 +516,13 @@ final class GridPublicationService
 
                 /*
              * On conserve un ordre de traitement stable.
+             *
+             * IMPORTANT :
+             * startsAt correspond à l'horaire EFFECTIF déterminé
+             * par la preview.
+             *
+             * Il peut donc différer de DiffusionDraft::horaireDiffusion
+             * lorsqu'une occurrence a été déplacée par arbitrage.
              */
                 $items = $preview['items'];
 
@@ -542,7 +586,15 @@ final class GridPublicationService
                     }
 
                     $emission = $draft->getEmission();
-                    $startsAt = $draft->getHoraireDiffusion();
+
+                    /*
+                 * L'horaire de publication vient impérativement
+                 * de l'occurrence EFFECTIVE calculée par la preview.
+                 *
+                 * Le Draft conserve volontairement son horaire d'origine
+                 * lorsqu'un GridSlotArbitration déplace l'occurrence.
+                 */
+                    $startsAt = $item['startsAt'] ?? null;
 
                     if (
                         null === $emission
@@ -559,7 +611,7 @@ final class GridPublicationService
                     if (!$startsAt instanceof \DateTimeInterface) {
                         throw new \LogicException(
                             sprintf(
-                                'Le draft #%d ne possède pas d’horaire valide.',
+                                'Le draft #%d ne possède pas d’horaire effectif valide.',
                                 $draft->getId() ?? 0
                             )
                         );
@@ -584,8 +636,6 @@ final class GridPublicationService
                     }
 
                     /*
-                 * IMPORTANT :
-                 *
                  * On utilise la targetDiffusion déterminée pendant
                  * la preview.
                  *
@@ -616,37 +666,18 @@ final class GridPublicationService
                         $durationMinutes = null;
                     }
 
-                    $endsAt = $draft->getEndsAt();
-
-                    if (
-                        null === $endsAt
-                        && null !== $durationMinutes
-                    ) {
-                        $endsAt = \DateTimeImmutable
-                            ::createFromInterface($startsAt)
-                            ->modify(
-                                sprintf(
-                                    '+%d minutes',
-                                    $durationMinutes
-                                )
-                            );
-                    }
-
                     $mutableStartsAt = \DateTime::createFromInterface(
                         $startsAt
                     );
 
-                    $mutableEndsAt = null;
-
-                    if ($endsAt instanceof \DateTimeInterface) {
-                        $mutableEndsAt = \DateTime::createFromInterface(
-                            $endsAt
-                        );
-                    }
-
                     /*
-                 * Le Draft est la source de vérité :
-                 * toutes les valeurs publiées proviennent de lui.
+                 * La fin doit rester cohérente avec l'horaire EFFECTIF.
+                 *
+                 * Si une durée est connue, setSchedule() recalculera
+                 * automatiquement endsAt depuis startsAt + durée.
+                 *
+                 * On ne réutilise donc pas le endsAt original du Draft
+                 * pour une occurrence éventuellement déplacée.
                  */
                     $diffusion
                         ->setEmission($emission)
@@ -662,6 +693,10 @@ final class GridPublicationService
                             $durationMinutes
                         );
                     } else {
+                        /*
+                     * Sans durée exploitable, on conserve le comportement
+                     * historique : début publié, durée et fin nulles.
+                     */
                         $diffusion
                             ->setEndsAt(null)
                             ->setHoraireDiffusion($mutableStartsAt)
@@ -671,6 +706,9 @@ final class GridPublicationService
                     /*
                  * markAsPublished() rattache également le Draft
                  * à la Diffusion réellement utilisée.
+                 *
+                 * Le Draft conserve son horaire d'origine :
+                 * l'arbitrage reste la source de vérité du déplacement.
                  */
                     $draft->markAsPublished(
                         $diffusion,
@@ -692,17 +730,17 @@ final class GridPublicationService
                 $poolBefore = $this->resolvePendingRebroadcastUpperBound();
 
                 /*
- * Les Diffusion doivent être synchronisées en base avant
- * l'alimentation du parc.
- *
- * PendingRebroadcastService compte les Diffusion publiées via une
- * requête SQL. Sans ce flush intermédiaire, les nouvelles Diffusion
- * de la semaine courante ne sont pas encore visibles par cette requête.
- *
- * Ce flush reste dans la même transaction Doctrine :
- * il ne valide donc pas définitivement la publication si la suite
- * de l'opération échoue.
- */
+             * Les Diffusion doivent être synchronisées en base avant
+             * l'alimentation du parc.
+             *
+             * PendingRebroadcastService compte les Diffusion publiées via une
+             * requête SQL. Sans ce flush intermédiaire, les nouvelles Diffusion
+             * de la semaine courante ne sont pas encore visibles par cette requête.
+             *
+             * Ce flush reste dans la même transaction Doctrine :
+             * il ne valide donc pas définitivement la publication si la suite
+             * de l'opération échoue.
+             */
                 $this->entityManager->flush();
 
                 $this->pendingRebroadcastService
@@ -712,8 +750,8 @@ final class GridPublicationService
                     );
 
                 /*
- * Flush des éventuels PendingRebroadcast créés par la synchronisation.
- */
+             * Flush des éventuels PendingRebroadcast créés par la synchronisation.
+             */
                 $this->entityManager->flush();
 
                 return [
@@ -732,13 +770,11 @@ final class GridPublicationService
                     'publishedDrafts' => $publishedDrafts,
 
                     'futureDraftsLeft' => $preview['futureDraftsLeft'],
-
                     'futureDraftCount' => $preview['futureDraftCount'],
                 ];
             }
         );
     }
-
 
     /**
      * Détermine la borne temporelle exclusive utilisée pour alimenter
@@ -757,5 +793,271 @@ final class GridPublicationService
         [, $currentWeekEnd] = $this->resolveRadioWeekBounds($now);
 
         return $currentWeekEnd;
+    }
+
+    /**
+     * Résout les Drafts effectivement publiables dans la semaine demandée.
+     *
+     * Le DiffusionDraft conserve toujours son horaire d'origine.
+     * Les arbitrages déterminent uniquement l'horaire effectif de publication.
+     *
+     * @return array<int, array{
+     *     draft: DiffusionDraft,
+     *     startsAt: \DateTimeImmutable
+     * }>
+     */
+    private function resolveEffectivePublishableDrafts(
+        array $drafts,
+        \DateTimeImmutable $weekStart,
+        \DateTimeImmutable $weekEnd
+    ): array {
+        $arbitrations = $this->arbitrationRepository->findRelevantForWeek(
+            $weekStart,
+            $weekEnd
+        );
+
+        /** @var array<string, GridSlotArbitration> $arbitrationsByOccurrence */
+        $arbitrationsByOccurrence = [];
+
+        foreach ($arbitrations as $arbitration) {
+            if (!$arbitration instanceof GridSlotArbitration) {
+                continue;
+            }
+
+            $slot = $arbitration->getSlot();
+            $originalStartsAt = $arbitration->getOriginalStartsAt();
+
+            if (
+                !$slot instanceof ProgrammationRuleSlot
+                || null === $slot->getId()
+                || !$originalStartsAt instanceof \DateTimeInterface
+            ) {
+                continue;
+            }
+
+            $key = $this->buildOccurrenceKey(
+                (int) $slot->getId(),
+                $originalStartsAt
+            );
+
+            $arbitrationsByOccurrence[$key] = $arbitration;
+        }
+
+        $effectiveDrafts = [];
+
+        /*
+     * Première passe :
+     *
+     * on traite les Drafts dont l'horaire d'origine appartient déjà
+     * à la semaine.
+     */
+        foreach ($drafts as $draft) {
+            if (!$draft instanceof DiffusionDraft) {
+                continue;
+            }
+
+            $startsAt = $draft->getHoraireDiffusion();
+
+            /*
+         * On conserve volontairement les Drafts invalides.
+         *
+         * previewWeekPublication() doit continuer à produire son conflit
+         * "invalid_draft" historique.
+         */
+            if (!$startsAt instanceof \DateTimeInterface) {
+                $effectiveDrafts[] = [
+                    'draft' => $draft,
+                    'startsAt' => null,
+                ];
+
+                continue;
+            }
+
+            $effectiveStartsAt = \DateTimeImmutable::createFromInterface(
+                $startsAt
+            );
+
+            $slot = $draft->getSlot();
+
+            if (
+                !$slot instanceof ProgrammationRuleSlot
+                || null === $slot->getId()
+            ) {
+                $effectiveDrafts[] = [
+                    'draft' => $draft,
+                    'startsAt' => $effectiveStartsAt,
+                ];
+
+                continue;
+            }
+
+            $occurrenceKey = $this->buildOccurrenceKey(
+                (int) $slot->getId(),
+                $startsAt
+            );
+
+            $arbitration = $arbitrationsByOccurrence[$occurrenceKey] ?? null;
+
+            if (!$arbitration instanceof GridSlotArbitration) {
+                $effectiveDrafts[] = [
+                    'draft' => $draft,
+                    'startsAt' => $effectiveStartsAt,
+                ];
+
+                continue;
+            }
+
+            /*
+         * Une occurrence annulée n'est plus publiable.
+         */
+            if ($arbitration->isCancelAction()) {
+                continue;
+            }
+
+            if (!$arbitration->isRescheduleAction()) {
+                $effectiveDrafts[] = [
+                    'draft' => $draft,
+                    'startsAt' => $effectiveStartsAt,
+                ];
+
+                continue;
+            }
+
+            $rescheduledStartsAt = $arbitration->getRescheduledStartsAt();
+
+            if (!$rescheduledStartsAt instanceof \DateTimeInterface) {
+                continue;
+            }
+
+            $rescheduledStartsAt = \DateTimeImmutable::createFromInterface(
+                $rescheduledStartsAt
+            );
+
+            /*
+         * L'origine appartient à cette semaine mais sa destination
+         * appartient à une autre semaine.
+         *
+         * Le Draft reste en base à son horaire d'origine, mais il ne doit
+         * pas être publié dans cette semaine.
+         */
+            if (
+                $rescheduledStartsAt < $weekStart
+                || $rescheduledStartsAt >= $weekEnd
+            ) {
+                continue;
+            }
+
+            /*
+         * Déplacement à l'intérieur de la même semaine.
+         */
+            $effectiveDrafts[] = [
+                'draft' => $draft,
+                'startsAt' => $rescheduledStartsAt,
+            ];
+        }
+
+        /*
+     * Deuxième passe :
+     *
+     * recherche des occurrences dont l'origine est hors semaine mais dont
+     * la destination entre dans la semaine.
+     */
+        foreach ($arbitrations as $arbitration) {
+            if (
+                !$arbitration instanceof GridSlotArbitration
+                || !$arbitration->isRescheduleAction()
+            ) {
+                continue;
+            }
+
+            $rescheduledStartsAt = $arbitration->getRescheduledStartsAt();
+
+            if (!$rescheduledStartsAt instanceof \DateTimeInterface) {
+                continue;
+            }
+
+            $rescheduledStartsAt = \DateTimeImmutable::createFromInterface(
+                $rescheduledStartsAt
+            );
+
+            if (
+                $rescheduledStartsAt < $weekStart
+                || $rescheduledStartsAt >= $weekEnd
+            ) {
+                continue;
+            }
+
+            $originalStartsAt = $arbitration->getOriginalStartsAt();
+            $slot = $arbitration->getSlot();
+
+            if (
+                !$originalStartsAt instanceof \DateTimeInterface
+                || !$slot instanceof ProgrammationRuleSlot
+            ) {
+                continue;
+            }
+
+            $originalStartsAt = \DateTimeImmutable::createFromInterface(
+                $originalStartsAt
+            );
+
+            /*
+         * Si l'origine appartient elle-même à la semaine, elle a déjà été
+         * traitée pendant la première passe.
+         */
+            if (
+                $originalStartsAt >= $weekStart
+                && $originalStartsAt < $weekEnd
+            ) {
+                continue;
+            }
+
+            $draft = $this->draftRepository
+                ->findOneActiveDraftBySlotAndHoraire(
+                    $slot,
+                    $originalStartsAt
+                );
+
+            if (!$draft instanceof DiffusionDraft) {
+                continue;
+            }
+
+            /*
+         * Sécurité contre un éventuel doublon.
+         */
+            $alreadyPresent = false;
+
+            foreach ($effectiveDrafts as $effectiveDraft) {
+                if ($effectiveDraft['draft'] === $draft) {
+                    $alreadyPresent = true;
+                    break;
+                }
+            }
+
+            if ($alreadyPresent) {
+                continue;
+            }
+
+            $effectiveDrafts[] = [
+                'draft' => $draft,
+                'startsAt' => $rescheduledStartsAt,
+            ];
+        }
+
+        return $effectiveDrafts;
+    }
+
+    /**
+     * Construit la clé métier identifiant une occurrence régulière.
+     */
+    private function buildOccurrenceKey(
+        int $slotId,
+        \DateTimeInterface $startsAt
+    ): string {
+        return sprintf(
+            '%d|%s',
+            $slotId,
+            $startsAt->format('Y-m-d H:i:s')
+        );
     }
 }
