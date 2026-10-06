@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.123] - 2026-10-06
+### Ajouts
+- Conservation des informations d'une occurrence déplacée lorsqu'une autre émission occupe son ancien créneau.
+- Affichage de la destination d'une occurrence déplacée dans la sidebar.
+- Tests de régression sur les déplacements, la publication et l'impression de la grille.
+### Corrections
+- Correction des faux conflits empêchant la validation des semaines contenant des occurrences déplacées.
+- Correction de la publication des occurrences déplacées afin d'utiliser leur horaire effectif.
+- Correction de la superposition entre un ancien emplacement déplacé et l'émission réellement programmée.
+- Les occurrences déplacées ou annulées ne sont plus affichées sur la grille imprimable.
+
+
 ## [1.0.122] - 2026-10-06
 ### Correction
 - Correction de la publication des créneaux déplacés/annulés : les arbitrages sont désormais respectés lors de la validation de grille.

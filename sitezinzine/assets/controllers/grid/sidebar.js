@@ -55,7 +55,10 @@ export function buildSlotSummary(context, postit, assignedEmissionTitle = '') {
             <div><span class="label">Type :</span> ${escapeHtml(statusLabel)}</div>
             <div><span class="label">Catégorie :</span> ${escapeHtml(categoryTitle)}</div>
             <div><span class="label">Début :</span> ${escapeHtml(formatSidebarDate(startsAt))}</div>
-            ${endsAt ? `<div><span class="label">Fin :</span> ${escapeHtml(formatSidebarDate(endsAt))}</div>` : ''}
+            ${endsAt
+                ? `<div><span class="label">Fin :</span> ${escapeHtml(formatSidebarDate(endsAt))}</div>`
+                : ''
+            }
             ${safeAssignedTitle
                 ? `<div><span class="label">Émission :</span> ${escapeHtml(safeAssignedTitle)}</div>`
                 : ''
@@ -63,11 +66,211 @@ export function buildSlotSummary(context, postit, assignedEmissionTitle = '') {
         `
     }
 
+    /*
+     * Un créneau régulier peut être réellement occupé par une émission
+     * tout en recouvrant l'ancien emplacement d'une occurrence annulée
+     * ou déplacée.
+     *
+     * GridViewBuilder rattache alors le ghost au segment effectif et
+     * _grid.html.twig le transmet ici sous forme de JSON.
+     */
+    const hasCoveredGhost =
+        postit.dataset.hasCoveredGhost === 'true'
+
+    let coveredGhost = null
+
+    if (hasCoveredGhost && postit.dataset.coveredGhost) {
+        try {
+            const parsedCoveredGhost =
+                JSON.parse(postit.dataset.coveredGhost)
+
+            if (
+                parsedCoveredGhost
+                && typeof parsedCoveredGhost === 'object'
+                && !Array.isArray(parsedCoveredGhost)
+            ) {
+                coveredGhost = parsedCoveredGhost
+            }
+        } catch {
+            coveredGhost = null
+        }
+    }
+
+    /*
+     * Cas particulier qui nous intéresse :
+     * l'émission effective reste l'information principale.
+     *
+     * L'exception est présentée séparément en dessous et ne remplace
+     * jamais le contenu réellement programmé.
+     */
+    if (coveredGhost && safeAssignedTitle) {
+        const coveredGhostTitle =
+            coveredGhost.title ||
+            coveredGhost.categoryTitle ||
+            'Cette occurrence'
+
+        const coveredGhostOriginalStartsAt =
+            coveredGhost.originalStartsAt ||
+            coveredGhost.startsAt ||
+            ''
+
+        const coveredGhostOriginalEndsAt =
+            coveredGhost.endsAt || ''
+
+        const coveredGhostRescheduledStartsAt =
+            coveredGhost.rescheduledStartsAt || ''
+
+        const coveredGhostRescheduledEndsAt =
+            coveredGhost.rescheduledEndsAt || ''
+
+        const isCoveredRescheduledOrigin =
+            coveredGhost.isRescheduledOrigin === true
+
+        const isCoveredCancelled =
+            coveredGhost.isCancelled === true
+
+        let exceptionDescription = ''
+
+        if (isCoveredRescheduledOrigin) {
+            exceptionDescription = `
+                L'occurrence de <strong>${escapeHtml(coveredGhostTitle)}</strong>
+                initialement prévue ici a été déplacée.
+            `
+        } else if (isCoveredCancelled) {
+            exceptionDescription = `
+                L'occurrence de <strong>${escapeHtml(coveredGhostTitle)}</strong>
+                initialement prévue ici a été annulée.
+            `
+        } else {
+            exceptionDescription = `
+                Une exception de programmation concerne
+                <strong>${escapeHtml(coveredGhostTitle)}</strong>.
+            `
+        }
+
+        let destinationHtml = ''
+
+        if (
+            isCoveredRescheduledOrigin
+            && coveredGhostRescheduledStartsAt
+        ) {
+            destinationHtml = `
+                <div>
+                    <span class="label">Nouvel emplacement :</span>
+                    ${escapeHtml(
+                        formatSidebarDate(
+                            coveredGhostRescheduledStartsAt
+                        )
+                    )}
+                    ${coveredGhostRescheduledEndsAt
+                        ? ` → ${escapeHtml(
+                            formatSidebarDate(
+                                coveredGhostRescheduledEndsAt
+                            )
+                        )}`
+                        : ''
+                    }
+                </div>
+            `
+        }
+
+        return `
+            <div class="slot-summary__section">
+                <strong>Émission programmée</strong>
+
+                <div>
+                    <span class="label">Émission :</span>
+                    ${escapeHtml(safeAssignedTitle)}
+                </div>
+
+                <div>
+                    <span class="label">Catégorie :</span>
+                    ${escapeHtml(categoryTitle)}
+                </div>
+
+                <div>
+                    <span class="label">Début :</span>
+                    ${escapeHtml(formatSidebarDate(startsAt))}
+                </div>
+
+                ${endsAt
+                    ? `
+                        <div>
+                            <span class="label">Fin :</span>
+                            ${escapeHtml(formatSidebarDate(endsAt))}
+                        </div>
+                    `
+                    : ''
+                }
+
+                <div>
+                    <span class="label">Type :</span>
+                    ${escapeHtml(statusLabel)}
+                </div>
+            </div>
+
+            <div class="slot-summary__section slot-summary__exception">
+                <strong>Exception sur ce créneau</strong>
+
+                <div>
+                    ${exceptionDescription}
+                </div>
+
+                ${coveredGhostOriginalStartsAt
+                    ? `
+                        <div>
+                            <span class="label">Emplacement initial :</span>
+                            ${escapeHtml(
+                                formatSidebarDate(
+                                    coveredGhostOriginalStartsAt
+                                )
+                            )}
+                            ${coveredGhostOriginalEndsAt
+                                ? ` → ${escapeHtml(
+                                    formatSidebarDate(
+                                        coveredGhostOriginalEndsAt
+                                    )
+                                )}`
+                                : ''
+                            }
+                        </div>
+                    `
+                    : ''
+                }
+
+                ${destinationHtml}
+            </div>
+
+            ${context.buildProjectionSummary(postit)}
+            ${context.buildConflictSummary(postit)}
+
+            ${safeAssignedTitle && draftId
+                ? `
+                    <div
+                        class="linked-diffusions"
+                        data-linked-diffusions-for="${escapeHtml(draftId)}"
+                    >
+                        Chargement des diffusions liées…
+                    </div>
+                `
+                : ''
+            }
+        `
+    }
+
+    /*
+     * Comportement historique :
+     * tous les créneaux qui ne recouvrent pas de ghost continuent
+     * exactement à utiliser le résumé existant.
+     */
     return `
         <div><span class="label">Règle :</span> ${escapeHtml(ruleDisplayName)}</div>
         <div><span class="label">Catégorie :</span> ${escapeHtml(categoryTitle)}</div>
         <div><span class="label">Début :</span> ${escapeHtml(formatSidebarDate(startsAt))}</div>
-        ${endsAt ? `<div><span class="label">Fin :</span> ${escapeHtml(formatSidebarDate(endsAt))}</div>` : ''}
+        ${endsAt
+            ? `<div><span class="label">Fin :</span> ${escapeHtml(formatSidebarDate(endsAt))}</div>`
+            : ''
+        }
         <div><span class="label">Type :</span> ${escapeHtml(statusLabel)}</div>
         ${safeAssignedTitle
             ? `<div><span class="label">Émission affectée :</span> ${escapeHtml(safeAssignedTitle)}</div>`
@@ -77,18 +280,17 @@ export function buildSlotSummary(context, postit, assignedEmissionTitle = '') {
         ${context.buildConflictSummary(postit)}
         ${safeAssignedTitle && draftId
             ? `
-                    <div
-                        class="linked-diffusions"
-                        data-linked-diffusions-for="${escapeHtml(draftId)}"
-                    >
-                        Chargement des diffusions liées…
-                    </div>
-                `
+                <div
+                    class="linked-diffusions"
+                    data-linked-diffusions-for="${escapeHtml(draftId)}"
+                >
+                    Chargement des diffusions liées…
+                </div>
+            `
             : ''
         }
     `
 }
-
 
 export function buildSpecialSlotSummary(context, postit) {
     const startsAt = postit.dataset.startsAt || ''

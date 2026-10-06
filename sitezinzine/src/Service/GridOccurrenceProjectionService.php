@@ -18,170 +18,238 @@ class GridOccurrenceProjectionService
      *
      * @return array<int, array<int, array<string, mixed>>>
      */
-    public function applyForWeek(
-        array $daySegments,
-        \DateTimeImmutable $startOfWeek,
-        \DateTimeImmutable $endOfWeek
-    ): array {
-        $arbitrations = $this->gridSlotArbitrationRepository->findRelevantForWeek($startOfWeek, $endOfWeek);
+public function applyForWeek(
+    array $daySegments,
+    \DateTimeImmutable $startOfWeek,
+    \DateTimeImmutable $endOfWeek
+): array {
+    $arbitrations = $this->gridSlotArbitrationRepository->findRelevantForWeek(
+        $startOfWeek,
+        $endOfWeek
+    );
 
-        /** @var array<string, GridSlotArbitration> $arbitrationByOriginalOccurrenceKey */
-        $arbitrationByOriginalOccurrenceKey = [];
+    /** @var array<string, GridSlotArbitration> $arbitrationByOriginalOccurrenceKey */
+    $arbitrationByOriginalOccurrenceKey = [];
 
-        foreach ($arbitrations as $arbitration) {
-            $slot = $arbitration->getSlot();
-            $originalStartsAt = $arbitration->getOriginalStartsAt();
+    foreach ($arbitrations as $arbitration) {
+        $slot = $arbitration->getSlot();
+        $originalStartsAt = $arbitration->getOriginalStartsAt();
 
-            if (null === $slot || null === $slot->getId() || null === $originalStartsAt) {
+        if (
+            null === $slot
+            || null === $slot->getId()
+            || null === $originalStartsAt
+        ) {
+            continue;
+        }
+
+        $key = $this->buildOccurrenceKey(
+            (int) $slot->getId(),
+            $originalStartsAt
+        );
+
+        $arbitrationByOriginalOccurrenceKey[$key] = $arbitration;
+    }
+
+    $projectedSegments = array_fill(0, 7, []);
+
+    /** @var array<string, bool> $alreadyInjectedProjectedKeys */
+    $alreadyInjectedProjectedKeys = [];
+
+    foreach ($daySegments as $dayIndex => $segments) {
+        foreach ($segments as $segment) {
+            $segment = $this->withDefaultProjectionFlags($segment);
+
+            $slotId = (int) ($segment['slotId'] ?? 0);
+            $startsAtRaw = $segment['startsAt'] ?? null;
+
+            if ($slotId <= 0 || empty($startsAtRaw)) {
+                $projectedSegments[$dayIndex][] = $segment;
                 continue;
             }
 
-            $key = $this->buildOccurrenceKey((int) $slot->getId(), $originalStartsAt);
-            $arbitrationByOriginalOccurrenceKey[$key] = $arbitration;
-        }
+            $startsAt = new \DateTimeImmutable((string) $startsAtRaw);
 
-        $projectedSegments = array_fill(0, 7, []);
+            $occurrenceKey = $this->buildOccurrenceKey(
+                $slotId,
+                $startsAt
+            );
 
-        /** @var array<string, bool> $alreadyInjectedProjectedKeys */
-        $alreadyInjectedProjectedKeys = [];
-
-        foreach ($daySegments as $dayIndex => $segments) {
-            foreach ($segments as $segment) {
-                $segment = $this->withDefaultProjectionFlags($segment);
-
-                $slotId = (int) ($segment['slotId'] ?? 0);
-                $startsAtRaw = $segment['startsAt'] ?? null;
-
-                if ($slotId <= 0 || empty($startsAtRaw)) {
-                    $projectedSegments[$dayIndex][] = $segment;
-                    continue;
-                }
-
-                $startsAt = new \DateTimeImmutable((string) $startsAtRaw);
-                $occurrenceKey = $this->buildOccurrenceKey($slotId, $startsAt);
-
-                if (!isset($arbitrationByOriginalOccurrenceKey[$occurrenceKey])) {
-                    $segment['originalStartsAt'] = $segment['startsAt'];
-                    $projectedSegments[$dayIndex][] = $segment;
-                    continue;
-                }
-
-                $arbitration = $arbitrationByOriginalOccurrenceKey[$occurrenceKey];
-
-                if ($arbitration->isCancelAction()) {
-                    $segment['isCancelled'] = true;
-                    $segment['canRestore'] = true;
-                    $segment['isBlocking'] = false;
-                    $segment['projectionType'] = $arbitration->getAction();
-                    $segment['originalStartsAt'] = $segment['startsAt'];
-                    $segment['canBeRescheduled'] = false;
-
-                    $projectedSegments[$dayIndex][] = $segment;
-                    continue;
-                }
-
-                if ($arbitration->isRescheduleAction()) {
-                    $rescheduledStartsAt = $arbitration->getRescheduledStartsAt();
-                    $rescheduledEndsAt = $arbitration->getRescheduledEndsAt();
-
-                    if (null === $rescheduledStartsAt || null === $rescheduledEndsAt) {
-                        continue;
-                    }
-
-                    if ($rescheduledStartsAt >= $startOfWeek && $rescheduledStartsAt < $endOfWeek) {
-                        $projectedDayIndex = (int) $startOfWeek->diff($rescheduledStartsAt)->days;
-
-                        if ($projectedDayIndex >= 0 && $projectedDayIndex <= 6) {
-                            $projectedSegment = $this->buildProjectedSegment(
-                                $segment,
-                                $arbitration,
-                                $rescheduledStartsAt,
-                                $rescheduledEndsAt
-                            );
-
-                            $projectedSegments[$projectedDayIndex][] = $projectedSegment;
-                            $alreadyInjectedProjectedKeys[$projectedSegment['segmentKey']] = true;
-                        }
-                    }
-
-                    $originSegment = $segment;
-                    $originSegment['isRescheduledOrigin'] = true;
-                    $originSegment['canRestore'] = true;
-                    $originSegment['isBlocking'] = false;
-                    $originSegment['projectionType'] = $arbitration->getAction();
-                    $originSegment['originalStartsAt'] = $segment['startsAt'];
-                    $originSegment['canBeRescheduled'] = false;
-
-                    $projectedSegments[$dayIndex][] = $originSegment;
-                    continue;
-                }
-
+            if (!isset($arbitrationByOriginalOccurrenceKey[$occurrenceKey])) {
                 $segment['originalStartsAt'] = $segment['startsAt'];
                 $projectedSegments[$dayIndex][] = $segment;
+                continue;
             }
+
+            $arbitration = $arbitrationByOriginalOccurrenceKey[$occurrenceKey];
+
+            if ($arbitration->isCancelAction()) {
+                $segment['isCancelled'] = true;
+                $segment['canRestore'] = true;
+                $segment['isBlocking'] = false;
+                $segment['projectionType'] = $arbitration->getAction();
+                $segment['originalStartsAt'] = $segment['startsAt'];
+                $segment['canBeRescheduled'] = false;
+
+                $projectedSegments[$dayIndex][] = $segment;
+                continue;
+            }
+
+            if ($arbitration->isRescheduleAction()) {
+                $rescheduledStartsAt = $arbitration->getRescheduledStartsAt();
+                $rescheduledEndsAt = $arbitration->getRescheduledEndsAt();
+
+                if (
+                    null === $rescheduledStartsAt
+                    || null === $rescheduledEndsAt
+                ) {
+                    continue;
+                }
+
+                /*
+                 * Si la destination appartient à la semaine affichée,
+                 * on projette également l'occurrence à son nouvel
+                 * emplacement.
+                 */
+                if (
+                    $rescheduledStartsAt >= $startOfWeek
+                    && $rescheduledStartsAt < $endOfWeek
+                ) {
+                    $projectedDayIndex = (int) $startOfWeek
+                        ->diff($rescheduledStartsAt)
+                        ->days;
+
+                    if (
+                        $projectedDayIndex >= 0
+                        && $projectedDayIndex <= 6
+                    ) {
+                        $projectedSegment = $this->buildProjectedSegment(
+                            $segment,
+                            $arbitration,
+                            $rescheduledStartsAt,
+                            $rescheduledEndsAt
+                        );
+
+                        $projectedSegments[$projectedDayIndex][] = $projectedSegment;
+
+                        $alreadyInjectedProjectedKeys[
+                            $projectedSegment['segmentKey']
+                        ] = true;
+                    }
+                }
+
+                /*
+                 * L'ancien emplacement reste présent sous forme de ghost.
+                 *
+                 * On conserve également explicitement sa destination.
+                 * Cela permet aux couches de présentation d'indiquer
+                 * où l'occurrence a été déplacée, même lorsque cette
+                 * destination se trouve dans une autre semaine.
+                 */
+                $originSegment = $segment;
+                $originSegment['isRescheduledOrigin'] = true;
+                $originSegment['canRestore'] = true;
+                $originSegment['isBlocking'] = false;
+                $originSegment['projectionType'] = $arbitration->getAction();
+                $originSegment['originalStartsAt'] = $segment['startsAt'];
+                $originSegment['rescheduledStartsAt'] = $rescheduledStartsAt
+                    ->format('Y-m-d H:i:s');
+                $originSegment['rescheduledEndsAt'] = $rescheduledEndsAt
+                    ->format('Y-m-d H:i:s');
+                $originSegment['canBeRescheduled'] = false;
+
+                $projectedSegments[$dayIndex][] = $originSegment;
+                continue;
+            }
+
+            $segment['originalStartsAt'] = $segment['startsAt'];
+            $projectedSegments[$dayIndex][] = $segment;
         }
-
-        foreach ($arbitrations as $arbitration) {
-            if (!$arbitration->isRescheduleAction()) {
-                continue;
-            }
-
-            $slot = $arbitration->getSlot();
-            $originalStartsAt = $arbitration->getOriginalStartsAt();
-            $originalEndsAt = $arbitration->getOriginalEndsAt();
-            $rescheduledStartsAt = $arbitration->getRescheduledStartsAt();
-            $rescheduledEndsAt = $arbitration->getRescheduledEndsAt();
-
-            if (
-                null === $slot
-                || null === $slot->getId()
-                || null === $originalStartsAt
-                || null === $originalEndsAt
-                || null === $rescheduledStartsAt
-                || null === $rescheduledEndsAt
-            ) {
-                continue;
-            }
-
-            if ($rescheduledStartsAt < $startOfWeek || $rescheduledStartsAt >= $endOfWeek) {
-                continue;
-            }
-
-            $projectedSegmentKey = sprintf(
-                '%s_projected_%s',
-                $slot->getId(),
-                $rescheduledStartsAt->format('YmdHis')
-            );
-
-            if (isset($alreadyInjectedProjectedKeys[$projectedSegmentKey])) {
-                continue;
-            }
-
-            $projectedDayIndex = (int) $startOfWeek->diff($rescheduledStartsAt)->days;
-
-            if ($projectedDayIndex < 0 || $projectedDayIndex > 6) {
-                continue;
-            }
-
-            $baseSegment = $this->buildFallbackSegmentFromArbitration(
-                $arbitration,
-                $originalStartsAt,
-                $originalEndsAt
-            );
-
-            $projectedSegment = $this->buildProjectedSegment(
-                $baseSegment,
-                $arbitration,
-                $rescheduledStartsAt,
-                $rescheduledEndsAt
-            );
-
-            $projectedSegments[$projectedDayIndex][] = $projectedSegment;
-            $alreadyInjectedProjectedKeys[$projectedSegment['segmentKey']] = true;
-        }
-
-        return $projectedSegments;
     }
+
+    /*
+     * Certains arbitrages déplacent une occurrence dont l'origine
+     * n'appartient pas à la semaine actuellement construite.
+     *
+     * Dans ce cas, le segment d'origine n'était pas présent dans
+     * $daySegments et n'a donc pas pu être projeté lors de la
+     * première passe.
+     *
+     * On reconstruit ici uniquement les destinations appartenant
+     * à la semaine courante.
+     */
+    foreach ($arbitrations as $arbitration) {
+        if (!$arbitration->isRescheduleAction()) {
+            continue;
+        }
+
+        $slot = $arbitration->getSlot();
+        $originalStartsAt = $arbitration->getOriginalStartsAt();
+        $originalEndsAt = $arbitration->getOriginalEndsAt();
+        $rescheduledStartsAt = $arbitration->getRescheduledStartsAt();
+        $rescheduledEndsAt = $arbitration->getRescheduledEndsAt();
+
+        if (
+            null === $slot
+            || null === $slot->getId()
+            || null === $originalStartsAt
+            || null === $originalEndsAt
+            || null === $rescheduledStartsAt
+            || null === $rescheduledEndsAt
+        ) {
+            continue;
+        }
+
+        if (
+            $rescheduledStartsAt < $startOfWeek
+            || $rescheduledStartsAt >= $endOfWeek
+        ) {
+            continue;
+        }
+
+        $projectedSegmentKey = sprintf(
+            '%s_projected_%s',
+            $slot->getId(),
+            $rescheduledStartsAt->format('YmdHis')
+        );
+
+        if (isset($alreadyInjectedProjectedKeys[$projectedSegmentKey])) {
+            continue;
+        }
+
+        $projectedDayIndex = (int) $startOfWeek
+            ->diff($rescheduledStartsAt)
+            ->days;
+
+        if (
+            $projectedDayIndex < 0
+            || $projectedDayIndex > 6
+        ) {
+            continue;
+        }
+
+        $baseSegment = $this->buildFallbackSegmentFromArbitration(
+            $arbitration,
+            $originalStartsAt,
+            $originalEndsAt
+        );
+
+        $projectedSegment = $this->buildProjectedSegment(
+            $baseSegment,
+            $arbitration,
+            $rescheduledStartsAt,
+            $rescheduledEndsAt
+        );
+
+        $projectedSegments[$projectedDayIndex][] = $projectedSegment;
+
+        $alreadyInjectedProjectedKeys[
+            $projectedSegment['segmentKey']
+        ] = true;
+    }
+
+    return $projectedSegments;
+}
 
     /**
      * @param array<string, mixed> $baseSegment

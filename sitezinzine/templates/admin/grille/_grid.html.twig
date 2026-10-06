@@ -46,22 +46,31 @@
                 {% set isRescheduledOrigin = seg.isRescheduledOrigin|default(false) %}
                 {% set isProjectedOverride = seg.isProjectedOverride|default(false) %}
                 {% set isGhost = isCancelled or isRescheduledOrigin %}
+                {#
+                    Un ghost recouvert par une émission effective a été rattaché
+                    à ce segment par GridViewBuilder.
+                    
+                    Le post-it reste donc celui de l'émission réellement présente,
+                    mais transporte les informations de l'exception pour la sidebar.
+                #}
+                {% set hasCoveredGhost = seg.hasCoveredGhost|default(false) %}
+                {% set coveredGhost = seg.coveredGhost|default(null) %}
                 {% set variantClass =
-                    isGhost
-                        ? 'postit--ghost'
-                        : (
-                            isRebroadcast
-                                ? 'postit--rebroadcast'
-                                : (
-                                    isProjectedOverride
-                                        ? 'postit--rescheduled'
-                                        : (
-                                            isLive
-                                                ? 'postit--live'
-                                                : 'postit--first'
-                                        )
-                                )
-                        ) %}
+        isGhost
+            ? 'postit--ghost'
+            : (
+                isRebroadcast
+                    ? 'postit--rebroadcast'
+                    : (
+                        isProjectedOverride
+                            ? 'postit--rescheduled'
+                            : (
+                                isLive
+                                    ? 'postit--live'
+                                    : 'postit--first'
+                            )
+                    )
+            ) %}
                 <div class="
                     postit
                     {{ variantClass }}
@@ -70,10 +79,11 @@
                     {{ isCancelled ? 'postit--cancelled' : '' }}
                     {{ isRescheduledOrigin ? 'postit--rescheduled-origin' : '' }}
                     {{ not isBlocking ? 'postit--non-blocking' : '' }}
+                    {{ hasCoveredGhost ? 'postit--has-exception' : '' }}
                 " style="
                     top:calc({{ seg.startIndex }} * var(--slot-h));
                     height:calc({{ slots }} * var(--slot-h) - 2px);
-                " data-segment-key="{{ seg.segmentKey|default('') }}" data-slot-id="{{ seg.slotId|default('') }}" data-draft-id="{{ seg.draftId|default('') }}" data-rule-id="{{ seg.ruleId|default('') }}" data-slots="{{ slots }}" data-duration="{{ seg.duration }}" data-broadcast-rank="{{ broadcastRank }}" data-starts-at="{{ seg.startsAt|default('') }}" data-ends-at="{{ seg.endsAt|default('') }}" data-category-title="{{ categoryTitle }}" data-category-slug="{{ categorySlug }}" data-assigned-emission-id="{{ seg.emissionId|default('') }}" data-assigned-emission-title="{{ assignedEmissionTitle }}" data-emission-is-auto-generated="{{ isLive ? 'true' : 'false' }}" data-slot-locked="{{ isRebroadcast or isGhost ? 'true' : 'false' }}" data-has-conflict="{{ hasConflict ? 'true' : 'false' }}" data-conflict-type="{{ seg.conflictType|default('') }}" data-conflict-severity="{{ seg.conflictSeverity|default('') }}" data-conflict-count="{{ seg.conflictCount|default(0) }}" data-conflict-with="{{ seg.conflictWith|default([])|json_encode|e('html_attr') }}" data-can-reschedule="{{ seg.canBeRescheduled|default(false) ? 'true' : 'false' }}" data-is-projected-override="{{ isProjectedOverride ? 'true' : 'false' }}" data-original-starts-at="{{ seg.originalStartsAt|default('') }}" data-projection-type="{{ seg.projectionType|default('') }}" data-is-cancelled="{{ isCancelled ? 'true' : 'false' }}" data-can-restore="{{ canRestore ? 'true' : 'false' }}" data-is-blocking="{{ isBlocking ? 'true' : 'false' }}" data-is-rescheduled-origin="{{ isRescheduledOrigin ? 'true' : 'false' }}" data-action="click->grid#selectSlot" draggable="{{ isRebroadcast or isGhost ? 'false' : 'true' }}" {% if isRebroadcast or isGhost %} aria-disabled="true" {% endif %}>
+                " data-segment-key="{{ seg.segmentKey|default('') }}" data-slot-id="{{ seg.slotId|default('') }}" data-draft-id="{{ seg.draftId|default('') }}" data-rule-id="{{ seg.ruleId|default('') }}" data-slots="{{ slots }}" data-duration="{{ seg.duration }}" data-broadcast-rank="{{ broadcastRank }}" data-starts-at="{{ seg.startsAt|default('') }}" data-ends-at="{{ seg.endsAt|default('') }}" data-category-title="{{ categoryTitle }}" data-category-slug="{{ categorySlug }}" data-assigned-emission-id="{{ seg.emissionId|default('') }}" data-assigned-emission-title="{{ assignedEmissionTitle }}" data-emission-is-auto-generated="{{ isLive ? 'true' : 'false' }}" data-slot-locked="{{ isRebroadcast or isGhost ? 'true' : 'false' }}" data-has-conflict="{{ hasConflict ? 'true' : 'false' }}" data-conflict-type="{{ seg.conflictType|default('') }}" data-conflict-severity="{{ seg.conflictSeverity|default('') }}" data-conflict-count="{{ seg.conflictCount|default(0) }}" data-conflict-with="{{ seg.conflictWith|default([])|json_encode|e('html_attr') }}" data-can-reschedule="{{ seg.canBeRescheduled|default(false) ? 'true' : 'false' }}" data-is-projected-override="{{ isProjectedOverride ? 'true' : 'false' }}" data-original-starts-at="{{ seg.originalStartsAt|default('') }}" data-projection-type="{{ seg.projectionType|default('') }}" data-is-cancelled="{{ isCancelled ? 'true' : 'false' }}" data-can-restore="{{ canRestore ? 'true' : 'false' }}" data-is-blocking="{{ isBlocking ? 'true' : 'false' }}" data-is-rescheduled-origin="{{ isRescheduledOrigin ? 'true' : 'false' }}" data-has-covered-ghost="{{ hasCoveredGhost ? 'true' : 'false' }}" data-covered-ghost="{{ coveredGhost ? coveredGhost|json_encode|e('html_attr') : '' }}" data-action="click->grid#selectSlot" draggable="{{ isRebroadcast or isGhost ? 'false' : 'true' }}" {% if isRebroadcast or isGhost %} aria-disabled="true" {% endif %}>
                     <div class="postit__content">
                         {% if slots <= 2 and not isGhost and assignedEmissionTitle %}
                             {# 15 / 30 min : catégorie + titre + rang sur une seule ligne #}
@@ -96,6 +106,11 @@
                                         1re diff
                                     {% endif %}
                                 </span>
+                                {% if hasCoveredGhost %}
+                                    <span class="postit__exception-badge" title="Une exception de programmation existe sur ce créneau">
+                                        ⚠ Exception
+                                    </span>
+                                {% endif %}
                             </div>
                         {% else %}
                             <div class="postit__topline">
@@ -132,6 +147,11 @@
                             {% elseif assignedEmissionTitle %}
                                 <span class="postit__subline">
                                     {{ assignedEmissionTitle }}
+                                </span>
+                            {% endif %}
+                            {% if hasCoveredGhost %}
+                                <span class="postit__exception-badge" title="Une exception de programmation existe sur ce créneau">
+                                    ⚠ Exception
                                 </span>
                             {% endif %}
                         {% endif %}
