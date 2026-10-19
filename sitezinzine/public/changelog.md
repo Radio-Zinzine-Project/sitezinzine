@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.124] - 2026-10-xx
+### Ajouts
+- Ajout de tests php.
+- Ajout des tests JS (vitest@2.1.9 jsdom@24.1.3).
+
+
 ## [1.0.123] - 2026-10-06
 ### Ajouts
 - Conservation des informations d'une occurrence déplacée lorsqu'une autre émission occupe son ancien créneau.

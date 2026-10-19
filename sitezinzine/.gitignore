@@ -22,7 +22,8 @@ docker/xdebug.ini
 /public/uploads/emissionsMp3/
 
 ### Tests (optionnel si pas requis en prod)
-tests/
+/tests/*
+!/tests/js/
 
 ### Docker/dev files (optionnel, surtout sur main)
 dockerfile.dev

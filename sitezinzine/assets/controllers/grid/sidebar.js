@@ -158,18 +158,18 @@ export function buildSlotSummary(context, postit, assignedEmissionTitle = '') {
                 <div>
                     <span class="label">Nouvel emplacement :</span>
                     ${escapeHtml(
-                        formatSidebarDate(
-                            coveredGhostRescheduledStartsAt
-                        )
-                    )}
+                formatSidebarDate(
+                    coveredGhostRescheduledStartsAt
+                )
+            )}
                     ${coveredGhostRescheduledEndsAt
-                        ? ` → ${escapeHtml(
-                            formatSidebarDate(
-                                coveredGhostRescheduledEndsAt
-                            )
-                        )}`
-                        : ''
-                    }
+                    ? ` → ${escapeHtml(
+                        formatSidebarDate(
+                            coveredGhostRescheduledEndsAt
+                        )
+                    )}`
+                    : ''
+                }
                 </div>
             `
         }
@@ -194,14 +194,14 @@ export function buildSlotSummary(context, postit, assignedEmissionTitle = '') {
                 </div>
 
                 ${endsAt
-                    ? `
+                ? `
                         <div>
                             <span class="label">Fin :</span>
                             ${escapeHtml(formatSidebarDate(endsAt))}
                         </div>
                     `
-                    : ''
-                }
+                : ''
+            }
 
                 <div>
                     <span class="label">Type :</span>
@@ -217,26 +217,26 @@ export function buildSlotSummary(context, postit, assignedEmissionTitle = '') {
                 </div>
 
                 ${coveredGhostOriginalStartsAt
-                    ? `
+                ? `
                         <div>
                             <span class="label">Emplacement initial :</span>
                             ${escapeHtml(
-                                formatSidebarDate(
-                                    coveredGhostOriginalStartsAt
-                                )
-                            )}
+                    formatSidebarDate(
+                        coveredGhostOriginalStartsAt
+                    )
+                )}
                             ${coveredGhostOriginalEndsAt
-                                ? ` → ${escapeHtml(
-                                    formatSidebarDate(
-                                        coveredGhostOriginalEndsAt
-                                    )
-                                )}`
-                                : ''
-                            }
-                        </div>
-                    `
+                    ? ` → ${escapeHtml(
+                        formatSidebarDate(
+                            coveredGhostOriginalEndsAt
+                        )
+                    )}`
                     : ''
                 }
+                        </div>
+                    `
+                : ''
+            }
 
                 ${destinationHtml}
             </div>
@@ -344,7 +344,6 @@ export function buildSpecialSlotSummary(context, postit) {
     return html
 }
 
-
 export async function selectSlot(context, event) {
     const postit = event.currentTarget
     const isLocked = postit.dataset.slotLocked === 'true'
@@ -391,6 +390,17 @@ export async function selectSlot(context, event) {
 
     await context.loadLinkedDiffusions()
 
+    /*
+     * Une autre sélection peut avoir eu lieu pendant le chargement
+     * asynchrone des diffusions liées.
+     *
+     * Dans ce cas, cet ancien traitement ne doit plus modifier
+     * la sidebar correspondant à la nouvelle sélection.
+     */
+    if (context.selectedPostit !== postit) {
+        return
+    }
+
     if (context.isReadonly()) {
         context.arbitrationActionsTarget.innerHTML = ''
         context.arbitrationActionsTarget.style.display = 'none'
@@ -425,6 +435,7 @@ export async function selectSlot(context, event) {
         context.setEmissionsListHtml(
             '<div>Ce créneau est annulé ou déplacé. Il ne bloque pas la grille et peut être restauré.</div>'
         )
+
         return
     }
 
@@ -432,6 +443,7 @@ export async function selectSlot(context, event) {
         context.setEmissionsListHtml(
             '<div>Ce créneau est verrouillé pour l’affectation, mais peut être ajusté via l’arbitrage.</div>'
         )
+
         return
     }
 

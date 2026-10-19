@@ -24,13 +24,17 @@ export async function cancelOccurrence() {
         return
     }
 
-    const rebroadcast =
-        await this.askRebroadcastStrategy('annuler')
-
     const confirmed =
         window.confirm('Annuler cette occurrence de la grille ?')
 
     if (!confirmed) {
+        return
+    }
+
+    const rebroadcast =
+        await this.askRebroadcastStrategy('cancel')
+
+    if (rebroadcast.strategy === 'dismiss') {
         return
     }
 
@@ -74,6 +78,10 @@ export async function restoreOccurrence() {
 
     const restoreStrategy =
         await this.askRestoreRebroadcastStrategy()
+
+    if (restoreStrategy.dismissed) {
+        return
+    }
 
     try {
         const data = await postForm(
@@ -122,7 +130,11 @@ export async function submitWeekReschedule(direction) {
     }
 
     const rebroadcast =
-        await this.askRebroadcastStrategy('déplacer')
+        await this.askRebroadcastStrategy('week')
+
+    if (rebroadcast.strategy === 'dismiss') {
+        return
+    }
 
     try {
         const data = await postForm('/admin/grille/reschedule-week', {
@@ -182,7 +194,11 @@ export async function submitCustomReschedule() {
     }
 
     const rebroadcast =
-        await this.askRebroadcastStrategy('déplacer')
+        await this.askRebroadcastStrategy('custom')
+
+    if (rebroadcast.strategy === 'dismiss') {
+        return
+    }
 
     try {
         const data = await postForm(
@@ -218,8 +234,11 @@ export async function clearReschedule() {
         return
     }
 
-    const slotId = this.selectedPostit.dataset.slotId || ''
-    const originalStartsAt = this.selectedPostit.dataset.originalStartsAt || ''
+    const slotId =
+        this.selectedPostit.dataset.slotId || ''
+
+    const originalStartsAt =
+        this.selectedPostit.dataset.originalStartsAt || ''
 
     if (
         !validateSlotData(
@@ -234,27 +253,41 @@ export async function clearReschedule() {
     const restoreStrategy =
         await this.askRestoreRebroadcastStrategy()
 
+    if (restoreStrategy.dismissed) {
+        return
+    }
+
     try {
-        const data = await postForm('/admin/grille/clear-reschedule', {
-            slotId,
-            originalStartsAt,
-            restoreLinkedRebroadcasts:
-                restoreStrategy.restoreLinkedRebroadcasts ? '1' : '0'
-        })
+        const data = await postForm(
+            '/admin/grille/clear-reschedule',
+            {
+                slotId,
+                originalStartsAt,
+                restoreLinkedRebroadcasts:
+                    restoreStrategy.restoreLinkedRebroadcasts ? '1' : '0'
+            }
+        )
 
         if (!data.targetWeekStart) {
             throw new Error('Semaine cible manquante')
         }
 
-        window.location.href = `/admin/grille/${data.targetWeekStart}`
+        window.location.href =
+            `/admin/grille/${data.targetWeekStart}`
+
     } catch (error) {
-        alert(`Erreur lors du retour au créneau d’origine : ${error.message}`)
+        alert(
+            `Erreur lors du retour au créneau d’origine : ${error.message}`
+        )
     }
 }
 
 export async function callConflictReschedule(item, direction) {
     const slotId = item.slotId || ''
-    const startsAt = item.originalStartsAt || item.startsAt || ''
+    const startsAt =
+        item.originalStartsAt ||
+        item.startsAt ||
+        ''
 
     if (
         !validateSlotData(
@@ -267,7 +300,11 @@ export async function callConflictReschedule(item, direction) {
     }
 
     const rebroadcast =
-        await this.askRebroadcastStrategy('déplacer')
+        await this.askRebroadcastStrategy('week')
+
+    if (rebroadcast.strategy === 'dismiss') {
+        return
+    }
 
     try {
         const data = await postForm('/admin/grille/reschedule-week', {
@@ -290,7 +327,10 @@ export async function callConflictReschedule(item, direction) {
 
 export async function callConflictCancel(item) {
     const slotId = item.slotId || ''
-    const startsAt = item.originalStartsAt || item.startsAt || ''
+    const startsAt =
+        item.originalStartsAt ||
+        item.startsAt ||
+        ''
 
     if (
         !validateSlotData(
@@ -302,12 +342,17 @@ export async function callConflictCancel(item) {
         return
     }
 
-    const rebroadcast =
-        await this.askRebroadcastStrategy('annuler')
-
-    const confirmed = window.confirm('Annuler cette occurrence en conflit ?')
+    const confirmed =
+        window.confirm('Annuler cette occurrence en conflit ?')
 
     if (!confirmed) {
+        return
+    }
+
+    const rebroadcast =
+        await this.askRebroadcastStrategy('cancel')
+
+    if (rebroadcast.strategy === 'dismiss') {
         return
     }
 

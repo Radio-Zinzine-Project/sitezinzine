@@ -497,283 +497,244 @@ final class GridPublicationService
         \DateTimeImmutable $weekStart
     ): array {
         return $this->entityManager->wrapInTransaction(
-            function () use ($weekStart): array {
-                $preview = $this->previewWeekPublication(
-                    $weekStart
-                );
+            fn(): array => $this->applyWeekPublication($weekStart)
+        );
+    }
 
-                if ($preview['hasBlockingConflicts']) {
-                    throw new \DomainException(
-                        'La validation est bloquée par un ou plusieurs conflits.'
-                    );
+    /**
+     * Publie une semaine dans la transaction courante.
+     *
+     * Cette méthode n'ouvre pas de transaction.
+     * L'appelant est responsable de la transaction et du rollback.
+     */
+    public function applyWeekPublication(
+        \DateTimeImmutable $weekStart
+    ): array {
+        $preview = $this->previewWeekPublication($weekStart);
+
+        if ($preview['hasBlockingConflicts']) {
+            throw new \DomainException(
+                'La validation est bloquée par un ou plusieurs conflits.'
+            );
+        }
+
+        if (!$preview['canPublish']) {
+            throw new \DomainException(
+                'Aucun draft publiable n’a été trouvé pour cette semaine.'
+            );
+        }
+
+        /*
+     * On conserve un ordre de traitement stable.
+     *
+     * startsAt correspond à l'horaire EFFECTIF déterminé
+     * par la preview, après prise en compte des arbitrages.
+     */
+        $items = $preview['items'];
+
+        usort(
+            $items,
+            static function (array $a, array $b): int {
+                $startsAtA = $a['startsAt'] ?? null;
+                $startsAtB = $b['startsAt'] ?? null;
+
+                if (
+                    !$startsAtA instanceof \DateTimeInterface
+                    || !$startsAtB instanceof \DateTimeInterface
+                ) {
+                    return 0;
                 }
 
-                if (!$preview['canPublish']) {
-                    throw new \DomainException(
-                        'Aucun draft publiable n’a été trouvé pour cette semaine.'
-                    );
+                $comparison = $startsAtA <=> $startsAtB;
+
+                if (0 !== $comparison) {
+                    return $comparison;
                 }
 
-                /*
-             * On conserve un ordre de traitement stable.
-             *
-             * IMPORTANT :
-             * startsAt correspond à l'horaire EFFECTIF déterminé
-             * par la preview.
-             *
-             * Il peut donc différer de DiffusionDraft::horaireDiffusion
-             * lorsqu'une occurrence a été déplacée par arbitrage.
-             */
-                $items = $preview['items'];
+                $draftIdA = $a['draft'] instanceof DiffusionDraft
+                    ? ($a['draft']->getId() ?? 0)
+                    : 0;
 
-                usort(
-                    $items,
-                    static function (
-                        array $a,
-                        array $b
-                    ): int {
-                        $startsAtA = $a['startsAt'] ?? null;
-                        $startsAtB = $b['startsAt'] ?? null;
+                $draftIdB = $b['draft'] instanceof DiffusionDraft
+                    ? ($b['draft']->getId() ?? 0)
+                    : 0;
 
-                        if (
-                            !$startsAtA instanceof \DateTimeInterface
-                            || !$startsAtB instanceof \DateTimeInterface
-                        ) {
-                            return 0;
-                        }
-
-                        $comparison = $startsAtA <=> $startsAtB;
-
-                        if (0 !== $comparison) {
-                            return $comparison;
-                        }
-
-                        $draftIdA = $a['draft']
-                            instanceof DiffusionDraft
-                            ? ($a['draft']->getId() ?? 0)
-                            : 0;
-
-                        $draftIdB = $b['draft']
-                            instanceof DiffusionDraft
-                            ? ($b['draft']->getId() ?? 0)
-                            : 0;
-
-                        return $draftIdA <=> $draftIdB;
-                    }
-                );
-
-                $created = [];
-                $updated = [];
-                $publishedDrafts = [];
-                $publishedDiffusions = [];
-
-                foreach ($items as $item) {
-                    $draft = $item['draft'] ?? null;
-
-                    if (!$draft instanceof DiffusionDraft) {
-                        throw new \LogicException(
-                            'Un élément de publication ne contient pas de DiffusionDraft valide.'
-                        );
-                    }
-
-                    if ($item['hasConflict'] ?? false) {
-                        throw new \DomainException(
-                            sprintf(
-                                'Le draft #%d possède un conflit bloquant.',
-                                $draft->getId() ?? 0
-                            )
-                        );
-                    }
-
-                    $emission = $draft->getEmission();
-
-                    /*
-                 * L'horaire de publication vient impérativement
-                 * de l'occurrence EFFECTIVE calculée par la preview.
-                 *
-                 * Le Draft conserve volontairement son horaire d'origine
-                 * lorsqu'un GridSlotArbitration déplace l'occurrence.
-                 */
-                    $startsAt = $item['startsAt'] ?? null;
-
-                    if (
-                        null === $emission
-                        || null === $emission->getId()
-                    ) {
-                        throw new \LogicException(
-                            sprintf(
-                                'Le draft #%d ne possède pas d’émission valide.',
-                                $draft->getId() ?? 0
-                            )
-                        );
-                    }
-
-                    if (!$startsAt instanceof \DateTimeInterface) {
-                        throw new \LogicException(
-                            sprintf(
-                                'Le draft #%d ne possède pas d’horaire effectif valide.',
-                                $draft->getId() ?? 0
-                            )
-                        );
-                    }
-
-                    /*
-                 * Le rang est déjà déterminé dans DiffusionDraft.
-                 * On ne le recalcule pas depuis l'historique.
-                 */
-                    $nombreDiffusion = $draft->getNombreDiffusion();
-
-                    if (
-                        null === $nombreDiffusion
-                        || $nombreDiffusion < 1
-                    ) {
-                        throw new \LogicException(
-                            sprintf(
-                                'Le draft #%d possède un nombreDiffusion invalide.',
-                                $draft->getId() ?? 0
-                            )
-                        );
-                    }
-
-                    /*
-                 * On utilise la targetDiffusion déterminée pendant
-                 * la preview.
-                 *
-                 * Elle peut être :
-                 * - la publishedDiffusion historique du Draft ;
-                 * - une ancienne Diffusion réutilisée au même horaire ;
-                 * - null pour un nouveau créneau.
-                 */
-                    $diffusion = $item['targetDiffusion'] ?? null;
-
-                    if ($diffusion instanceof Diffusion) {
-                        $updated[] = $diffusion;
-                    } else {
-                        $diffusion = new Diffusion();
-
-                        $this->entityManager->persist($diffusion);
-
-                        $created[] = $diffusion;
-                    }
-
-                    $durationMinutes = $draft
-                        ->getEffectiveDurationMinutes();
-
-                    if (
-                        null !== $durationMinutes
-                        && $durationMinutes < 1
-                    ) {
-                        $durationMinutes = null;
-                    }
-
-                    $mutableStartsAt = \DateTime::createFromInterface(
-                        $startsAt
-                    );
-
-                    /*
-                 * La fin doit rester cohérente avec l'horaire EFFECTIF.
-                 *
-                 * Si une durée est connue, setSchedule() recalculera
-                 * automatiquement endsAt depuis startsAt + durée.
-                 *
-                 * On ne réutilise donc pas le endsAt original du Draft
-                 * pour une occurrence éventuellement déplacée.
-                 */
-                    $diffusion
-                        ->setEmission($emission)
-                        ->setNombreDiffusion($nombreDiffusion)
-                        ->setAssignmentGroupKey(
-                            $draft->getAssignmentGroupKey()
-                        )
-                        ->markAsPublished();
-
-                    if (null !== $durationMinutes) {
-                        $diffusion->setSchedule(
-                            $mutableStartsAt,
-                            $durationMinutes
-                        );
-                    } else {
-                        /*
-                     * Sans durée exploitable, on conserve le comportement
-                     * historique : début publié, durée et fin nulles.
-                     */
-                        $diffusion
-                            ->setEndsAt(null)
-                            ->setHoraireDiffusion($mutableStartsAt)
-                            ->setDurationMinutes(null);
-                    }
-
-                    /*
-                 * markAsPublished() rattache également le Draft
-                 * à la Diffusion réellement utilisée.
-                 *
-                 * Le Draft conserve son horaire d'origine :
-                 * l'arbitrage reste la source de vérité du déplacement.
-                 */
-                    $draft->markAsPublished(
-                        $diffusion,
-                        new \DateTimeImmutable()
-                    );
-
-                    $publishedDrafts[] = $draft;
-                    $publishedDiffusions[] = $diffusion;
-                }
-
-                /*
-             * Alimentation automatique du parc à rediff.
-             *
-             * La borne correspond à la fin de la semaine radio contenant
-             * le présent lorsque la semaine publiée est passée ou présente.
-             *
-             * Une semaine future ne doit jamais étendre cette borne.
-             */
-                $poolBefore = $this->resolvePendingRebroadcastUpperBound();
-
-                /*
-             * Les Diffusion doivent être synchronisées en base avant
-             * l'alimentation du parc.
-             *
-             * PendingRebroadcastService compte les Diffusion publiées via une
-             * requête SQL. Sans ce flush intermédiaire, les nouvelles Diffusion
-             * de la semaine courante ne sont pas encore visibles par cette requête.
-             *
-             * Ce flush reste dans la même transaction Doctrine :
-             * il ne valide donc pas définitivement la publication si la suite
-             * de l'opération échoue.
-             */
-                $this->entityManager->flush();
-
-                $this->pendingRebroadcastService
-                    ->populateFromPublishedDiffusions(
-                        $publishedDiffusions,
-                        $poolBefore
-                    );
-
-                /*
-             * Flush des éventuels PendingRebroadcast créés par la synchronisation.
-             */
-                $this->entityManager->flush();
-
-                return [
-                    'published' => true,
-                    'weekStart' => $preview['weekStart'],
-                    'weekEnd' => $preview['weekEnd'],
-
-                    'createdCount' => count($created),
-                    'updatedCount' => count($updated),
-                    'publishedDraftCount' => count(
-                        $publishedDrafts
-                    ),
-
-                    'created' => $created,
-                    'updated' => $updated,
-                    'publishedDrafts' => $publishedDrafts,
-
-                    'futureDraftsLeft' => $preview['futureDraftsLeft'],
-                    'futureDraftCount' => $preview['futureDraftCount'],
-                ];
+                return $draftIdA <=> $draftIdB;
             }
         );
+
+        $created = [];
+        $updated = [];
+        $publishedDrafts = [];
+        $publishedDiffusions = [];
+
+        foreach ($items as $item) {
+            $draft = $item['draft'] ?? null;
+
+            if (!$draft instanceof DiffusionDraft) {
+                throw new \LogicException(
+                    'Un élément de publication ne contient pas de DiffusionDraft valide.'
+                );
+            }
+
+            if ($item['hasConflict'] ?? false) {
+                throw new \DomainException(
+                    sprintf(
+                        'Le draft #%d possède un conflit bloquant.',
+                        $draft->getId() ?? 0
+                    )
+                );
+            }
+
+            $emission = $draft->getEmission();
+
+            /*
+         * L'horaire de publication vient de l'occurrence effective.
+         * Le Draft conserve son horaire d'origine lorsqu'un
+         * arbitrage a déplacé l'occurrence.
+         */
+            $startsAt = $item['startsAt'] ?? null;
+
+            if (
+                null === $emission
+                || null === $emission->getId()
+            ) {
+                throw new \LogicException(
+                    sprintf(
+                        'Le draft #%d ne possède pas d’émission valide.',
+                        $draft->getId() ?? 0
+                    )
+                );
+            }
+
+            if (!$startsAt instanceof \DateTimeInterface) {
+                throw new \LogicException(
+                    sprintf(
+                        'Le draft #%d ne possède pas d’horaire effectif valide.',
+                        $draft->getId() ?? 0
+                    )
+                );
+            }
+
+            $nombreDiffusion = $draft->getNombreDiffusion();
+
+            if (
+                null === $nombreDiffusion
+                || $nombreDiffusion < 1
+            ) {
+                throw new \LogicException(
+                    sprintf(
+                        'Le draft #%d possède un nombreDiffusion invalide.',
+                        $draft->getId() ?? 0
+                    )
+                );
+            }
+
+            /*
+         * La Diffusion cible est celle déterminée par la preview.
+         *
+         * Elle peut être :
+         * - la Diffusion historique du Draft ;
+         * - une ancienne Diffusion réutilisable ;
+         * - null pour une nouvelle Diffusion.
+         */
+            $diffusion = $item['targetDiffusion'] ?? null;
+
+            if ($diffusion instanceof Diffusion) {
+                $updated[] = $diffusion;
+            } else {
+                $diffusion = new Diffusion();
+
+                $this->entityManager->persist($diffusion);
+
+                $created[] = $diffusion;
+            }
+
+            $durationMinutes = $draft->getEffectiveDurationMinutes();
+
+            if (
+                null !== $durationMinutes
+                && $durationMinutes < 1
+            ) {
+                $durationMinutes = null;
+            }
+
+            $mutableStartsAt = \DateTime::createFromInterface($startsAt);
+
+            $diffusion
+                ->setEmission($emission)
+                ->setNombreDiffusion($nombreDiffusion)
+                ->setAssignmentGroupKey(
+                    $draft->getAssignmentGroupKey()
+                )
+                ->markAsPublished();
+
+            /*
+         * La fin doit être recalculée depuis l'horaire effectif,
+         * et non depuis l'ancien horaire du Draft.
+         */
+            if (null !== $durationMinutes) {
+                $diffusion->setSchedule(
+                    $mutableStartsAt,
+                    $durationMinutes
+                );
+            } else {
+                $diffusion
+                    ->setEndsAt(null)
+                    ->setHoraireDiffusion($mutableStartsAt)
+                    ->setDurationMinutes(null);
+            }
+
+            /*
+         * Le Draft reste lié à la Diffusion utilisée.
+         * Ce lien permet de réutiliser son identifiant
+         * lors d'une nouvelle publication.
+         */
+            $draft->markAsPublished(
+                $diffusion,
+                new \DateTimeImmutable()
+            );
+
+            $publishedDrafts[] = $draft;
+            $publishedDiffusions[] = $diffusion;
+        }
+
+        /*
+     * Alimentation du parc des rediffusions.
+     * Une semaine future ne doit pas étendre la borne temporelle.
+     */
+        $poolBefore = $this->resolvePendingRebroadcastUpperBound();
+
+        /*
+     * Synchronisation nécessaire avant le calcul des rediffusions.
+     * Le flush reste dans la transaction courante.
+     */
+        $this->entityManager->flush();
+
+        $this->pendingRebroadcastService
+            ->populateFromPublishedDiffusions(
+                $publishedDiffusions,
+                $poolBefore
+            );
+
+        $this->entityManager->flush();
+
+        return [
+            'published' => true,
+            'weekStart' => $preview['weekStart'],
+            'weekEnd' => $preview['weekEnd'],
+
+            'createdCount' => count($created),
+            'updatedCount' => count($updated),
+            'publishedDraftCount' => count($publishedDrafts),
+
+            'created' => $created,
+            'updated' => $updated,
+            'publishedDrafts' => $publishedDrafts,
+
+            'futureDraftsLeft' => $preview['futureDraftsLeft'],
+            'futureDraftCount' => $preview['futureDraftCount'],
+        ];
     }
 
     /**

@@ -260,24 +260,24 @@ class DiffusionRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-/**
- * Retourne toutes les diffusions publiées d'un groupe.
- *
- * @return Diffusion[]
- */
-public function findPublishedByAssignmentGroupKey(
-    string $assignmentGroupKey
-): array {
-    return $this->createQueryBuilder('d')
-        ->andWhere('d.assignmentGroupKey = :assignmentGroupKey')
-        ->andWhere('d.publicationStatus = :status')
-        ->setParameter('assignmentGroupKey', $assignmentGroupKey)
-        ->setParameter('status', Diffusion::STATUS_PUBLISHED)
-        ->orderBy('d.horaireDiffusion', SortDirection::Descending)
-        ->addOrderBy('d.id', SortDirection::Descending)
-        ->getQuery()
-        ->getResult();
-}
+    /**
+     * Retourne toutes les diffusions publiées d'un groupe.
+     *
+     * @return Diffusion[]
+     */
+    public function findPublishedByAssignmentGroupKey(
+        string $assignmentGroupKey
+    ): array {
+        return $this->createQueryBuilder('d')
+            ->andWhere('d.assignmentGroupKey = :assignmentGroupKey')
+            ->andWhere('d.publicationStatus = :status')
+            ->setParameter('assignmentGroupKey', $assignmentGroupKey)
+            ->setParameter('status', Diffusion::STATUS_PUBLISHED)
+            ->orderBy('d.horaireDiffusion', SortDirection::Descending)
+            ->addOrderBy('d.id', SortDirection::Descending)
+            ->getQuery()
+            ->getResult();
+    }
 
     /**
      * Retourne, pour chaque groupe demandé, le nombre de diffusions publiées

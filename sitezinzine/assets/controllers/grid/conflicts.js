@@ -283,16 +283,21 @@ export function buildConflictGroup(context, postit) {
   const deduped = []
 
   all.forEach((item) => {
-    const key =
-      item.segmentKey ||
-      `${item.slotId || ''}|${item.startsAt || ''}`
-
     const exists = deduped.some((existing) => {
-      const existingKey =
-        existing.segmentKey ||
-        `${existing.slotId || ''}|${existing.startsAt || ''}`
+      const sameSegmentKey =
+        item.segmentKey &&
+        existing.segmentKey &&
+        item.segmentKey === existing.segmentKey
 
-      return existingKey === key
+      const sameSlotAndStart =
+        item.slotId &&
+        existing.slotId &&
+        item.startsAt &&
+        existing.startsAt &&
+        String(item.slotId) === String(existing.slotId) &&
+        item.startsAt === existing.startsAt
+
+      return sameSegmentKey || sameSlotAndStart
     })
 
     if (!exists) {

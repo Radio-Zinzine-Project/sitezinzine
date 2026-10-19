@@ -79,6 +79,11 @@ export default class extends Controller {
 
     this.syncSidebarHeight = this.syncSidebarHeight.bind(this)
 
+    this.eventListenersAbortController = new AbortController()
+    const listenerOptions = {
+      signal: this.eventListenersAbortController.signal
+    }
+
     if (this.isReadonly()) {
       this.element.querySelectorAll('[draggable="true"]').forEach((el) => {
         el.setAttribute('draggable', 'false')
@@ -99,17 +104,17 @@ export default class extends Controller {
 
         e.preventDefault()
         day.classList.add('drag-over')
-      })
+      }, listenerOptions)
 
       day.addEventListener('dragleave', () => {
         day.classList.remove('drag-over')
-      })
+      }, listenerOptions)
 
       day.addEventListener('drop', (e) => {
         if (this.isReadonly()) return
 
         this.dropOnDay(e, day)
-      })
+      }, listenerOptions)
     })
 
     const regularPool = this.element.querySelector('#emissions-pool')
@@ -120,17 +125,17 @@ export default class extends Controller {
 
         e.preventDefault()
         regularPool.classList.add('drop-pool-hover')
-      })
+      }, listenerOptions)
 
       regularPool.addEventListener('dragleave', () => {
         regularPool.classList.remove('drop-pool-hover')
-      })
+      }, listenerOptions)
 
       regularPool.addEventListener('drop', (e) => {
         if (this.isReadonly()) return
 
         this.dropBackToPool(e, regularPool)
-      })
+      }, listenerOptions)
     }
 
     const specialPool = this.element.querySelector('#emissions-pool-special')
@@ -141,17 +146,17 @@ export default class extends Controller {
 
         e.preventDefault()
         specialPool.classList.add('drop-pool-hover')
-      })
+      }, listenerOptions)
 
       specialPool.addEventListener('dragleave', () => {
         specialPool.classList.remove('drop-pool-hover')
-      })
+      }, listenerOptions)
 
       specialPool.addEventListener('drop', (e) => {
         if (this.isReadonly()) return
 
         this.dropBackToPool(e, specialPool)
-      })
+      }, listenerOptions)
     }
 
     if (this.hasTrashZoneTarget) {
@@ -161,17 +166,17 @@ export default class extends Controller {
 
         e.preventDefault()
         this.trashZoneTarget.classList.add('is-active')
-      })
+      }, listenerOptions)
 
       this.trashZoneTarget.addEventListener('dragleave', () => {
         this.trashZoneTarget.classList.remove('is-active')
-      })
+      }, listenerOptions)
 
       this.trashZoneTarget.addEventListener('drop', (e) => {
         if (this.isReadonly()) return
 
         this.dropOnTrash(e)
-      })
+      }, listenerOptions)
     }
 
     const savedMode = this.getSavedMode()
@@ -232,7 +237,21 @@ export default class extends Controller {
   }
 
   disconnect() {
-    window.removeEventListener('resize', this.syncSidebarHeight)
+    clearTimeout(this.regularSearchTimeout)
+    clearTimeout(this.specialSearchTimeout)
+
+    this.regularSearchTimeout = null
+    this.specialSearchTimeout = null
+
+    if (this.eventListenersAbortController) {
+      this.eventListenersAbortController.abort()
+      this.eventListenersAbortController = null
+    }
+
+    window.removeEventListener(
+      'resize',
+      this.syncSidebarHeight
+    )
   }
 
   syncSidebarHeight() {

@@ -289,9 +289,15 @@ final class GridViewBuilder
                 $seg['hasCoveredGhost'] = false;
                 $seg['coveredGhost'] = null;
 
-                $startsAt = $seg['originalStartsAt']
-                    ?? $seg['startsAt']
-                    ?? null;
+                /*
+                * En mode diffusion, les émissions sont publiées
+                * à leur horaire effectif après arbitrage.
+                *
+                * Contrairement aux DiffusionDraft, qui conservent
+                * leur horaire d'origine, les Diffusion doivent donc
+                * être recherchées à la destination du segment.
+                */
+                $startsAt = $seg['startsAt'] ?? null;
 
                 if (!$startsAt) {
                     continue;
