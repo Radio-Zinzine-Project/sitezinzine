@@ -27,6 +27,12 @@ class RegularRebroadcastPlacementService
     ): DiffusionDraft {
         $emission = $pendingRebroadcast->getEmission();
 
+        if (!$pendingRebroadcast->isPending()) {
+            throw new \DomainException(
+                'Cette rediffusion n’est plus disponible dans le parc.'
+            );
+        }
+
         if (!$emission instanceof Emission) {
             throw new \DomainException('Émission introuvable.');
         }
@@ -48,6 +54,33 @@ class RegularRebroadcastPlacementService
             );
         }
 
+        /*
+     * Une semaine radiophonique validée ne peut pas
+     * recevoir de nouvelle affectation.
+     *
+     * La semaine commence le mardi à 00:00
+     * et se termine le mardi suivant à 00:00
+     * (borne de fin exclusive).
+     */
+        $dayOfWeek = (int) $startsAt->format('N');
+
+        $daysSinceTuesday = ($dayOfWeek + 5) % 7;
+
+        $weekStart = $startsAt
+            ->setTime(0, 0, 0)
+            ->modify(sprintf('-%d days', $daysSinceTuesday));
+
+        $weekEnd = $weekStart->modify('+7 days');
+
+        if ($this->diffusionRepository->hasDiffusionsBetween(
+            $weekStart,
+            $weekEnd
+        )) {
+            throw new \DomainException(
+                'Impossible de modifier une semaine validée.'
+            );
+        }
+
         $duration = (int) ($emission->getDuree() ?? 0);
 
         if ($duration < 1) {
@@ -60,7 +93,16 @@ class RegularRebroadcastPlacementService
         $publishedDiffusions = $this->diffusionRepository
             ->findPublishedByAssignmentGroupKey($assignmentGroupKey);
 
+        /*
+     * On distingue les rangs des diffusions régulières
+     * et celui de la première diffusion manuelle.
+     *
+     * Une émission ponctuelle possède un manual_special
+     * de rang 1, même si aucune diffusion régulière
+     * n'existe dans son groupe.
+     */
         $maxRegularRank = 0;
+        $maxManualInitialRank = 0;
         $hasRegularDraft = false;
         $lastRegularEndsAt = null;
 
@@ -69,7 +111,30 @@ class RegularRebroadcastPlacementService
                 continue;
             }
 
-            if (DiffusionDraft::TYPE_REGULAR !== $groupDraft->getDraftType()) {
+            /*
+         * Première diffusion d'un groupe manuel.
+         *
+         * Son rang est réservé et ne doit jamais
+         * être réattribué à une rediffusion.
+         */
+            if (
+                DiffusionDraft::TYPE_MANUAL_SPECIAL
+                === $groupDraft->getDraftType()
+            ) {
+                $maxManualInitialRank = max(
+                    $maxManualInitialRank,
+                    (int) $groupDraft->getNombreDiffusion()
+                );
+            }
+
+            /*
+         * Les autres traitements concernent uniquement
+         * les diffusions régulières.
+         */
+            if (
+                DiffusionDraft::TYPE_REGULAR
+                !== $groupDraft->getDraftType()
+            ) {
                 continue;
             }
 
@@ -94,12 +159,12 @@ class RegularRebroadcastPlacementService
         }
 
         /*
-         * Un groupe issu d'une règle doit toujours posséder
-         * une diffusion régulière.
-         *
-         * Une rediffusion issue d'une non-régulière peut,
-         * elle, exister sans draft regular.
-         */
+     * Un groupe issu d'une règle doit toujours posséder
+     * une diffusion régulière.
+     *
+     * Une rediffusion issue d'une non-régulière peut,
+     * elle, exister sans draft regular.
+     */
         if (
             str_starts_with($assignmentGroupKey, 'rule_')
             && !$hasRegularDraft
@@ -110,9 +175,9 @@ class RegularRebroadcastPlacementService
         }
 
         /*
-         * Pour un groupe régulier, une rediffusion ponctuelle
-         * doit être placée après la dernière diffusion régulière.
-         */
+     * Pour un groupe régulier, une rediffusion ponctuelle
+     * doit être placée après la dernière diffusion régulière.
+     */
         if (
             $hasRegularDraft
             && $lastRegularEndsAt instanceof \DateTimeImmutable
@@ -124,13 +189,12 @@ class RegularRebroadcastPlacementService
         }
 
         /*
-         * Les Diffusion publiées occupent déjà des rangs.
-         *
-         * Attention :
-         * un DiffusionDraft possédant une publishedDiffusion
-         * représente la même occurrence et ne doit donc jamais
-         * être compté comme une occurrence supplémentaire.
-         */
+     * Les Diffusion publiées occupent déjà des rangs.
+     *
+     * Un DiffusionDraft possédant une publishedDiffusion
+     * représente la même occurrence et ne doit donc jamais
+     * être compté comme une occurrence supplémentaire.
+     */
         $maxPublishedRank = 0;
 
         foreach ($publishedDiffusions as $publishedDiffusion) {
@@ -145,16 +209,24 @@ class RegularRebroadcastPlacementService
         }
 
         /*
-         * Le nouveau draft reçoit temporairement le prochain rang
-         * disponible après les diffusions déjà publiées/régulières.
-         *
-         * La renumérotation ci-dessous corrigera ensuite les autres
-         * rediffusions manuelles encore en draft.
-         */
-        $nextRebroadcastRank = max(
+     * Le rang de départ doit tenir compte :
+     *
+     * - des diffusions régulières ;
+     * - de la première diffusion manuelle ;
+     * - des diffusions déjà publiées.
+     *
+     * Exemple :
+     * manual_special = 1
+     * première rediffusion = 2
+     * deuxième rediffusion = 3
+     */
+        $maxExistingRank = max(
             $maxRegularRank,
+            $maxManualInitialRank,
             $maxPublishedRank
-        ) + 1;
+        );
+
+        $nextRebroadcastRank = $maxExistingRank + 1;
 
         $endsAt = $startsAt->modify(
             sprintf('+%d minutes', $duration)
@@ -194,30 +266,29 @@ class RegularRebroadcastPlacementService
         $this->entityManager->persist($draft);
 
         /*
-         * Le nouveau Draft doit être visible par la requête
-         * de renumérotation.
-         */
+     * Le nouveau Draft doit être visible par la requête
+     * de renumérotation.
+     */
         $this->entityManager->flush();
 
         /*
-         * Les Drafts déjà publiés conservent le rang de leur
-         * Diffusion publiée.
-         *
-         * Les Drafts manuels qui ne sont pas encore publiés
-         * prennent les rangs disponibles suivants.
-         */
+     * Les rangs des diffusions régulières, des premières
+     * diffusions manuelles et des diffusions publiées
+     * restent réservés.
+     *
+     * Les rediffusions manuelles encore en draft
+     * sont renumérotées chronologiquement à partir
+     * du premier rang disponible.
+     */
         $this->renumberManualRebroadcasts(
             $assignmentGroupKey,
-            max(
-                $maxRegularRank,
-                $maxPublishedRank
-            )
+            $maxExistingRank
         );
 
         /*
-         * Le Pending n'est supprimé qu'une fois toutes les validations
-         * terminées et le Draft effectivement créé.
-         */
+     * Le Pending n'est supprimé qu'une fois toutes
+     * les validations terminées et le Draft créé.
+     */
         $this->entityManager->remove($pendingRebroadcast);
 
         $this->entityManager->flush();

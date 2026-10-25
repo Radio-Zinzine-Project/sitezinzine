@@ -163,6 +163,41 @@
   background: #e2e2e2;
 }
 
+.main-content .programmation-rule-form .additional-rebroadcast {
+  padding: 14px 16px;
+  border: 1px solid #ddd;
+  border-left: 4px solid #E4013A;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.main-content .programmation-rule-form .additional-rebroadcast-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.main-content .programmation-rule-form .additional-rebroadcast-choice input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  flex-shrink: 0;
+  accent-color: #E4013A;
+  cursor: pointer;
+}
+
+.main-content .programmation-rule-form .additional-rebroadcast-choice label {
+  margin: 0;
+  cursor: pointer;
+}
+
+.main-content .programmation-rule-form .additional-rebroadcast-help {
+  margin: 8px 0 0 28px;
+  color: #686868;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 @media (max-width: 960px){
   .main-content .programmation-rule-form{
     margin: 14px 12px 22px;
@@ -203,22 +238,25 @@
   }
 }
 </style>
-
 <div class="programmation-rule-form">
-  <h1>{{ form_title }}</h1>
-
+  <h1>
+    {{ form_title }}
+  </h1>
   {{ form_start(form) }}
-
   {% if rule is defined and rule.id %}
     <div class="field">
-      <label>Règle</label>
-      <div>{{ rule.displayName }}</div>
+      <label>
+        Règle
+      </label>
+      <div>
+        {{ rule.displayName }}
+      </div>
     </div>
-
     <div class="field">
       <div class="rule-status">
-        <span class="rule-status-label">État :</span>
-
+        <span class="rule-status-label">
+          État :
+        </span>
         {% if rule.isActive %}
           <span class="badge badge-active">
             Active
@@ -229,7 +267,6 @@
           </span>
         {% endif %}
       </div>
-
       {% if not rule.isActive %}
         <p class="status-help">
           Une règle inactive ne peut pas être réactivée depuis ce formulaire.
@@ -238,39 +275,39 @@
       {% endif %}
     </div>
   {% endif %}
-
   <div class="field">
     {{ form_label(form.category) }}
     {{ form_widget(form.category) }}
     {{ form_errors(form.category) }}
   </div>
-
   <div class="grid">
     <div class="field">
       {{ form_label(form.validFrom) }}
       {{ form_widget(form.validFrom) }}
       {{ form_errors(form.validFrom) }}
     </div>
-
     <div class="field">
       {{ form_label(form.validUntil) }}
       {{ form_widget(form.validUntil) }}
       {{ form_errors(form.validUntil) }}
     </div>
   </div>
-
+  <div class="field additional-rebroadcast">
+    <div class="additional-rebroadcast-choice">
+      {{ form_widget(form.hasAdditionalRebroadcast) }}
+      {{ form_label(form.hasAdditionalRebroadcast) }}
+    </div>
+    <div class="additional-rebroadcast-help">
+      {{ form_help(form.hasAdditionalRebroadcast) }}
+    </div>
+    {{ form_errors(form.hasAdditionalRebroadcast) }}
+  </div>
   {{ form_widget(form._token) }}
-
   <div class="actions">
     {{ form_widget(form.save) }}
-
-    <a
-      href="{{ path('admin_programmationRule_index') }}"
-      class="btn-back"
-    >
+    <a href="{{ path('admin_programmationRule_index') }}" class="btn-back">
       Retour à la liste
     </a>
   </div>
-
   {{ form_end(form, { render_rest: false }) }}
 </div>

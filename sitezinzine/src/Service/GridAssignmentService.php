@@ -63,21 +63,83 @@ class GridAssignmentService
             ];
         }
 
-        $affectedWeeks = $this->getAffectedRadioWeeks($occurrences);
-
         return $this->em->wrapInTransaction(
             function () use (
                 $occurrences,
-                $affectedWeeks,
                 $emission,
-                $assignmentGroupKey
+                $assignmentGroupKey,
+                $rule
             ): bool {
-                $publishedWeeks = [];
+                /*
+             * ==========================================================
+             * 1. RÉCUPÉRER LES REDIFFUSIONS SUPPLÉMENTAIRES
+             * ==========================================================
+             */
+                $groupDrafts = $this->draftRepository
+                    ->findByAssignmentGroupKey($assignmentGroupKey);
+
+                $manualRebroadcasts = [];
+
+                foreach ($groupDrafts as $groupDraft) {
+                    if (
+                        $groupDraft->getDraftType()
+                        !== DiffusionDraft::TYPE_MANUAL_REBROADCAST
+                    ) {
+                        continue;
+                    }
+
+                    $manualRebroadcasts[] = $groupDraft;
+                }
 
                 /*
-             * Identifier les semaines initialement publiées
-             * avant toute modification.
+                * ==========================================================
+                * 2. IDENTIFIER TOUTES LES SEMAINES CONCERNÉES
+                * ==========================================================
+                *
+                * Les diffusions régulières passent par getAffectedRadioWeeks()
+                * afin de conserver la prise en compte des arbitrages.
+                *
+                * Les rediffusions supplémentaires n'ont pas de slot :
+                * leur semaine est calculée directement depuis leur horaire.
+                */
+
+                // Semaines des diffusions régulières, arbitrages compris.
+                $affectedWeeks = $this->getAffectedRadioWeeks($occurrences);
+
+                // Indexation par date pour éviter les doublons.
+                $weeksByDate = [];
+
+                foreach ($affectedWeeks as $weekStart) {
+                    $weeksByDate[$weekStart->format('Y-m-d')] = $weekStart;
+                }
+
+                // Ajout des semaines des rediffusions supplémentaires.
+                foreach ($manualRebroadcasts as $manualDraft) {
+                    $startsAt = $manualDraft->getHoraireDiffusion();
+
+                    if (!$startsAt instanceof \DateTimeInterface) {
+                        continue;
+                    }
+
+                    $weekStart = $this->getRadioWeekStart(
+                        \DateTimeImmutable::createFromInterface($startsAt)
+                    );
+
+                    $weeksByDate[$weekStart->format('Y-m-d')] = $weekStart;
+                }
+
+                // Ordre chronologique pour la dépublication/republication.
+                ksort($weeksByDate);
+
+                $affectedWeeks = array_values($weeksByDate);
+
+                /*
+             * ==========================================================
+             * 3. IDENTIFIER LES SEMAINES DÉJÀ PUBLIÉES
+             * ==========================================================
              */
+                $publishedWeeks = [];
+
                 foreach ($affectedWeeks as $weekStart) {
                     $preview = $this->unpublicationService
                         ->previewWeek($weekStart);
@@ -97,8 +159,9 @@ class GridAssignmentService
                 }
 
                 /*
-             * Dévalider uniquement les semaines qui étaient
-             * publiées avant le remplacement.
+             * ==========================================================
+             * 4. DÉVALIDER LES SEMAINES PUBLIÉES
+             * ==========================================================
              */
                 foreach ($publishedWeeks as $weekStart) {
                     $this->unpublicationService
@@ -106,8 +169,9 @@ class GridAssignmentService
                 }
 
                 /*
-             * Remplacer l'émission dans tous les Drafts
-             * de l'affectation R1/R2/R3.
+             * ==========================================================
+             * 5. METTRE À JOUR R1/R2/R3
+             * ==========================================================
              */
                 foreach ($occurrences as $occurrence) {
                     $this->upsertDraft(
@@ -119,16 +183,145 @@ class GridAssignmentService
                 }
 
                 /*
-             * Synchroniser les changements avant les previews
-             * de publication, qui effectuent des requêtes Doctrine.
+             * ==========================================================
+             * 6. PROPAGER B AUX REDIFFUSIONS SUPPLÉMENTAIRES
+             * ==========================================================
+             *
+             * On conserve :
+             * - l'identifiant du Draft ;
+             * - son horaire ;
+             * - sa durée ;
+             * - son rang ;
+             * - son groupe ;
+             * - son éventuel lien avec une Diffusion publiée.
              */
+                foreach ($manualRebroadcasts as $manualDraft) {
+                    $manualDraft->setEmission($emission);
+                }
+
+
+                /*
+                 * ==========================================================
+                 * 7. SYNCHRONISER LES PENDING
+                 * ==========================================================
+                 *
+                 * Une rediffusion supplémentaire est autorisée si :
+                 * - la règle prévoit une rediffusion supplémentaire ;
+                 * - OU l'émission appartient à une autre catégorie.
+                 *
+                 * Une exclusion dismissed appartient à une émission.
+                 * Elle ne doit jamais être transférée ou annulée
+                 * automatiquement.
+                 */
+
+                $ruleCategory = $rule->getCategory();
+                $emissionCategory = $emission->getCategorie();
+
+                $isExceptionalAssignment =
+                    $ruleCategory?->getId() !== $emissionCategory?->getId();
+
+                $needsAdditionalRebroadcast =
+                    $rule->hasAdditionalRebroadcast()
+                    || $isExceptionalAssignment;
+
+                $pendingRebroadcasts = $this->pendingRebroadcastRepository
+                    ->findBy([
+                        'assignmentGroupKey' => $assignmentGroupKey,
+                    ]);
+
+                /*
+                 * Identifier d'abord si l'émission affectée
+                 * possède déjà une exclusion volontaire.
+                 *
+                 * Cette vérification doit précéder toute
+                 * réaffectation des Pending actifs.
+                 */
+                $hasDismissedForCurrentEmission = false;
+
+                foreach ($pendingRebroadcasts as $pending) {
+                    if (
+                        $pending->isDismissed()
+                        && $pending->getEmission()?->getId()
+                        === $emission->getId()
+                    ) {
+                        $hasDismissedForCurrentEmission = true;
+                        break;
+                    }
+                }
+
+                if (
+                    !$needsAdditionalRebroadcast
+                    || $hasDismissedForCurrentEmission
+                ) {
+                    /*
+                     * L'émission n'est pas éligible, ou elle
+                     * possède déjà une exclusion volontaire.
+                     *
+                     * Supprimer uniquement les Pending actifs
+                     * du groupe.
+                     *
+                     * Tous les dismissed restent intacts,
+                     * avec leur émission d'origine.
+                     */
+                    foreach ($pendingRebroadcasts as $pending) {
+                        if ($pending->isPending()) {
+                            $this->em->remove($pending);
+                        }
+                    }
+                } else {
+                    $hasActivePending = false;
+
+                    foreach ($pendingRebroadcasts as $pending) {
+                        /*
+                         * Les exclusions historiques ne sont
+                         * jamais transférées.
+                         */
+                        if (!$pending->isPending()) {
+                            continue;
+                        }
+
+                        /*
+                         * Les Pending actifs suivent
+                         * l'émission nouvellement affectée.
+                         *
+                         * On conserve leurs identifiants.
+                         */
+                        $pending->setEmission($emission);
+                        $hasActivePending = true;
+                    }
+
+                    /*
+                     * Aucun Pending actif et aucune rediffusion
+                     * supplémentaire déjà programmée :
+                     * créer un Pending pour cette émission.
+                     *
+                     * Les dismissed appartenant à d'autres
+                     * émissions ne bloquent pas sa création.
+                     */
+                    if (
+                        !$hasActivePending
+                        && $manualRebroadcasts === []
+                    ) {
+                        $pending = (new PendingRebroadcast())
+                            ->setEmission($emission)
+                            ->setAssignmentGroupKey($assignmentGroupKey);
+
+                        $this->em->persist($pending);
+                    }
+                }
+
+                /*
+                * ==========================================================
+                * 8. ENREGISTRER LES MODIFICATIONS
+                * ==========================================================
+                */
                 $this->em->flush();
 
                 /*
-             * Republier uniquement les semaines initialement
-             * publiées, et seulement si elles possèdent encore
-             * des occurrences publiables.
-             */
+                * ==========================================================
+                * 9. REPUBLIER LES SEMAINES INITIALEMENT PUBLIÉES
+                * ==========================================================
+                */
                 foreach ($publishedWeeks as $weekStart) {
                     $preview = $this->publicationService
                         ->previewWeekPublication($weekStart);
@@ -249,9 +442,6 @@ class GridAssignmentService
 
                 /*
              * Prévalidation de toutes les semaines publiées.
-             *
-             * On ne modifie rien tant que nous n'avons pas
-             * vérifié que toutes peuvent être dévalidées.
              */
                 foreach ($affectedWeeks as $weekStart) {
                     $preview = $this->unpublicationService
@@ -273,7 +463,6 @@ class GridAssignmentService
 
                 /*
              * Dévalidation des semaines initialement publiées.
-             *
              * Les Diffusions historiques restent en base.
              */
                 foreach ($publishedWeeks as $weekStart) {
@@ -291,8 +480,11 @@ class GridAssignmentService
                 }
 
                 /*
-             * Suppression des rediffusions en attente
-             * associées au même groupe.
+             * Suppression des Pending actifs du groupe.
+             *
+             * Les Pending dismissed sont conservés :
+             * ils représentent une exclusion volontaire
+             * qui ne doit jamais être annulée automatiquement.
              */
                 if ($assignmentGroupKey) {
                     $pendingRebroadcasts = $this->pendingRebroadcastRepository
@@ -301,7 +493,10 @@ class GridAssignmentService
                         ]);
 
                     foreach ($pendingRebroadcasts as $pendingRebroadcast) {
-                        if ($pendingRebroadcast instanceof PendingRebroadcast) {
+                        if (
+                            $pendingRebroadcast instanceof PendingRebroadcast
+                            && $pendingRebroadcast->isPending()
+                        ) {
                             $this->em->remove($pendingRebroadcast);
                         }
                     }
@@ -316,9 +511,6 @@ class GridAssignmentService
                 /*
              * Republier uniquement les semaines qui étaient
              * publiées avant la suppression.
-             *
-             * Si une semaine ne contient plus aucun Draft
-             * publiable, elle reste dévalidée.
              */
                 foreach ($publishedWeeks as $weekStart) {
                     $preview = $this->publicationService
@@ -339,11 +531,6 @@ class GridAssignmentService
                         ->applyWeekPublication($weekStart);
                 }
 
-                /*
-             * Comportement historique :
-             * - true : groupe supprimé ;
-             * - false : Draft isolé sans clé de groupe.
-             */
                 return $assignmentGroupKey !== null
                     && $assignmentGroupKey !== '';
             }
@@ -354,30 +541,44 @@ class GridAssignmentService
         ProgrammationRuleSlot $slot,
         Emission $emission,
         \DateTimeImmutable $startsAt,
-        string $assignmentGroupKey
-    ): DiffusionDraft {
-        $duration = $this->resolveDurationMinutes($slot, $emission);
+        string $groupKey
+    ): void {
+        $durationMinutes = $slot->getDurationMinutes();
 
-        $draft = $this->draftRepository->findOneRegularBySlotAndHoraire(
-            $slot,
-            $startsAt
-        );
+        if ($durationMinutes === null || $durationMinutes <= 0) {
+            $durationMinutes = $emission->getDuree();
+        }
 
-        if (!$draft instanceof DiffusionDraft) {
+        if ($durationMinutes === null || $durationMinutes <= 0) {
+            throw new \RuntimeException(
+                'Impossible de déterminer la durée de la diffusion.'
+            );
+        }
+
+        // Recherche également les drafts supprimés logiquement.
+        // La contrainte SQL interdit deux drafts pour un même slot/horaire.
+        $draft = $this->draftRepository
+            ->findOneRegularIncludingDeletedBySlotAndHoraire(
+                $slot,
+                $startsAt
+            );
+
+        if ($draft === null) {
             $draft = new DiffusionDraft();
+        } elseif ($draft->isDeleted()) {
+            // On réutilise la ligne existante au lieu d'en créer une nouvelle.
+            $draft->restore();
         }
 
         $draft
             ->setSlot($slot)
-            ->setSchedule($startsAt, $duration)
+            ->setSchedule($startsAt, $durationMinutes)
             ->setEmission($emission)
             ->setNombreDiffusion($slot->getBroadcastRank())
             ->setDraftType(DiffusionDraft::TYPE_REGULAR)
-            ->setAssignmentGroupKey($assignmentGroupKey);
+            ->setAssignmentGroupKey($groupKey);
 
         $this->em->persist($draft);
-
-        return $draft;
     }
 
     private function buildAssignmentGroupKey(

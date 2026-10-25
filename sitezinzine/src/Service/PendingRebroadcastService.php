@@ -7,6 +7,8 @@ namespace App\Service;
 use App\Entity\Diffusion;
 use App\Entity\Emission;
 use App\Entity\PendingRebroadcast;
+use App\Entity\DiffusionDraft;
+use App\Repository\DiffusionDraftRepository;
 use App\Repository\DiffusionRepository;
 use App\Repository\PendingRebroadcastRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -18,7 +20,8 @@ final class PendingRebroadcastService implements PendingRebroadcastPopulatorInte
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly DiffusionRepository $diffusionRepository,
-        private readonly PendingRebroadcastRepository $pendingRebroadcastRepository
+        private readonly PendingRebroadcastRepository $pendingRebroadcastRepository,
+        private readonly DiffusionDraftRepository $draftRepository,
     ) {}
 
     /**
@@ -48,167 +51,269 @@ final class PendingRebroadcastService implements PendingRebroadcastPopulatorInte
     }
 
     /**
-     * Alimente automatiquement le parc à rediff à partir des diffusions
-     * concernées par une publication.
-     *
-     * Une émission est ajoutée au parc uniquement si :
-     * - elle appartient au lot de diffusions fourni ;
-     * - elle possède moins de 3 diffusions publiées avant la borne fournie ;
-     * - elle ne possède pas déjà au moins une occurrence dans le parc.
-     *
-     * Plusieurs diffusions de la même émission dans le lot ne peuvent créer
-     * qu'une seule occurrence automatique.
-     *
-     * L'assignmentGroupKey de la première diffusion chronologique valide
-     * de l'émission dans le lot est conservé.
-     *
-     * Le flush reste volontairement à la charge de l'appelant.
-     *
      * @param Diffusion[] $diffusions
      *
-     * @return PendingRebroadcast[] Pending créées par cette synchronisation
+     * @return PendingRebroadcast[]
      */
-public function populateFromPublishedDiffusions(
-    array $diffusions,
-    \DateTimeInterface $before
-): array {
-    if ([] === $diffusions) {
-        return [];
-    }
+    public function populateFromPublishedDiffusions(
+        array $diffusions,
+        \DateTimeInterface $before
+    ): array {
+        if ([] === $diffusions) {
+            return [];
+        }
 
-    /**
-     * On trie les diffusions chronologiquement afin que, pour chaque groupe,
-     * la première diffusion valide rencontrée soit utilisée comme source.
-     */
-    usort(
-        $diffusions,
-        static function (Diffusion $left, Diffusion $right): int {
-            $leftStartsAt = $left->getHoraireDiffusion();
-            $rightStartsAt = $right->getHoraireDiffusion();
+        usort(
+            $diffusions,
+            static function (Diffusion $left, Diffusion $right): int {
+                $leftStartsAt = $left->getHoraireDiffusion();
+                $rightStartsAt = $right->getHoraireDiffusion();
 
-            if (null === $leftStartsAt && null === $rightStartsAt) {
-                return 0;
+                if (null === $leftStartsAt) {
+                    return null === $rightStartsAt ? 0 : 1;
+                }
+
+                if (null === $rightStartsAt) {
+                    return -1;
+                }
+
+                return $leftStartsAt <=> $rightStartsAt;
+            }
+        );
+
+        /** @var array<int, array<string, Diffusion>> $sources */
+        $sources = [];
+
+        foreach ($diffusions as $diffusion) {
+            if (!$diffusion->isPublished()) {
+                continue;
             }
 
-            if (null === $leftStartsAt) {
-                return 1;
+            $emission = $diffusion->getEmission();
+            $emissionId = $emission?->getId();
+            $groupKey = $diffusion->getAssignmentGroupKey();
+
+            if (
+                null === $emissionId
+                || null === $groupKey
+                || '' === trim($groupKey)
+                || str_starts_with($groupKey, 'rule_')
+            ) {
+                continue;
             }
 
-            if (null === $rightStartsAt) {
-                return -1;
+            // Une source par couple émission / groupe.
+            $sources[$emissionId][$groupKey] ??= $diffusion;
+        }
+
+        if ([] === $sources) {
+            return [];
+        }
+
+        $groupKeys = [];
+
+        foreach ($sources as $groups) {
+            foreach (array_keys($groups) as $groupKey) {
+                $groupKeys[$groupKey] = true;
             }
-
-            return $leftStartsAt <=> $rightStartsAt;
-        }
-    );
-
-    /**
-     * On construit une source unique par groupe d'affectation.
-     *
-     * Une même émission peut donc avoir plusieurs groupes indépendants.
-     *
-     * @var array<string, Diffusion> $sourceByAssignmentGroupKey
-     */
-    $sourceByAssignmentGroupKey = [];
-
-    foreach ($diffusions as $diffusion) {
-        if (!$diffusion instanceof Diffusion) {
-            throw new \InvalidArgumentException(
-                'Le lot doit contenir uniquement des Diffusion.'
-            );
         }
 
-        /*
-         * La synchronisation du parc ne doit jamais prendre pour source
-         * une Diffusion qui n'est pas publiée.
-         */
-        if (!$diffusion->isPublished()) {
-            continue;
-        }
-
-        $emission = $diffusion->getEmission();
-
-        if (!$emission instanceof Emission || null === $emission->getId()) {
-            continue;
-        }
-
-        $assignmentGroupKey = $diffusion->getAssignmentGroupKey();
-
-        if (
-            null === $assignmentGroupKey
-            || '' === trim($assignmentGroupKey)
-        ) {
-            continue;
-        }
-
-        /*
-         * Une seule source par groupe.
-         *
-         * Le tri chronologique garantit que la première diffusion
-         * du groupe est conservée.
-         */
-        if (isset($sourceByAssignmentGroupKey[$assignmentGroupKey])) {
-            continue;
-        }
-
-        $sourceByAssignmentGroupKey[$assignmentGroupKey] = $diffusion;
-    }
-
-    if ([] === $sourceByAssignmentGroupKey) {
-        return [];
-    }
-
-    $assignmentGroupKeys = array_keys(
-        $sourceByAssignmentGroupKey
-    );
-
-    $publishedCounts =
-        $this->diffusionRepository
-            ->countPublishedBeforeForAssignmentGroupKeys(
-                $assignmentGroupKeys,
+        $publishedCounts = $this->diffusionRepository
+            ->countPublishedBeforeByEmissionAndGroup(
+                array_keys($groupKeys),
                 $before
             );
 
-    $created = [];
-
-    foreach (
-        $sourceByAssignmentGroupKey
-        as $assignmentGroupKey => $sourceDiffusion
-    ) {
-        $publishedCount =
-            $publishedCounts[$assignmentGroupKey] ?? 0;
-
         /*
-         * Trois diffusions du même groupe incluses :
-         * le groupe ne doit plus entrer dans le parc.
-         */
-        if ($publishedCount >= self::MAX_DIFFUSIONS_FOR_POOL) {
-            continue;
+     * On récupère les insertions Doctrine non flushées.
+     * Elles doivent être prises en compte comme les Pending
+     * déjà présents en base.
+     */
+        $scheduledInsertions = $this->entityManager
+            ->getUnitOfWork()
+            ->getScheduledEntityInsertions();
+
+        $created = [];
+
+        // Cache pour éviter de rechercher plusieurs fois le même groupe.
+        $pendingsByGroup = [];
+        $draftsByGroup = [];
+
+        foreach ($sources as $emissionId => $groups) {
+            foreach ($groups as $groupKey => $sourceDiffusion) {
+                if (
+                    ($publishedCounts[$emissionId][$groupKey] ?? 0)
+                    >= self::MAX_DIFFUSIONS_FOR_POOL
+                ) {
+                    continue;
+                }
+
+                $emission = $sourceDiffusion->getEmission();
+
+                if (!$emission instanceof Emission) {
+                    continue;
+                }
+
+                /*
+             * Un draft de rediffusion supplémentaire bloque
+             * uniquement son émission, pas les autres émissions
+             * partageant le même assignmentGroupKey.
+             */
+                if (!array_key_exists($groupKey, $draftsByGroup)) {
+                    $draftsByGroup[$groupKey] = $this->draftRepository
+                        ->findByAssignmentGroupKey($groupKey);
+                }
+
+                $hasPlacedRebroadcast = false;
+
+                foreach ($draftsByGroup[$groupKey] as $draft) {
+                    if (
+                        $draft->getEmission()?->getId() === $emissionId
+                        && $draft->getDraftType()
+                        === DiffusionDraft::TYPE_MANUAL_REBROADCAST
+                    ) {
+                        $hasPlacedRebroadcast = true;
+                        break;
+                    }
+                }
+
+                if ($hasPlacedRebroadcast) {
+                    continue;
+                }
+
+                /*
+             * Recherche des Pending déjà enregistrés.
+             * On conserve aussi les dismissed pour ne jamais
+             * recréer automatiquement une exclusion volontaire.
+             */
+                if (!array_key_exists($groupKey, $pendingsByGroup)) {
+                    $pendingsByGroup[$groupKey] =
+                        $this->pendingRebroadcastRepository
+                        ->findByAssignmentGroupKey($groupKey);
+
+                    foreach ($scheduledInsertions as $entity) {
+                        if (
+                            $entity instanceof PendingRebroadcast
+                            && $entity->getAssignmentGroupKey() === $groupKey
+                        ) {
+                            $pendingsByGroup[$groupKey][] = $entity;
+                        }
+                    }
+                }
+
+                $alreadyExists = false;
+
+                foreach ($pendingsByGroup[$groupKey] as $pending) {
+                    if ($pending->getEmission()?->getId() === $emissionId) {
+                        $alreadyExists = true;
+                        break;
+                    }
+                }
+
+                if ($alreadyExists) {
+                    continue;
+                }
+
+                /*
+             * createForGroup() persiste sans flush.
+             * On ajoute immédiatement la nouvelle entité au cache
+             * pour éviter une duplication pendant cet appel.
+             */
+                $pending = $this->createForGroup(
+                    $emission,
+                    $groupKey
+                );
+
+                $pendingsByGroup[$groupKey][] = $pending;
+                $created[] = $pending;
+            }
         }
 
+        return $created;
+    }
+
+    public function restoreToPoolIfEligible(
+        Emission $emission,
+        string $assignmentGroupKey
+    ): ?PendingRebroadcast {
+        if ('' === trim($assignmentGroupKey)) {
+            throw new \InvalidArgumentException(
+                'La clé du groupe d’affectation ne peut pas être vide.'
+            );
+        }
+
+        $existingPendings = $this->pendingRebroadcastRepository
+            ->findByAssignmentGroupKey($assignmentGroupKey);
+
         /*
-         * Un groupe déjà présent dans le parc ne doit pas recevoir
-         * automatiquement un deuxième Pending.
-         */
-        if (
-            $this->pendingRebroadcastRepository
-                ->existsForAssignmentGroupKey($assignmentGroupKey)
+     * Les requêtes du repository ne voient pas nécessairement
+     * les nouvelles entités persistées avant flush().
+     *
+     * On complète donc les résultats avec les PendingRebroadcast
+     * déjà programmés pour insertion par Doctrine.
+     */
+        foreach (
+            $this->entityManager->getUnitOfWork()
+                ->getScheduledEntityInsertions() as $entity
         ) {
-            continue;
+            if (
+                !$entity instanceof PendingRebroadcast
+                || $entity->getAssignmentGroupKey() !== $assignmentGroupKey
+            ) {
+                continue;
+            }
+
+            $existingPendings[] = $entity;
         }
 
-        $emission = $sourceDiffusion->getEmission();
+        /*
+     * On compare les identifiants métier plutôt que
+     * les références des objets PHP.
+     */
+        $emissionId = $emission->getId();
 
-        if (!$emission instanceof Emission) {
-            continue;
+        $isSameEmission = static function (
+            ?Emission $candidate
+        ) use ($emission, $emissionId): bool {
+            if ($candidate === $emission) {
+                return true;
+            }
+
+            return null !== $emissionId
+                && $candidate?->getId() === $emissionId;
+        };
+
+        /*
+     * Une exclusion volontaire reste prioritaire pour
+     * le couple (émission, groupe).
+     */
+        foreach ($existingPendings as $pending) {
+            if (!$isSameEmission($pending->getEmission())) {
+                continue;
+            }
+
+            if ($pending->isDismissed()) {
+                return null;
+            }
         }
 
-        $created[] = $this->createForGroup(
+        /*
+     * Réutiliser le Pending actif, qu'il soit déjà en base
+     * ou simplement en attente d'insertion.
+     */
+        foreach ($existingPendings as $pending) {
+            if (!$isSameEmission($pending->getEmission())) {
+                continue;
+            }
+
+            if ($pending->isPending()) {
+                return $pending;
+            }
+        }
+
+        return $this->createForGroup(
             $emission,
             $assignmentGroupKey
         );
     }
-
-    return $created;
-}
 }

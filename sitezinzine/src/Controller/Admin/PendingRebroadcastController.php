@@ -9,6 +9,7 @@ use App\Entity\PendingRebroadcast;
 use App\Repository\PendingRebroadcastRepository;
 use App\Repository\DiffusionRepository;
 use App\Repository\DiffusionDraftRepository;
+use App\Repository\EmissionRepository;
 use App\Service\RegularRebroadcastPlacementService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,16 +23,24 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class PendingRebroadcastController extends AbstractController
 {
 
+
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(
         PendingRebroadcastRepository $pendingRepository,
         DiffusionRepository $diffusionRepository,
-        DiffusionDraftRepository $diffusionDraftRepository
+        DiffusionDraftRepository $diffusionDraftRepository,
+        EmissionRepository $emissionRepository
     ): JsonResponse {
         $pendingRebroadcasts = $pendingRepository->findAllForPool();
 
         $items = [];
 
+        /*
+     * 1. Rediffusions régulières existantes.
+     *
+     * On conserve leur fonctionnement et leur historique
+     * de groupe sans modifier les PendingRebroadcast.
+     */
         foreach ($pendingRebroadcasts as $pendingRebroadcast) {
             $emission = $pendingRebroadcast->getEmission();
 
@@ -40,26 +49,16 @@ class PendingRebroadcastController extends AbstractController
             }
 
             $category = $emission->getCategorie();
-
             $durationMinutes = $emission->getDuree();
 
-            if (
-                !\is_int($durationMinutes)
-                || $durationMinutes <= 0
-            ) {
+            if (!\is_int($durationMinutes) || $durationMinutes <= 0) {
                 $durationMinutes = 15;
             }
 
-            $assignmentGroupKey =
-                $pendingRebroadcast->getAssignmentGroupKey();
-
+            $assignmentGroupKey = $pendingRebroadcast->getAssignmentGroupKey();
             $groupDiffusions = [];
 
             if ('' !== trim($assignmentGroupKey)) {
-                /*
-             * Les Diffusion constituent les occurrences déjà matérialisées
-             * du groupe, qu'elles soient actuellement publiées ou non.
-             */
                 foreach (
                     $diffusionRepository->findByAssignmentGroupKey(
                         $assignmentGroupKey
@@ -77,13 +76,6 @@ class PendingRebroadcastController extends AbstractController
                     ];
                 }
 
-                /*
-             * Les Drafts encore actifs représentent notamment les
-             * occurrences futures qui n'ont pas encore de Diffusion.
-             *
-             * Un Draft possédant déjà publishedDiffusion ne doit pas être
-             * ajouté : son occurrence est déjà représentée ci-dessus.
-             */
                 foreach (
                     $diffusionDraftRepository->findByAssignmentGroupKey(
                         $assignmentGroupKey
@@ -113,10 +105,6 @@ class PendingRebroadcastController extends AbstractController
                     ];
                 }
 
-                /*
-             * Diffusion et DiffusionDraft proviennent de deux requêtes
-             * différentes : on rétablit ici l'ordre chronologique global.
-             */
                 usort(
                     $groupDiffusions,
                     static function (array $left, array $right): int {
@@ -136,6 +124,7 @@ class PendingRebroadcastController extends AbstractController
             }
 
             $items[] = [
+                'type' => 'pending_rebroadcast',
                 'id' => $pendingRebroadcast->getId(),
                 'emissionId' => $emission->getId(),
                 'title' => $emission->getTitre(),
@@ -145,12 +134,39 @@ class PendingRebroadcastController extends AbstractController
                 'createdAt' => $pendingRebroadcast
                     ->getCreatedAt()
                     ->format(\DateTimeInterface::ATOM),
-                /*
-             * On conserve provisoirement le nom de la propriété JSON pour
-             * ne pas casser le JS existant. Son renommage pourra être fait
-             * séparément avec le changement du libellé du tooltip.
-             */
                 'previousDiffusions' => $groupDiffusions,
+            ];
+        }
+
+        /*
+     * 2. Émissions non régulières récentes.
+     *
+     * Leur présence dans le parc est calculée à la lecture.
+     * Aucun PendingRebroadcast n'est créé.
+     */
+        $nonRegularEmissions = $emissionRepository
+            ->findRecentNonRegularEmissionsForPool(
+                new \DateTimeImmutable()
+            );
+
+        foreach ($nonRegularEmissions as $emission) {
+            $durationMinutes = $emission->getDuree();
+
+            if (!\is_int($durationMinutes) || $durationMinutes <= 0) {
+                $durationMinutes = 15;
+            }
+
+            $items[] = [
+                'type' => 'non_regular_emission',
+                'id' => null,
+                'emissionId' => $emission->getId(),
+                'title' => $emission->getTitre(),
+                'category' => $emission->getCategorie()?->getTitre(),
+                'durationMinutes' => $durationMinutes,
+                'assignmentGroupKey' => null,
+                'createdAt' => $emission->getDatepub()
+                    ?->format(\DateTimeInterface::ATOM),
+                'previousDiffusions' => [],
             ];
         }
 
@@ -199,6 +215,13 @@ class PendingRebroadcastController extends AbstractController
         Request $request,
         RegularRebroadcastPlacementService $placementService
     ): JsonResponse {
+
+        if (!$pendingRebroadcast->isPending()) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Cette rediffusion n’est plus disponible dans le parc.',
+            ], 400);
+        }
         $data = json_decode($request->getContent(), true);
 
         if (!\is_array($data)) {
@@ -253,7 +276,7 @@ class PendingRebroadcastController extends AbstractController
         PendingRebroadcast $pendingRebroadcast,
         EntityManagerInterface $entityManager
     ): JsonResponse {
-        $entityManager->remove($pendingRebroadcast);
+        $pendingRebroadcast->dismiss();
         $entityManager->flush();
 
         return $this->json([

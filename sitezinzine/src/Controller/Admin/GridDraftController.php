@@ -6,9 +6,12 @@ namespace App\Controller\Admin;
 
 use App\Entity\DiffusionDraft;
 use App\Entity\Emission;
+use App\Entity\PendingRebroadcast;
+use App\Repository\PendingRebroadcastRepository;
 use App\Repository\CategoriesRepository;
 use App\Repository\DiffusionDraftRepository;
 use App\Repository\EmissionRepository;
+use App\Repository\DiffusionRepository;
 use App\Service\LiveEmissionCreator;
 use App\Service\GridPlacementConflictService;
 use App\Service\PendingRebroadcastService;
@@ -23,16 +26,23 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ADMIN')]
 class GridDraftController extends AbstractController
 {
+
+
     #[Route('/manual', name: 'manual_create', methods: ['POST'])]
     public function createManual(
         Request $request,
         EmissionRepository $emissionRepository,
         EntityManagerInterface $em,
-        GridPlacementConflictService $placementConflictService
+        GridPlacementConflictService $placementConflictService,
+        DiffusionRepository $diffusionRepository,
+        PendingRebroadcastService $pendingRebroadcastService
     ): JsonResponse {
         $emissionId = $request->request->get('emissionId');
         $startsAtRaw = $request->request->get('startsAt');
-        $draftType = $request->request->get('draftType', DiffusionDraft::TYPE_MANUAL_SPECIAL);
+        $draftType = $request->request->get(
+            'draftType',
+            DiffusionDraft::TYPE_MANUAL_SPECIAL
+        );
         $durationRaw = $request->request->get('durationMinutes');
 
         if (!$emissionId || !$startsAtRaw) {
@@ -84,6 +94,7 @@ class GridDraftController extends AbstractController
         }
 
         $minute = (int) $startsAt->format('i');
+
         if ($minute % 15 !== 0) {
             return $this->json([
                 'success' => false,
@@ -91,7 +102,41 @@ class GridDraftController extends AbstractController
             ], 400);
         }
 
-        $endsAt = $startsAt->modify(sprintf('+%d minutes', $duration));
+        /*
+     * Protection des semaines radiophoniques validées.
+     *
+     * Une semaine commence le mardi à 00:00
+     * et se termine le mardi suivant à 00:00
+     * (borne de fin exclusive).
+     */
+        $dayOfWeek = (int) $startsAt->format('N');
+
+        $daysSinceTuesday = ($dayOfWeek + 5) % 7;
+
+        $weekStart = $startsAt
+            ->setTime(0, 0, 0)
+            ->modify(sprintf('-%d days', $daysSinceTuesday));
+
+        $weekEnd = $weekStart->modify('+7 days');
+
+        if ($diffusionRepository->hasDiffusionsBetween(
+            $weekStart,
+            $weekEnd
+        )) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Impossible de modifier une semaine validée.',
+            ], 409);
+        }
+
+        /*
+     * Vérification des chevauchements
+     * avec les programmations régulières.
+     */
+        $endsAt = $startsAt->modify(
+            sprintf('+%d minutes', $duration)
+        );
+
         if ($placementConflictService->hasBlockingRegularOverlap(
             $startsAt,
             $endsAt
@@ -102,6 +147,11 @@ class GridDraftController extends AbstractController
                 'error' => 'Ce créneau chevauche déjà une programmation régulière.',
             ], 409);
         }
+
+        /*
+     * Vérification des chevauchements
+     * avec les drafts existants.
+     */
         $overlaps = $placementConflictService->findBlockingDraftOverlaps(
             $startsAt,
             $endsAt
@@ -116,9 +166,12 @@ class GridDraftController extends AbstractController
                     static function (DiffusionDraft $draft): array {
                         return [
                             'id' => $draft->getId(),
-                            'startsAt' => $draft->getHoraireDiffusion()?->format('Y-m-d H:i:s'),
-                            'endsAt' => $draft->getEndsAt()?->format('Y-m-d H:i:s'),
-                            'emissionTitle' => $draft->getEmission()?->getTitre() ?? 'Émission inconnue',
+                            'startsAt' => $draft->getHoraireDiffusion()
+                                ?->format('Y-m-d H:i:s'),
+                            'endsAt' => $draft->getEndsAt()
+                                ?->format('Y-m-d H:i:s'),
+                            'emissionTitle' => $draft->getEmission()
+                                ?->getTitre() ?? 'Émission inconnue',
                             'draftType' => $draft->getDraftType(),
                             'nombreDiffusion' => $draft->getNombreDiffusion(),
                         ];
@@ -128,25 +181,85 @@ class GridDraftController extends AbstractController
             ], 409);
         }
 
+        /*
+     * Déterminer avant création si l'émission est encore
+     * éligible au parcours des nouvelles émissions.
+     *
+     * On réutilise la sélection métier existante :
+     * - émission récente ;
+     * - non régulière ;
+     * - sans diffusion ;
+     * - sans draft actif.
+     *
+     * Les autres placements manuels restent inchangés.
+     */
+        $shouldCreatePending = false;
+
+        if (DiffusionDraft::TYPE_MANUAL_SPECIAL === $draftType) {
+            $now = new \DateTimeImmutable();
+
+            foreach (
+                $emissionRepository->findRecentNonRegularEmissionsForPool($now)
+                as $candidate
+            ) {
+                if ($candidate->getId() === $emission->getId()) {
+                    $shouldCreatePending = true;
+                    break;
+                }
+            }
+        }
+
+        /*
+     * Création du draft manuel.
+     */
         $draft = new DiffusionDraft();
+
         $draft
             ->setEmission($emission)
             ->setDraftType($draftType)
             ->setNombreDiffusion(1)
             ->setSchedule($startsAt, $duration);
 
-        $em->persist($draft);
-        $em->flush();
+        /*
+     * Transaction : le draft, son groupe et le Pending
+     * doivent être enregistrés ensemble.
+     */
+        $connection = $em->getConnection();
+        $connection->beginTransaction();
 
-        if (\in_array($draft->getDraftType(), [
-            DiffusionDraft::TYPE_MANUAL_SPECIAL,
-            DiffusionDraft::TYPE_MANUAL_LIVE,
-        ], true)) {
-            $draft->setAssignmentGroupKey(
-                'manual_' . $draft->getId()
-            );
+        try {
+            $em->persist($draft);
+            $em->flush();
+
+            /*
+         * Les émissions ponctuelles et les directs
+         * reçoivent leur propre groupe d'affectation.
+         */
+            if (\in_array($draft->getDraftType(), [
+                DiffusionDraft::TYPE_MANUAL_SPECIAL,
+                DiffusionDraft::TYPE_MANUAL_LIVE,
+            ], true)) {
+                $groupKey = 'manual_' . $draft->getId();
+
+                $draft->setAssignmentGroupKey($groupKey);
+
+                /*
+             * Uniquement le premier placement d'une
+             * nouvelle émission non régulière.
+             */
+                if ($shouldCreatePending) {
+                    $pendingRebroadcastService->createForGroup(
+                        $emission,
+                        $groupKey
+                    );
+                }
+            }
 
             $em->flush();
+            $connection->commit();
+        } catch (\Throwable $exception) {
+            $connection->rollBack();
+            throw $exception;
         }
 
         return $this->json([
@@ -154,8 +267,10 @@ class GridDraftController extends AbstractController
             'draftId' => $draft->getId(),
             'emissionId' => $emission->getId(),
             'emissionTitle' => $emission->getTitre(),
-            'startsAt' => $draft->getHoraireDiffusion()?->format('Y-m-d H:i:s'),
-            'endsAt' => $draft->getEndsAt()?->format('Y-m-d H:i:s'),
+            'startsAt' => $draft->getHoraireDiffusion()
+                ?->format('Y-m-d H:i:s'),
+            'endsAt' => $draft->getEndsAt()
+                ?->format('Y-m-d H:i:s'),
             'durationMinutes' => $draft->getDurationMinutes(),
             'draftType' => $draft->getDraftType(),
         ]);
@@ -288,6 +403,7 @@ class GridDraftController extends AbstractController
     public function delete(
         Request $request,
         DiffusionDraftRepository $draftRepository,
+        PendingRebroadcastRepository $pendingRepository,
         PendingRebroadcastService $pendingRebroadcastService,
         EntityManagerInterface $em
     ): JsonResponse {
@@ -310,11 +426,11 @@ class GridDraftController extends AbstractController
             ], 400);
         }
 
-        if (!\in_array(
-            $deleteMode,
-            ['single', 'rebroadcasts', 'group'],
-            true
-        )) {
+        if (!\in_array($deleteMode, [
+            'single',
+            'rebroadcasts',
+            'group',
+        ], true)) {
             return $this->json([
                 'success' => false,
                 'error' => 'Mode de suppression invalide',
@@ -342,20 +458,11 @@ class GridDraftController extends AbstractController
         }
 
         $draftsToDelete = [$draft];
-
         $groupKey = $draft->getAssignmentGroupKey();
 
         $groupDrafts = [];
         $groupHasRegularDrafts = false;
 
-        /*
-     * Le groupe doit être chargé même pour une suppression "single".
-     *
-     * Cela permet :
-     * - de savoir si une rediffusion appartient à un groupe régulier ;
-     * - de décider si elle doit retourner dans le Parc à rediff ;
-     * - de renuméroter correctement les rediffusions restantes.
-     */
         if ($groupKey) {
             $groupDrafts = $draftRepository->findBy([
                 'assignmentGroupKey' => $groupKey,
@@ -368,7 +475,25 @@ class GridDraftController extends AbstractController
             )) > 0;
         }
 
-        if ($groupKey && 'single' !== $deleteMode) {
+        /*
+        * Nouvelle règle métier :
+        *
+        * Supprimer la première diffusion d'un groupe manuel
+        * supprime aussi toutes ses rediffusions.
+        */
+        $isManualFirstDiffusion = (
+            null !== $groupKey
+            && !$groupHasRegularDrafts
+            && \in_array($draft->getDraftType(), [
+                DiffusionDraft::TYPE_MANUAL_SPECIAL,
+                DiffusionDraft::TYPE_MANUAL_LIVE,
+            ], true)
+            && 1 === (int) $draft->getNombreDiffusion()
+        );
+
+        if ($isManualFirstDiffusion && 'single' === $deleteMode) {
+            $draftsToDelete = $groupDrafts;
+        } elseif ($groupKey && 'single' !== $deleteMode) {
             if ('rebroadcasts' === $deleteMode) {
                 $draftsToDelete = array_values(array_filter(
                     $groupDrafts,
@@ -379,18 +504,10 @@ class GridDraftController extends AbstractController
             }
 
             if ('group' === $deleteMode) {
-                /*
-             * Un groupe issu d'une programmation régulière ne doit jamais
-             * perdre ses diffusions régulières depuis cette action.
-             *
-             * "Supprimer le groupe" depuis une rediffusion ponctuelle
-             * signifie donc supprimer toutes les rediffusions manuelles
-             * ajoutées à ce groupe.
-             *
-             * Pour un groupe entièrement manuel, le comportement historique
-             * est conservé : tout le groupe est supprimé.
-             */
                 if ($groupHasRegularDrafts) {
+                    /*
+                 * Préserver les drafts réguliers.
+                 */
                     $draftsToDelete = array_values(array_filter(
                         $groupDrafts,
                         static fn(DiffusionDraft $item): bool =>
@@ -411,15 +528,36 @@ class GridDraftController extends AbstractController
         }
 
         /*
-     * Une rediffusion retirée individuellement d'un groupe retourne
-     * dans le Parc à rediff.
+     * Déterminer si le groupe disparaît entièrement.
      *
-     * Cela concerne :
-     * - les groupes issus d'une programmation régulière ;
-     * - les groupes entièrement manuels provenant du Parc à rediff.
+     * On utilise les identifiants afin de comparer
+     * les drafts indépendamment de leur identité Doctrine.
+     */
+        $deletedIds = [];
+
+        foreach ($draftsToDelete as $item) {
+            if ($item instanceof DiffusionDraft && null !== $item->getId()) {
+                $deletedIds[] = $item->getId();
+            }
+        }
+
+        $remainingGroupDrafts = array_values(array_filter(
+            $groupDrafts,
+            static fn(DiffusionDraft $item): bool =>
+            !\in_array($item->getId(), $deletedIds, true)
+        ));
+
+        $manualGroupCompletelyDeleted = (
+            null !== $groupKey
+            && !$groupHasRegularDrafts
+            && [] === $remainingGroupDrafts
+        );
+
+        /*
+     * Une rediffusion supprimée individuellement retourne
+     * au parc lorsqu'elle est éligible.
      *
-     * Les suppressions explicites "rebroadcasts" et "group"
-     * ne recréent pas de PendingRebroadcast.
+     * On conserve le fonctionnement existant.
      */
         if (
             'single' === $deleteMode
@@ -429,10 +567,27 @@ class GridDraftController extends AbstractController
             $emission = $draft->getEmission();
 
             if ($emission instanceof Emission) {
-                $pendingRebroadcastService->createForGroup(
+                $pendingRebroadcastService->restoreToPoolIfEligible(
                     $emission,
                     $groupKey
                 );
+            }
+        }
+
+        /*
+     * Supprimer les Pending associés uniquement si
+     * le groupe manuel disparaît entièrement.
+     *
+     * Les groupes réguliers ne sont pas concernés.
+     */
+        if ($manualGroupCompletelyDeleted) {
+            foreach (
+                $pendingRepository->findByAssignmentGroupKey($groupKey)
+                as $pending
+            ) {
+                if ($pending instanceof PendingRebroadcast) {
+                    $em->remove($pending);
+                }
             }
         }
 
@@ -443,12 +598,7 @@ class GridDraftController extends AbstractController
         }
 
         /*
-     * Si le groupe continue d'exister, on renumérote ce qui reste.
-     *
-     * Les entités passées à remove() sont encore visibles par les requêtes
-     * Doctrine tant que le flush n'a pas eu lieu. On transmet donc
-     * explicitement la liste des Drafts en cours de suppression afin
-     * qu'ils soient ignorés pendant la renumérotation.
+     * Renuméroter les drafts restants.
      */
         if ($groupKey) {
             if ($groupHasRegularDrafts) {
@@ -457,7 +607,10 @@ class GridDraftController extends AbstractController
                     $draftRepository,
                     $draftsToDelete
                 );
-            } elseif ('group' !== $deleteMode) {
+            } elseif (
+                !$manualGroupCompletelyDeleted
+                && 'group' !== $deleteMode
+            ) {
                 $remainingDrafts = $draftRepository->findBy(
                     ['assignmentGroupKey' => $groupKey],
                     ['horaireDiffusion' => 'ASC']

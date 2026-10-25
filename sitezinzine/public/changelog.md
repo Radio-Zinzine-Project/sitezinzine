@@ -1,9 +1,12 @@
 # Changelog
 
-## [1.0.124] - 2026-10-xx
+## [1.0.124] - 2026-10-25
 ### Ajouts
 - Ajout de tests php.
 - Ajout des tests JS (vitest@2.1.9 jsdom@24.1.3).
+### Corrections
+- Correction de l'hydratation des diffusions déplacées après arbitrage.
+- Correction des conflits de validation de grille : résolution des faux conflits lorsqu'une diffusion existante est déplacée après dévalidation, permettant de réutiliser son ancien créneau sans perdre les liens historiques. Ajout de tests unitaires et d'intégration pour prévenir les régressions.
 
 
 ## [1.0.123] - 2026-10-06

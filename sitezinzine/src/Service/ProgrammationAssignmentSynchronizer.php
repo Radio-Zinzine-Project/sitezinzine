@@ -484,12 +484,31 @@ final class ProgrammationAssignmentSynchronizer
                 !\is_array($segment)
                 || !isset($validExpectedRanks[$rank])
             ) {
-                $this->pendingRebroadcastService->createForGroup(
-                    $emission,
-                    $groupKey
-                );
 
-                ++$result['createdPendingRebroadcasts'];
+                $existingPendings = $this->pendingRepository
+                    ->findByAssignmentGroupKey($groupKey);
+
+                // On vérifie uniquement les Pending de l'émission concernée.
+                $existingPendingForEmission = false;
+
+                foreach ($existingPendings as $existingPending) {
+                    if ($existingPending->getEmission() === $emission) {
+                        $existingPendingForEmission = true;
+                        break;
+                    }
+                }
+
+                $restoredPending = $this->pendingRebroadcastService
+                    ->restoreToPoolIfEligible($emission, $groupKey);
+
+                // Le compteur augmente uniquement si un nouveau Pending a été créé.
+                if (
+                    null !== $restoredPending
+                    && !$existingPendingForEmission
+                ) {
+                    $result['createdPendingRebroadcasts']++;
+                }
+
                 ++$result['removedRegularDrafts'];
 
                 $this->entityManager->remove($regularDraft);
@@ -605,12 +624,31 @@ final class ProgrammationAssignmentSynchronizer
                     continue;
                 }
 
-                $this->pendingRebroadcastService->createForGroup(
-                    $emission,
-                    $groupKey
-                );
 
-                ++$result['createdPendingRebroadcasts'];
+                $existingPendings = $this->pendingRepository
+                    ->findByAssignmentGroupKey($groupKey);
+
+                // On vérifie uniquement les Pending de l'émission concernée.
+                $existingPendingForEmission = false;
+
+                foreach ($existingPendings as $existingPending) {
+                    if ($existingPending->getEmission() === $emission) {
+                        $existingPendingForEmission = true;
+                        break;
+                    }
+                }
+
+                $restoredPending = $this->pendingRebroadcastService
+                    ->restoreToPoolIfEligible($emission, $groupKey);
+
+                // Le compteur augmente uniquement si un nouveau Pending a été créé.
+                if (
+                    null !== $restoredPending
+                    && !$existingPendingForEmission
+                ) {
+                    $result['createdPendingRebroadcasts']++;
+                }
+
                 ++$result['removedManualRebroadcasts'];
 
                 $this->entityManager->remove($draft);
@@ -696,10 +734,22 @@ final class ProgrammationAssignmentSynchronizer
                 $groupKey
             );
 
+        /*
+        * Supprimer uniquement les Pending encore actifs.
+        *
+        * Les Pending dismissed représentent une exclusion
+        * volontaire de l'émission et doivent être conservés,
+        * même lorsque le groupe de programmation disparaît.
+        *
+        * Leur émission, leur statut et leur clé de groupe
+        * restent inchangés.
+        */
         foreach ($pendingRebroadcasts as $pendingRebroadcast) {
-            $this->entityManager->remove(
-                $pendingRebroadcast
-            );
+            if (!$pendingRebroadcast->isPending()) {
+                continue;
+            }
+
+            $this->entityManager->remove($pendingRebroadcast);
         }
 
         return $result;

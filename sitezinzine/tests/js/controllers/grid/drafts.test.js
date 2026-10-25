@@ -41,15 +41,76 @@ describe('Déplacements et suppressions des drafts', () => {
         expect(ctx.dragged.dataset.startsAt).toBe('2026-10-07 14:00:00')
     })
 
-    test.each(['single', 'rebroadcasts', 'group'])('la suppression de groupe transmet le choix %s et ferme la modale', async deleteMode => {
-        const navigation = mockNavigation(); const ctx = draftContext({ assignmentGroupKey: 'rule_1' })
-        fetch.mockResolvedValue(jsonResponse({ success: true }))
-        const action = drafts.dropOnTrash.call(ctx, { preventDefault: vi.fn() })
-        document.querySelector(`[data-delete-mode="${deleteMode}"]`).click()
+    test('un refus serveur de suppression conserve le draft sans recharger la grille', async () => {
+        const navigation = mockNavigation()
+        const ctx = draftContext({
+            assignmentGroupKey: 'rule_1'
+        })
+
+        fetch.mockResolvedValue(
+            jsonResponse({
+                success: false,
+                error: 'Suppression refusée'
+            }, false)
+        )
+
+        const action = drafts.dropOnTrash.call(ctx, {
+            preventDefault: vi.fn()
+        })
+
+        document.querySelector('[data-delete-mode="single"]').click()
+
         await action
-        expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ draftId: '42', deleteMode })
+
+        expect(fetch).toHaveBeenCalledTimes(1)
+
+        expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({
+            draftId: '42',
+            deleteMode: 'single'
+        })
+
+        expect(window.alert).toHaveBeenCalledWith(
+            'Suppression refusée'
+        )
+
+        expect(navigation.reload).not.toHaveBeenCalled()
+
+        expect(ctx.dragged.dataset.draftId).toBe('42')
+        expect(ctx.dragged.dataset.startsAt).toBe(
+            '2026-10-07 14:00:00'
+        )
+
         expect(document.querySelector('[role="dialog"]')).toBeNull()
-        expect(navigation.reload).toHaveBeenCalledOnce()
+    })
+
+    test('une erreur réseau pendant la suppression ne recharge pas la grille', async () => {
+        const navigation = mockNavigation()
+        const ctx = draftContext({
+            assignmentGroupKey: 'rule_1'
+        })
+
+        fetch.mockRejectedValue(
+            new Error('Network error')
+        )
+
+        const action = drafts.dropOnTrash.call(ctx, {
+            preventDefault: vi.fn()
+        })
+
+        document.querySelector('[data-delete-mode="single"]').click()
+
+        await action
+
+        expect(fetch).toHaveBeenCalledTimes(1)
+
+        expect(navigation.reload).not.toHaveBeenCalled()
+
+        expect(ctx.dragged.dataset.draftId).toBe('42')
+        expect(ctx.dragged.dataset.startsAt).toBe(
+            '2026-10-07 14:00:00'
+        )
+
+        expect(document.querySelector('[role="dialog"]')).toBeNull()
     })
 
     test('fermer la modale de suppression par le backdrop ne supprime rien', async () => {
@@ -72,6 +133,57 @@ describe('Déplacements et suppressions des drafts', () => {
         expect(Object.fromEntries(fetch.mock.calls[0][1].body)).toEqual(payload)
         expect(ctx.saveScrollTarget).toHaveBeenCalledWith(payload.startsAt, 99)
         expect(navigation.reload).toHaveBeenCalledOnce()
+    })
+
+    test('un refus serveur de création ponctuelle conserve le dépôt sans recharger la grille', async () => {
+        const navigation = mockNavigation()
+
+        const ctx = draftContext({
+            source: 'sidebar',
+            specialItemType: 'manual_emission',
+            emissionId: '12',
+            emissionDuration: '45'
+        })
+
+        fetch.mockResolvedValue(
+            jsonResponse({
+                success: false,
+                error: 'Impossible de modifier une semaine validée.'
+            }, false)
+        )
+
+        await drafts.createSpecialDraftFromDrop.call(
+            ctx,
+            element(),
+            60
+        )
+
+        expect(fetch).toHaveBeenCalledTimes(1)
+
+        expect(fetch.mock.calls[0][0]).toBe(
+            '/admin/grid-drafts/manual'
+        )
+
+        expect(
+            Object.fromEntries(fetch.mock.calls[0][1].body)
+        ).toEqual({
+            emissionId: '12',
+            startsAt: '2026-10-08 15:00:00',
+            durationMinutes: '45',
+            draftType: 'manual_special'
+        })
+
+        expect(window.alert).toHaveBeenCalledWith(
+            'Impossible de modifier une semaine validée.'
+        )
+
+        expect(ctx.saveScrollTarget).not.toHaveBeenCalled()
+        expect(ctx.saveCurrentMode).not.toHaveBeenCalled()
+
+        expect(navigation.reload).not.toHaveBeenCalled()
+
+        expect(ctx.dragged.dataset.emissionId).toBe('12')
+        expect(ctx.dragged.dataset.source).toBe('sidebar')
     })
 
     test('la modale de rediffusions valide uniquement les dates complètes', async () => {

@@ -1260,8 +1260,8 @@
     }
 
     /* =========================================================
-   Sidebar : parc à rediff
-   ========================================================= */
+      Sidebar : parc à rediff
+      ========================================================= */
 
 .pending-rebroadcast-section {
     padding: 0;
@@ -1386,6 +1386,36 @@
     border-radius: 6px;
 
     font-size: 12px;
+}
+
+/* Émissions récentes non régulières */
+.pending-rebroadcast-card--non-regular {
+    color: #82500e;
+    background: #fff4e5;
+    border-color: #df922b;
+}
+
+.pending-rebroadcast-card--non-regular
+.pending-rebroadcast-card__title {
+    color: #82500e;
+}
+
+.pending-rebroadcast-card--non-regular
+.pending-rebroadcast-card__meta {
+    color: #745b3c;
+}
+
+/* Libellé du type d'émission */
+.pending-rebroadcast-card__type {
+    display: inline-block;
+    margin-top: 5px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: #f7d9a8;
+    color: #82500e;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.3;
 }
 
 .pending-rebroadcast-card__title {
@@ -1852,7 +1882,7 @@
                   <button type="button" class="pending-rebroadcast-toggle" data-grid-target="pendingRebroadcastToggle" data-action="click->grid#togglePendingRebroadcastPool" aria-expanded="false" aria-controls="pending-rebroadcast-panel">
                     <span class="pending-rebroadcast-toggle__spacer" aria-hidden="true"></span>
                     <span class="pending-rebroadcast-toggle__title">
-                      Parc à rediff
+                      Émissions à diffuser
                       (
                       <span data-grid-target="pendingRebroadcastCount">
                         0

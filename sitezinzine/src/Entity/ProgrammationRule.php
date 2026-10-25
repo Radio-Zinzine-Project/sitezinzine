@@ -49,6 +49,9 @@ class ProgrammationRule
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $updatedAt;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $hasAdditionalRebroadcast = false;
+
     /**
      * @var Collection<int, ProgrammationRuleSlot>
      */
@@ -297,7 +300,20 @@ class ProgrammationRule
     public function getActiveSlotsCount(): int
     {
         return $this->slots->filter(
-            fn (ProgrammationRuleSlot $slot) => $slot->getDeletedAt() === null
+            fn(ProgrammationRuleSlot $slot) => $slot->getDeletedAt() === null
         )->count();
+    }
+
+    public function hasAdditionalRebroadcast(): bool
+    {
+        return $this->hasAdditionalRebroadcast;
+    }
+
+    public function setHasAdditionalRebroadcast(bool $hasAdditionalRebroadcast): static
+    {
+        $this->hasAdditionalRebroadcast = $hasAdditionalRebroadcast;
+        $this->touch();
+
+        return $this;
     }
 }

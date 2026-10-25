@@ -328,4 +328,51 @@ class DiffusionRepository extends ServiceEntityRepository
 
         return $result;
     }
+
+    /**
+     * @param string[] $assignmentGroupKeys
+     *
+     * @return array<int, array<string, int>>
+     *         [emissionId][assignmentGroupKey] => nombre
+     */
+    public function countPublishedBeforeByEmissionAndGroup(
+        array $assignmentGroupKeys,
+        \DateTimeInterface $before
+    ): array {
+        $assignmentGroupKeys = array_values(array_unique(array_filter(
+            array_map('trim', $assignmentGroupKeys),
+            static fn(string $key): bool => '' !== $key
+        )));
+
+        if ([] === $assignmentGroupKeys) {
+            return [];
+        }
+
+        $rows = $this->createQueryBuilder('d')
+            ->select('IDENTITY(d.emission) AS emissionId')
+            ->addSelect('d.assignmentGroupKey AS assignmentGroupKey')
+            ->addSelect('COUNT(d.id) AS diffusionCount')
+            ->andWhere('d.assignmentGroupKey IN (:assignmentGroupKeys)')
+            ->andWhere('d.horaireDiffusion < :before')
+            ->andWhere('d.publicationStatus = :status')
+            ->setParameter('assignmentGroupKeys', $assignmentGroupKeys)
+            ->setParameter('before', $before)
+            ->setParameter('status', Diffusion::STATUS_PUBLISHED)
+            ->groupBy('d.emission')
+            ->addGroupBy('d.assignmentGroupKey')
+            ->getQuery()
+            ->getArrayResult();
+
+        $result = [];
+
+        foreach ($rows as $row) {
+            $emissionId = (int) $row['emissionId'];
+            $groupKey = (string) $row['assignmentGroupKey'];
+
+            $result[$emissionId][$groupKey] =
+                (int) $row['diffusionCount'];
+        }
+
+        return $result;
+    }
 }

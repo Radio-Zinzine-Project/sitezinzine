@@ -23,7 +23,7 @@ function poolContext(readonly = false) {
 
 const item = { id: 42, emissionId: 12, title: 'Émission été', category: 'Actualités', durationMinutes: 60, assignmentGroupKey: 'rule_12' }
 
-describe('Parc à rediffusion', () => {
+describe('Émissions à diffuser', () => {
     test('charge les cartes et leur historique sans autoriser du HTML dans les données', async () => {
         const ctx = poolContext()
         fetch.mockResolvedValue(jsonResponse({ success: true, count: 1, items: [{ ...item, title: '<img src=x>', previousDiffusions: [{ date: '2026-10-06 14:00:00', number: 1 }] }] }))
@@ -68,7 +68,7 @@ describe('Parc à rediffusion', () => {
     })
 
     test.each(['http', 'json', 'network'])('un échec %s permet de recharger le Parc', async failure => {
-        vi.spyOn(console, 'error').mockImplementation(() => {})
+        vi.spyOn(console, 'error').mockImplementation(() => { })
         const ctx = poolContext()
         if (failure === 'http') fetch.mockResolvedValue(jsonResponse({ error: 'Accès refusé' }, false))
         if (failure === 'json') fetch.mockResolvedValue({ ok: true, json: vi.fn().mockRejectedValue(new SyntaxError()) })
@@ -106,7 +106,7 @@ describe('Parc à rediffusion', () => {
     })
 
     test('un refus de duplication réactive le bouton et conserve la carte', async () => {
-        vi.spyOn(console, 'error').mockImplementation(() => {})
+        vi.spyOn(console, 'error').mockImplementation(() => { })
         const ctx = poolContext(); const button = element({ pendingRebroadcastId: '42' }, 'button')
         button.textContent = 'Dupliquer'; document.body.append(button)
         fetch.mockResolvedValue(jsonResponse({ success: false, error: 'Refus métier' }))
@@ -143,7 +143,7 @@ describe('Parc à rediffusion', () => {
     })
 
     test('un dépôt refusé conserve le Pending visible et ne recharge pas', async () => {
-        vi.spyOn(console, 'error').mockImplementation(() => {})
+        vi.spyOn(console, 'error').mockImplementation(() => { })
         const navigation = mockNavigation(); const ctx = poolContext()
         ctx.dragged = element({ source: 'pending-rebroadcast', pendingRebroadcastId: '42' })
         fetch.mockResolvedValue(jsonResponse({ success: false, error: 'Chevauchement' }, false))
@@ -163,4 +163,223 @@ describe('Parc à rediffusion', () => {
         expect(fetch).not.toHaveBeenCalled()
         expect(window.confirm).not.toHaveBeenCalled()
     })
+
+    test('affiche une émission non régulière et active son déplacement comme programmation ponctuelle', () => {
+        const ctx = poolContext()
+
+        ctx.pendingRebroadcastItems = [
+            {
+                type: 'non_regular_emission',
+                id: null,
+                emissionId: 125,
+                title: 'Émission ponctuelle',
+                category: 'Culture',
+                durationMinutes: 45,
+                assignmentGroupKey: null,
+                createdAt: '2026-10-20T10:00:00+02:00',
+                previousDiffusions: []
+            }
+        ]
+
+        pool.renderPendingRebroadcasts.call(ctx)
+
+        const card = ctx.pendingRebroadcastListTarget.querySelector('article')
+
+        expect(card).not.toBeNull()
+
+        // Identification.
+        expect(card.dataset.type).toBe('non_regular_emission')
+        expect(card.dataset.emissionId).toBe('125')
+        expect(card.hasAttribute('data-pending-rebroadcast-id')).toBe(false)
+
+        // Données nécessaires au placement.
+        expect(card.dataset.specialItemType).toBe('manual_special')
+        expect(card.dataset.emissionDuration).toBe('45')
+
+        // Informations visibles.
+        expect(card.textContent).toContain('Émission ponctuelle')
+        expect(card.textContent).toContain('Culture')
+        expect(card.textContent).toContain('45 min')
+
+        // Distinction visuelle.
+        expect(card.classList.contains('pending-rebroadcast-card--non-regular')).toBe(true)
+        expect(card.textContent).toContain('Nouvelle émission')
+
+        // Le déplacement utilise le mécanisme des émissions ponctuelles.
+        expect(ctx.makeDraggable).toHaveBeenCalledTimes(1)
+        expect(ctx.makeDraggable).toHaveBeenCalledWith(card, 'pool')
+
+        // Les actions réservées aux Pending restent indisponibles.
+        const duplicateButton = card.querySelector(
+            '.pending-rebroadcast-card__duplicate'
+        )
+
+        const deleteButton = card.querySelector(
+            '.pending-rebroadcast-card__delete'
+        )
+
+        expect(duplicateButton).not.toBeNull()
+        expect(deleteButton).not.toBeNull()
+
+        expect(duplicateButton.disabled).toBe(true)
+        expect(deleteButton.disabled).toBe(true)
+
+        expect(
+            card.querySelector('[data-action="click->grid#duplicatePendingRebroadcast"]')
+        ).toBeNull()
+
+        expect(
+            card.querySelector('[data-action="click->grid#deletePendingRebroadcast"]')
+        ).toBeNull()
+    })
+
+    test('distingue le déplacement des rediffusions en attente et des nouvelles émissions', () => {
+        const ctx = poolContext()
+
+        ctx.pendingRebroadcastItems = [
+            {
+                ...item,
+                type: 'pending_rebroadcast',
+                previousDiffusions: []
+            },
+            {
+                type: 'non_regular_emission',
+                id: null,
+                emissionId: 125,
+                title: 'Nouvelle émission',
+                category: 'Culture',
+                durationMinutes: 45,
+                assignmentGroupKey: null,
+                previousDiffusions: []
+            }
+        ]
+
+        pool.renderPendingRebroadcasts.call(ctx)
+
+        const pendingCard = ctx.pendingRebroadcastListTarget.querySelector(
+            '[data-type="pending_rebroadcast"]'
+        )
+
+        const nonRegularCard = ctx.pendingRebroadcastListTarget.querySelector(
+            '[data-type="non_regular_emission"]'
+        )
+
+        expect(pendingCard).not.toBeNull()
+        expect(nonRegularCard).not.toBeNull()
+
+        expect(ctx.makeDraggable).toHaveBeenCalledTimes(2)
+
+        expect(ctx.makeDraggable).toHaveBeenCalledWith(
+            pendingCard,
+            'pending-rebroadcast'
+        )
+
+        expect(ctx.makeDraggable).toHaveBeenCalledWith(
+            nonRegularCard,
+            'pool'
+        )
+
+        expect(pendingCard.dataset.pendingRebroadcastId).toBe('42')
+        expect(nonRegularCard.dataset.specialItemType).toBe('manual_special')
+    })
+
+    test('en lecture seule aucune des deux catégories ne peut être déplacée', () => {
+        const ctx = poolContext(true)
+
+        ctx.pendingRebroadcastItems = [
+            {
+                ...item,
+                type: 'pending_rebroadcast'
+            },
+            {
+                type: 'non_regular_emission',
+                id: null,
+                emissionId: 125,
+                title: 'Nouvelle émission',
+                category: 'Culture',
+                durationMinutes: 45,
+                assignmentGroupKey: null,
+                previousDiffusions: []
+            }
+        ]
+
+        pool.renderPendingRebroadcasts.call(ctx)
+
+        const cards = ctx.pendingRebroadcastListTarget.querySelectorAll(
+            '.pending-rebroadcast-card'
+        )
+
+        expect(cards).toHaveLength(2)
+
+        for (const card of cards) {
+            expect(card.draggable).toBe(false)
+        }
+
+        expect(ctx.makeDraggable).not.toHaveBeenCalled()
+    })
+
+    test('identifie visuellement les nouvelles émissions et les rediffusions à programmer', () => {
+        const ctx = poolContext()
+
+        ctx.pendingRebroadcastItems = [
+            {
+                ...item,
+                type: 'pending_rebroadcast',
+                previousDiffusions: []
+            },
+            {
+                type: 'non_regular_emission',
+                id: null,
+                emissionId: 125,
+                title: 'Nouvelle émission',
+                category: 'Culture',
+                durationMinutes: 45,
+                assignmentGroupKey: null,
+                previousDiffusions: []
+            }
+        ]
+
+        pool.renderPendingRebroadcasts.call(ctx)
+
+        const pendingCard = ctx.pendingRebroadcastListTarget.querySelector(
+            '[data-type="pending_rebroadcast"]'
+        )
+
+        const newEmissionCard = ctx.pendingRebroadcastListTarget.querySelector(
+            '[data-type="non_regular_emission"]'
+        )
+
+        expect(pendingCard).not.toBeNull()
+        expect(newEmissionCard).not.toBeNull()
+
+        // Chaque catégorie possède un libellé immédiatement visible.
+        expect(
+            pendingCard.querySelector('.pending-rebroadcast-card__type')?.textContent
+        ).toContain('Rediffusion à programmer')
+
+        expect(
+            newEmissionCard.querySelector('.pending-rebroadcast-card__type')?.textContent
+        ).toContain('Nouvelle émission')
+
+        // Les deux catégories restent visuellement différenciées.
+        expect(
+            newEmissionCard.classList.contains('pending-rebroadcast-card--non-regular')
+        ).toBe(true)
+
+        expect(
+            pendingCard.classList.contains('pending-rebroadcast-card--non-regular')
+        ).toBe(false)
+
+        // Le fonctionnement du glisser-déposer reste inchangé.
+        expect(ctx.makeDraggable).toHaveBeenCalledWith(
+            pendingCard,
+            'pending-rebroadcast'
+        )
+
+        expect(ctx.makeDraggable).toHaveBeenCalledWith(
+            newEmissionCard,
+            'pool'
+        )
+    })
+
 })

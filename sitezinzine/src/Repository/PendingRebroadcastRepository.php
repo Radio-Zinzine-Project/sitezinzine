@@ -21,11 +21,13 @@ class PendingRebroadcastRepository extends ServiceEntityRepository
     }
 
     /**
-     * Retourne toutes les rediffusions actuellement présentes dans le parc.
+     * Retourne les rediffusions actives non régulières du parc.
      *
-     * L'émission et sa catégorie sont chargées dans la même requête afin
-     * d'éviter des requêtes supplémentaires lors de la construction du JSON
-     * destiné à la sidebar.
+     * Les groupes issus des règles de programmation (rule_)
+     * sont exclus de cette rubrique, mais restent enregistrés
+     * en base et accessibles par les autres méthodes du repository.
+     *
+     * Les entrées dismissed restent également exclues.
      *
      * @return PendingRebroadcast[]
      */
@@ -36,6 +38,13 @@ class PendingRebroadcastRepository extends ServiceEntityRepository
             ->addSelect('category')
             ->innerJoin('pending.emission', 'emission')
             ->leftJoin('emission.categorie', 'category')
+            ->andWhere('pending.status = :status')
+            ->andWhere('pending.assignmentGroupKey NOT LIKE :regularPrefix')
+            ->setParameter(
+                'status',
+                PendingRebroadcast::STATUS_PENDING
+            )
+            ->setParameter('regularPrefix', 'rule\_%')
             ->orderBy('pending.createdAt', SortDirection::Ascending)
             ->addOrderBy('pending.id', SortDirection::Ascending)
             ->getQuery()
@@ -97,11 +106,11 @@ class PendingRebroadcastRepository extends ServiceEntityRepository
     }
 
     /**
-     * Retourne les identifiants des émissions qui possèdent actuellement
-     * au moins une rediffusion dans le parc.
+     * Retourne les identifiants des émissions possédant
+     * au moins une rediffusion active dans le parc.
      *
-     * Les identifiants fournis sont normalisés afin d'éviter les doublons
-     * et d'ignorer les valeurs invalides.
+     * Les Pending dismissed ne sont pas considérés
+     * comme présents dans le parc.
      *
      * @param int[] $emissionIds
      *
@@ -121,7 +130,12 @@ class PendingRebroadcastRepository extends ServiceEntityRepository
         $rows = $this->createQueryBuilder('pending')
             ->select('DISTINCT IDENTITY(pending.emission) AS emissionId')
             ->andWhere('pending.emission IN (:emissionIds)')
+            ->andWhere('pending.status = :status')
             ->setParameter('emissionIds', $emissionIds)
+            ->setParameter(
+                'status',
+                PendingRebroadcast::STATUS_PENDING
+            )
             ->getQuery()
             ->getArrayResult();
 

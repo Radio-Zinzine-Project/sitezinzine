@@ -167,7 +167,7 @@ export function renderPendingRebroadcasts() {
         status.textContent = 'Aucune émission dans le parc.'
         list.innerHTML = `
             <div class="pending-rebroadcast-empty">
-                Le parc à rediff est vide.
+                Aucune émission à diffuser.
             </div>
         `
         return
@@ -191,16 +191,21 @@ export function renderPendingRebroadcasts() {
         .map((item) => buildPendingRebroadcastCard(this, item))
         .join('')
 
-    if (!this.isReadonly()) {
-        list
-            .querySelectorAll('.pending-rebroadcast-card')
-            .forEach((card) => {
-                this.makeDraggable(
-                    card,
-                    'pending-rebroadcast'
-                )
-            })
+    if (this.isReadonly()) {
+        return
     }
+
+    list.querySelectorAll(
+        '.pending-rebroadcast-card[data-type="pending_rebroadcast"]'
+    ).forEach((card) => {
+        this.makeDraggable(card, 'pending-rebroadcast')
+    })
+
+    list.querySelectorAll(
+        '.pending-rebroadcast-card[data-type="non_regular_emission"]'
+    ).forEach((card) => {
+        this.makeDraggable(card, 'pool')
+    })
 }
 
 export async function placePendingRebroadcastFromDrop(
@@ -480,20 +485,19 @@ export async function deletePendingRebroadcast(event) {
 }
 
 function buildPendingRebroadcastCard(controller, item) {
+    const isNonRegular = item.type === 'non_regular_emission'
+
     const pendingId = Number.parseInt(item.id, 10)
     const emissionId = Number.parseInt(item.emissionId, 10)
-    const duration = Number.parseInt(
-        item.durationMinutes,
-        10
-    )
+    const duration = Number.parseInt(item.durationMinutes, 10)
 
-    const safePendingId = Number.isNaN(pendingId)
-        ? ''
-        : String(pendingId)
+    const safePendingId = Number.isInteger(pendingId) && pendingId > 0
+        ? String(pendingId)
+        : ''
 
-    const safeEmissionId = Number.isNaN(emissionId)
-        ? ''
-        : String(emissionId)
+    const safeEmissionId = Number.isInteger(emissionId) && emissionId > 0
+        ? String(emissionId)
+        : ''
 
     const safeDuration = Number.isNaN(duration)
         ? 15
@@ -511,22 +515,17 @@ function buildPendingRebroadcastCard(controller, item) {
         item.assignmentGroupKey || ''
     )
 
-    const previousDiffusions = Array.isArray(
-        item.previousDiffusions
-    )
+    const previousDiffusions = Array.isArray(item.previousDiffusions)
         ? item.previousDiffusions
         : []
 
     let previousDiffusionsHtml = ''
 
-    if (previousDiffusions.length > 0) {
+    if (!isNonRegular) {
         const diffusionItems = previousDiffusions
             .map((diffusion) => {
                 const rawDate = String(diffusion.date ?? '')
-                const number = Number.parseInt(
-                    diffusion.number,
-                    10
-                )
+                const number = Number.parseInt(diffusion.number, 10)
 
                 let formattedDate = rawDate
 
@@ -542,7 +541,7 @@ function buildPendingRebroadcastCard(controller, item) {
                             month: '2-digit',
                             year: 'numeric',
                             hour: '2-digit',
-                            minute: '2-digit',
+                            minute: '2-digit'
                         }
                     ).format(parsedDate)
                 }
@@ -556,9 +555,7 @@ function buildPendingRebroadcastCard(controller, item) {
                     : ` · n°${number}`
 
                 return `
-                    <li>
-                        ${safeDate}${safeNumber}
-                    </li>
+                    <li>${safeDate}${safeNumber}</li>
                 `
             })
             .join('')
@@ -566,33 +563,53 @@ function buildPendingRebroadcastCard(controller, item) {
         previousDiffusionsHtml = `
             <div class="pending-rebroadcast-card__tooltip">
                 <strong>Diffusions du groupe</strong>
-                <ul>
-                    ${diffusionItems}
-                </ul>
-            </div>
-        `
-    } else {
-        previousDiffusionsHtml = `
-            <div class="pending-rebroadcast-card__tooltip">
-                <strong>Diffusions du groupe</strong>
-                <span>Aucune diffusion planifiée pour ce groupe.</span>
+                ${diffusionItems
+                ? `<ul>${diffusionItems}</ul>`
+                : '<span>Aucune diffusion planifiée pour ce groupe.</span>'
+            }
             </div>
         `
     }
 
+    const type = isNonRegular
+        ? 'non_regular_emission'
+        : 'pending_rebroadcast'
+
+    const pendingIdAttribute = isNonRegular
+        ? ''
+        : `data-pending-rebroadcast-id="${safePendingId}"`
+
+    const duplicateAction = isNonRegular
+        ? 'disabled title="Duplication des émissions non régulières à venir"'
+        : `data-pending-rebroadcast-id="${safePendingId}"
+           data-action="click->grid#duplicatePendingRebroadcast"
+           title="Créer une autre rediffusion en attente"`
+
+    const deleteAction = isNonRegular
+        ? 'disabled title="Suppression des émissions non régulières à venir"'
+        : `data-pending-rebroadcast-id="${safePendingId}"
+           data-action="click->grid#deletePendingRebroadcast"
+           title="Supprimer cette rediffusion du parc"`
+
     return `
-        <article
-            class="pending-rebroadcast-card"
-            data-pending-rebroadcast-id="${safePendingId}"
-            data-emission-id="${safeEmissionId}"
-            data-assignment-group-key="${assignmentGroupKey}"
-            data-duration="${safeDuration}"
-            draggable="false"
-        >
+    <article
+        class="pending-rebroadcast-card${isNonRegular ? ' pending-rebroadcast-card--non-regular' : ''}"
+        data-type="${type}"
+        ${pendingIdAttribute}
+        data-emission-id="${safeEmissionId}"
+        data-assignment-group-key="${assignmentGroupKey}"
+        data-duration="${safeDuration}"
+        data-special-item-type="${isNonRegular ? 'manual_special' : ''}"
+        data-emission-duration="${safeDuration}"
+        draggable="false"
+    >
             <div class="pending-rebroadcast-card__content">
                 <div class="pending-rebroadcast-card__title">
                     ${title}
                 </div>
+
+                <span class="pending-rebroadcast-card__type">
+                    ${isNonRegular ? 'Nouvelle émission' : 'Rediffusion à programmer'}</span>
 
                 <div class="pending-rebroadcast-card__meta">
                     <span>${category}</span>
@@ -607,10 +624,9 @@ function buildPendingRebroadcastCard(controller, item) {
                 <button
                     type="button"
                     class="pending-rebroadcast-card__duplicate"
-                    data-pending-rebroadcast-id="${safePendingId}"
-                    data-action="click->grid#duplicatePendingRebroadcast"
+                    ${duplicateAction}
+                    ${isNonRegular ? `data-emission-id="${safeEmissionId}"` : ''}
                     draggable="false"
-                    title="Créer une autre rediffusion en attente"
                 >
                     Dupliquer
                 </button>
@@ -618,10 +634,9 @@ function buildPendingRebroadcastCard(controller, item) {
                 <button
                     type="button"
                     class="pending-rebroadcast-card__delete"
-                    data-pending-rebroadcast-id="${safePendingId}"
-                    data-action="click->grid#deletePendingRebroadcast"
+                    ${deleteAction}
+                    ${isNonRegular ? `data-emission-id="${safeEmissionId}"` : ''}
                     draggable="false"
-                    title="Supprimer cette rediffusion du parc"
                 >
                     Supprimer
                 </button>

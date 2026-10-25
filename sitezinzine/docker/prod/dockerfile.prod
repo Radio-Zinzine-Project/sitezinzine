@@ -1,5 +1,5 @@
 # 🧱 STAGE 1 : build avec Composer
-FROM php:8.3-cli AS composer_build
+FROM php:8.3.36-cli AS composer_build
 
 RUN apt-get update && apt-get install -y \
     libicu-dev zip git unzip libzip-dev && \
@@ -36,7 +36,7 @@ RUN yarn build
 
 
 # 🏁 STAGE 3 : image finale de production
-FROM php:8.3-apache
+FROM php:8.3.36-apache
 
 ARG APP_ENV=prod
 ENV APP_ENV=${APP_ENV}

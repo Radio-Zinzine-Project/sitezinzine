@@ -116,9 +116,11 @@ final class GridPublicationService
      * diffusionId => draftId
      */
         $reservedDiffusionIds = [];
+        $reservedDiffusionStartsAt = [];
 
         foreach ($effectiveDrafts as $effectiveDraft) {
             $draft = $effectiveDraft['draft'];
+            $startsAt = $effectiveDraft['startsAt'];
 
             if (!$draft instanceof DiffusionDraft) {
                 continue;
@@ -137,6 +139,11 @@ final class GridPublicationService
             }
 
             $reservedDiffusionIds[$diffusionId] = $draft->getId();
+
+            if ($startsAt instanceof \DateTimeInterface) {
+                $reservedDiffusionStartsAt[$diffusionId] =
+                    $this->buildHoraireKey($startsAt);
+            }
         }
 
         $items = [];
@@ -250,6 +257,13 @@ final class GridPublicationService
                         continue;
                     }
 
+                    if (
+                        isset($reservedDiffusionStartsAt[$existingId])
+                        && $reservedDiffusionStartsAt[$existingId] !== $horaireKey
+                    ) {
+                        continue;
+                    }
+
                     $ownerDraftId = $reservedDiffusionIds[$existingId];
 
                     if ($ownerDraftId === $draft->getId()) {
@@ -295,8 +309,15 @@ final class GridPublicationService
                     }
 
                     if (isset($reservedDiffusionIds[$existingId])) {
-                        $diffusionsReservedByOtherDraft[] = $existing;
+                        if (
+                            isset($reservedDiffusionStartsAt[$existingId])
+                            && $reservedDiffusionStartsAt[$existingId] === $horaireKey
+                        ) {
+                            $diffusionsReservedByOtherDraft[] = $existing;
+                        }
 
+                        // Une diffusion réservée ne doit jamais être réutilisée
+                        // par un autre draft, même si elle change d'horaire.
                         continue;
                     }
 

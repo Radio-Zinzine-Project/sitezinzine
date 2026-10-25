@@ -7,9 +7,10 @@ use App\Entity\ProgrammationRule;
 use SortDirection;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
-use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class ProgrammationRuleType extends AbstractType
@@ -54,6 +55,11 @@ class ProgrammationRuleType extends AbstractType
                 'required' => false,
                 'widget' => 'single_text',
                 'input' => 'datetime_immutable',
+            ])
+            ->add('hasAdditionalRebroadcast', CheckboxType::class, [
+                'label' => 'Prévoir une rediffusion supplémentaire via « Émissions à diffuser »',
+                'required' => false,
+                'help' => 'À l’affectation d’une émission en R1, une rediffusion supplémentaire sera proposée dans « Émissions à diffuser », indépendamment des créneaux réguliers.',
             ])
             ->add('save', SubmitType::class, [
                 'label' => 'Sauvegarder',

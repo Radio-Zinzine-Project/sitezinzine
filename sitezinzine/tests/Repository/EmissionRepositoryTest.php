@@ -6,6 +6,7 @@ use App\Entity\Categories;
 use App\Entity\Diffusion;
 use App\Entity\Editeur;
 use App\Entity\Emission;
+use App\Entity\DiffusionDraft;
 use App\Entity\InviteOldAnimateur;
 use App\Entity\ProgrammationRule;
 use App\Entity\ProgrammationRuleSlot;
@@ -1870,6 +1871,282 @@ class EmissionRepositoryTest extends KernelTestCase
         $this->assertSame($themeA->getId(), $themes[0]->getId());
         $this->assertSame($themeB->getId(), $themes[1]->getId());
     }
+
+    public function testFindRecentNonRegularEmissionsForPoolExcludesAllPreviouslyDiffusedEmissions(): void
+    {
+        $now = new \DateTimeImmutable('2026-10-20 12:00:00');
+        $categorie = $this->createCategorie();
+
+        $neverDiffused = $this->createEmission(
+            $categorie,
+            'Émission jamais diffusée',
+            new \DateTime('2026-10-19')
+        );
+
+        $published = $this->createEmission(
+            $categorie,
+            'Émission déjà diffusée',
+            new \DateTime('2026-10-18')
+        );
+
+        $unpublished = $this->createEmission(
+            $categorie,
+            'Émission dévalidée',
+            new \DateTime('2026-10-17')
+        );
+
+        $tooOld = $this->createEmission(
+            $categorie,
+            'Émission trop ancienne',
+            new \DateTime('2026-10-09')
+        );
+
+        $this->createDiffusion(
+            $published,
+            new \DateTime('2026-10-19 10:00:00')
+        )->markAsPublished();
+
+        $this->createDiffusion(
+            $unpublished,
+            new \DateTime('2026-10-18 10:00:00')
+        )->markAsUnpublished();
+
+        $this->flush();
+
+        $results = $this->repository
+            ->findRecentNonRegularEmissionsForPool($now);
+
+        $ids = array_map(
+            static fn(Emission $emission): ?int => $emission->getId(),
+            $results
+        );
+
+        $this->assertContains($neverDiffused->getId(), $ids);
+        $this->assertNotContains($published->getId(), $ids);
+        $this->assertNotContains($unpublished->getId(), $ids);
+        $this->assertNotContains($tooOld->getId(), $ids);
+    }
+
+    public function testFindRecentNonRegularEmissionsForPoolRespectsRuleValidity(): void
+    {
+        $now = new \DateTimeImmutable('2026-10-20 12:00:00');
+
+        $activeCategory = $this->createCategorie();
+        $inactiveCategory = $this->createCategorie();
+        $expiredCategory = $this->createCategorie();
+        $futureCategory = $this->createCategorie();
+
+        $activeEmission = $this->createEmission(
+            $activeCategory,
+            'Emission catégorie régulière',
+            new \DateTime('2026-10-19')
+        );
+
+        $inactiveEmission = $this->createEmission(
+            $inactiveCategory,
+            'Emission règle désactivée',
+            new \DateTime('2026-10-19')
+        );
+
+        $expiredEmission = $this->createEmission(
+            $expiredCategory,
+            'Emission règle expirée',
+            new \DateTime('2026-10-19')
+        );
+
+        $futureEmission = $this->createEmission(
+            $futureCategory,
+            'Emission règle future',
+            new \DateTime('2026-10-19')
+        );
+
+        $activeRule = (new ProgrammationRule())
+            ->setCategory($activeCategory)
+            ->setRuleNumber(1)
+            ->setIsActive(true);
+
+        $inactiveRule = (new ProgrammationRule())
+            ->setCategory($inactiveCategory)
+            ->setRuleNumber(1)
+            ->setIsActive(false);
+
+        $expiredRule = (new ProgrammationRule())
+            ->setCategory($expiredCategory)
+            ->setRuleNumber(1)
+            ->setIsActive(true)
+            ->setValidUntil(new \DateTimeImmutable('2026-10-19'));
+
+        $futureRule = (new ProgrammationRule())
+            ->setCategory($futureCategory)
+            ->setRuleNumber(1)
+            ->setIsActive(true)
+            ->setValidFrom(new \DateTimeImmutable('2026-10-21'));
+
+        foreach (
+            [
+                $activeRule,
+                $inactiveRule,
+                $expiredRule,
+                $futureRule,
+            ] as $rule
+        ) {
+            $this->em->persist($rule);
+        }
+
+        $this->flush();
+
+        $results = $this->repository->findRecentNonRegularEmissionsForPool($now);
+
+        $ids = array_map(
+            static fn(Emission $emission): ?int => $emission->getId(),
+            $results
+        );
+
+        $this->assertNotContains($activeEmission->getId(), $ids);
+        $this->assertContains($inactiveEmission->getId(), $ids);
+        $this->assertContains($expiredEmission->getId(), $ids);
+        $this->assertContains($futureEmission->getId(), $ids);
+    }
+
+    public function testFindRecentNonRegularEmissionsForPoolExcludesCategoryWithAtLeastOneValidRule(): void
+    {
+        $now = new \DateTimeImmutable('2026-10-20 12:00:00');
+
+        $categorie = $this->createCategorie();
+
+        $emission = $this->createEmission(
+            $categorie,
+            'Emission avec plusieurs règles',
+            new \DateTime('2026-10-19')
+        );
+
+        $inactiveRule = (new ProgrammationRule())
+            ->setCategory($categorie)
+            ->setRuleNumber(1)
+            ->setIsActive(false);
+
+        $activeRule = (new ProgrammationRule())
+            ->setCategory($categorie)
+            ->setRuleNumber(2)
+            ->setIsActive(true);
+
+        $this->em->persist($inactiveRule);
+        $this->em->persist($activeRule);
+
+        $this->flush();
+
+        $results = $this->repository->findRecentNonRegularEmissionsForPool($now);
+
+        $ids = array_map(
+            static fn(Emission $emission): ?int => $emission->getId(),
+            $results
+        );
+
+        $this->assertNotContains($emission->getId(), $ids);
+    }
+
+    public function testFindRecentNonRegularEmissionsForPoolExcludesEmissionAlreadyAssignedToDraft(): void
+    {
+        $now = new \DateTimeImmutable('2026-10-20 12:00:00');
+        $categorie = $this->createCategorie();
+
+        $eligible = $this->createEmission(
+            $categorie,
+            'Émission jamais affectée',
+            new \DateTime('2026-10-19')
+        );
+
+        $assigned = $this->createEmission(
+            $categorie,
+            'Émission déjà affectée à un draft',
+            new \DateTime('2026-10-19')
+        );
+
+        $draft = new DiffusionDraft();
+        $draft
+            ->setEmission($assigned)
+            ->setDraftType(DiffusionDraft::TYPE_MANUAL_SPECIAL)
+            ->setNombreDiffusion(1)
+            ->setSchedule(
+                new \DateTimeImmutable('2026-10-21 14:00:00'),
+                60
+            );
+
+        $this->em->persist($draft);
+        $this->flush();
+
+        $results = $this->repository
+            ->findRecentNonRegularEmissionsForPool($now);
+
+        $ids = array_map(
+            static fn(Emission $emission): ?int => $emission->getId(),
+            $results
+        );
+
+        $this->assertContains($eligible->getId(), $ids);
+        $this->assertNotContains($assigned->getId(), $ids);
+    }
+
+
+public function testFindRecentNonRegularEmissionsForPoolIncludesEmissionAfterDraftRemoval(): void
+{
+    $now = new \DateTimeImmutable('2026-10-20 12:00:00');
+    $categorie = $this->createCategorie();
+
+    $neverAssigned = $this->createEmission(
+        $categorie,
+        'Émission jamais affectée',
+        new \DateTime('2026-10-19')
+    );
+
+    $removedFromGrid = $this->createEmission(
+        $categorie,
+        'Émission retirée de la grille',
+        new \DateTime('2026-10-19')
+    );
+
+    $stillAssigned = $this->createEmission(
+        $categorie,
+        'Émission encore affectée',
+        new \DateTime('2026-10-19')
+    );
+
+    $removedDraft = (new DiffusionDraft())
+        ->setEmission($removedFromGrid)
+        ->setDraftType(DiffusionDraft::TYPE_MANUAL_SPECIAL)
+        ->setNombreDiffusion(1)
+        ->setSchedule(
+            new \DateTimeImmutable('2026-10-21 14:00:00'),
+            60
+        )
+        ->softDelete();
+
+    $activeDraft = (new DiffusionDraft())
+        ->setEmission($stillAssigned)
+        ->setDraftType(DiffusionDraft::TYPE_MANUAL_SPECIAL)
+        ->setNombreDiffusion(1)
+        ->setSchedule(
+            new \DateTimeImmutable('2026-10-21 15:00:00'),
+            60
+        );
+
+    $this->em->persist($removedDraft);
+    $this->em->persist($activeDraft);
+    $this->flush();
+
+    $results = $this->repository
+        ->findRecentNonRegularEmissionsForPool($now);
+
+    $ids = array_map(
+        static fn(Emission $emission): ?int => $emission->getId(),
+        $results
+    );
+
+    $this->assertContains($neverAssigned->getId(), $ids);
+    $this->assertContains($removedFromGrid->getId(), $ids);
+    $this->assertNotContains($stillAssigned->getId(), $ids);
+}
+
 
     private function createEmission(
         Categories $categorie,

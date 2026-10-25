@@ -9,6 +9,9 @@ use App\Entity\Emission;
 use App\Entity\ProgrammationRuleSlot;
 use App\Entity\Theme;
 use App\Entity\User;
+use App\Entity\Diffusion;
+use App\Entity\DiffusionDraft;
+use App\Entity\ProgrammationRule;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
@@ -1427,5 +1430,58 @@ class EmissionRepository extends ServiceEntityRepository
             . preg_quote($word, '/')
             . '(s|es|e|x)?'
             . '($|[[:space:][:punct:]])';
+    }
+
+    /**
+     * Retourne les émissions récentes de catégories non régulières
+     * jamais diffusées et jamais affectées à un draft.
+     *
+     * @return Emission[]
+     */
+    public function findRecentNonRegularEmissionsForPool(
+        \DateTimeImmutable $now
+    ): array {
+        $dateLimit = $now->modify('-10 days');
+        $today = $now->setTime(0, 0);
+
+        $activeRuleSubquery = $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('r.id')
+            ->from(ProgrammationRule::class, 'r')
+            ->where('r.category = e.categorie')
+            ->andWhere('r.isActive = true')
+            ->andWhere('r.deletedAt IS NULL')
+            ->andWhere('(r.validFrom IS NULL OR r.validFrom <= :today)')
+            ->andWhere('(r.validUntil IS NULL OR r.validUntil >= :today)')
+            ->getDQL();
+
+        $diffusionSubquery = $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('d.id')
+            ->from(Diffusion::class, 'd')
+            ->where('d.emission = e')
+            ->getDQL();
+
+        $draftSubquery = $this->getEntityManager()
+            ->createQueryBuilder()
+            ->select('draft.id')
+            ->from(DiffusionDraft::class, 'draft')
+            ->where('draft.emission = e')
+            ->andWhere('draft.deletedAt IS NULL')
+            ->getDQL();
+
+        return $this->createQueryBuilder('e')
+            ->andWhere('e.deletedAt IS NULL')
+            ->andWhere('e.datepub >= :dateLimit')
+            ->andWhere('e.datepub <= :now')
+            ->andWhere(sprintf('NOT EXISTS (%s)', $activeRuleSubquery))
+            ->andWhere(sprintf('NOT EXISTS (%s)', $diffusionSubquery))
+            ->andWhere(sprintf('NOT EXISTS (%s)', $draftSubquery))
+            ->setParameter('dateLimit', $dateLimit)
+            ->setParameter('now', $now)
+            ->setParameter('today', $today)
+            ->orderBy('e.datepub', SortDirection::Descending)
+            ->getQuery()
+            ->getResult();
     }
 }

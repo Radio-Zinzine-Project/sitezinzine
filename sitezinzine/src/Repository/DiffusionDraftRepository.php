@@ -29,11 +29,14 @@ class DiffusionDraftRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    public function findByWeek(\DateTimeImmutable $start, \DateTimeImmutable $end): array
-    {
+    public function findByWeek(
+        \DateTimeImmutable $start,
+        \DateTimeImmutable $end
+    ): array {
         return $this->createQueryBuilder('d')
             ->andWhere('d.horaireDiffusion >= :start')
             ->andWhere('d.horaireDiffusion < :end')
+            ->andWhere('d.deletedAt IS NULL')
             ->setParameter('start', $start)
             ->setParameter('end', $end)
             ->orderBy('d.horaireDiffusion', SortDirection::Ascending)
@@ -49,6 +52,7 @@ class DiffusionDraftRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('d')
             ->andWhere('d.horaireDiffusion < :endsAt')
             ->andWhere('d.endsAt > :startsAt')
+            ->andWhere('d.deletedAt IS NULL')
             ->setParameter('startsAt', $startsAt)
             ->setParameter('endsAt', $endsAt)
             ->orderBy('d.horaireDiffusion', SortDirection::Ascending);
@@ -66,10 +70,26 @@ class DiffusionDraftRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('d')
             ->andWhere('d.assignmentGroupKey = :assignmentGroupKey')
+            ->andWhere('d.deletedAt IS NULL')
             ->setParameter('assignmentGroupKey', $assignmentGroupKey)
             ->orderBy('d.horaireDiffusion', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
+    }
+
+    public function findOneRegularIncludingDeletedBySlotAndHoraire(
+        ProgrammationRuleSlot $slot,
+        \DateTimeImmutable $horaireDiffusion
+    ): ?DiffusionDraft {
+        return $this->createQueryBuilder('d')
+            ->andWhere('d.slot = :slot')
+            ->andWhere('d.horaireDiffusion = :horaire')
+            ->andWhere('d.draftType = :type')
+            ->setParameter('slot', $slot)
+            ->setParameter('horaire', $horaireDiffusion)
+            ->setParameter('type', DiffusionDraft::TYPE_REGULAR)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     public function findOneRegularBySlotAndHoraire(
@@ -80,6 +100,7 @@ class DiffusionDraftRepository extends ServiceEntityRepository
             ->andWhere('d.slot = :slot')
             ->andWhere('d.horaireDiffusion = :horaire')
             ->andWhere('d.draftType = :type')
+            ->andWhere('d.deletedAt IS NULL')
             ->setParameter('slot', $slot)
             ->setParameter('horaire', $horaireDiffusion)
             ->setParameter('type', DiffusionDraft::TYPE_REGULAR)
@@ -116,6 +137,7 @@ class DiffusionDraftRepository extends ServiceEntityRepository
         return $qb
             ->andWhere('d.slot IS NOT NULL')
             ->andWhere('d.draftType = :draftType')
+            ->andWhere('d.deletedAt IS NULL')
             ->andWhere($orX)
             ->setParameter('draftType', DiffusionDraft::TYPE_REGULAR)
             ->getQuery()
