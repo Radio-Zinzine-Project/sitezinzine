@@ -18,7 +18,7 @@ RUN composer install --no-dev --optimize-autoloader
 
 
 # 🎨 STAGE 2 : compilation des assets (Stimulus, Webpack Encore)
-FROM node:18 AS frontend_build
+FROM node:24 AS frontend_build
 
 WORKDIR /app
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.125] - 2026-10-25
+### Corrections
+- fix: mise à jour de Node.js 18 vers 24 pour le build Docker
+
+
 ## [1.0.124] - 2026-10-25
 ### Ajouts
 - Ajout de tests php.
