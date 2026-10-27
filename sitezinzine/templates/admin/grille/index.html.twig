@@ -817,6 +817,140 @@
       outline-offset: 1px;
     }
 
+    
+/* =========================================================
+   Sidebar : historique des diffusions des émissions
+   ========================================================= */
+
+
+.emission-card {
+    position: relative;
+}
+
+.emission-card__tooltip {
+    position: absolute;
+    z-index: 100;
+    top: calc(100% + 6px);
+    left: 0;
+
+    width: max-content;
+    min-width: 220px;
+    max-width: min(280px, 100%);
+    box-sizing: border-box;
+    margin: 0;
+    padding: 10px 12px;
+
+    color: #1c1c1a;
+    background-color: #ffffff;
+    border: 1px solid #d6d6d6;
+    border-radius: 7px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.4;
+    text-align: left;
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+
+    transform: translateY(-4px);
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease,
+        visibility 0.15s ease;
+}
+
+.emission-card:hover,
+.emission-card:focus-within {
+    z-index: 101;
+}
+
+.emission-card:hover .emission-card__tooltip,
+.emission-card:focus-within .emission-card__tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+
+.emission-card__tooltip strong {
+    display: block;
+    margin-bottom: 6px;
+
+    color: #1c1c1a;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.emission-card__tooltip ul {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+
+    margin: 0;
+    padding: 0 0 0 16px;
+}
+
+.emission-card__tooltip li {
+    margin: 0;
+    padding: 0;
+}
+
+.emission-card__tooltip > span {
+    display: block;
+    margin-top: 6px;
+
+    color: #666666;
+    font-style: italic;
+}
+
+.emission-card__tooltip li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.emission-card__group-marker {
+    display: inline-block;
+    flex: 0 0 9px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+}
+
+.emission-card__group-marker--blue {
+    background-color: #477db8;
+}
+
+.emission-card__group-marker--orange {
+    background-color: #d28b36;
+}
+
+.emission-card__group-marker--green {
+    background-color: #4c9871;
+}
+
+.emission-card__group-marker--purple {
+    background-color: #9272b8;
+}
+
+.emission-card__group-marker--pink {
+    background-color: #c46c91;
+}
+
+.emission-card__group-marker--teal {
+    background-color: #4b9b9b;
+}
+
+.emission-card__group-marker--legacy {
+    background-color: #d0d0d0;
+    border: 1px dashed #777;
+    box-sizing: border-box;
+}
+
+
     /* =========================================================
        Boutons et actions
        ========================================================= */

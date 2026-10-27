@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.0.126] - 2026-10-27
+### Ajouts
+- Infobulles affichant les 6 dernières diffusions publiées sur les émissions régulières et ponctuelles.
+- Affichage des dates, numéros de diffusion et du nombre total de diffusions publiées.
+- Pastilles colorées pour identifier les groupes de programmation.
+- Pastille grise pointillée pour les diffusions historiques sans groupe.
+## Corrections
+- Correction des doublons et incohérences de nombreDiffusion lors des déplacements, suppressions et modifications des règles de programmation.
+- Synchronisation des rangs entre DiffusionDraft et Diffusion publiées.
+- Conservation des rangs structurels des diffusions régulières.
+- Correction des horaires affichés dans les tooltips du parc « Émissions à diffuser » après dévalidation et déplacement d'une diffusion.
+- Conservation de la priorité des horaires publiés et suppression des doublons entre Diffusion et DiffusionDraft.
+- Correction du blocage de la sidebar des émissions non régulières après drag & drop.
+- Conservation et restauration automatique de la catégorie sélectionnée après rechargement.
+- Rechargement des émissions et réinitialisation du drag & drop.
+- Création automatique d'un PendingRebroadcast lors de chaque affectation ponctuelle d'une émission non régulière.
+- Prise en charge des émissions anciennes, sans restriction liée à leur date de publication.
+- Gestion indépendante des rediffusions en attente pour chaque nouveau groupe d'affectation.
+- Compteurs limités aux diffusions publiées.
+- Affichage flottant des infobulles sans décalage des cartes.
+- Masquage des identifiants techniques `assignmentGroupKey`.
+## Amélioré
+- Ajout d'un fond gris clair à tous les créneaux Radio Zinzine, occupés ou vides.
+- Application d'un gris plus foncé aux créneaux Radio Aix, occupés ou vides.
+- Conservation des bordures pointillées pour les créneaux non affectés.
+- Fond de la grille maintenu en blanc pour mieux distinguer les tranches horaires.
+- Amélioration de la lisibilité à l'impression en noir et blanc.
+
+
+
 ## [1.0.125] - 2026-10-25
 ### Corrections
 - fix: mise à jour de Node.js 18 vers 24 pour le build Docker

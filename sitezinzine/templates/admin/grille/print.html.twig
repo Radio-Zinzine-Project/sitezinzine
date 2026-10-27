@@ -483,7 +483,7 @@
             overflow: hidden;
 
             color: #000000;
-            background: #ffffff;
+            background: #f2f2f2;
 
             border: 0.3mm solid #000000;
             border-radius: 1mm;
@@ -494,8 +494,12 @@
             text-align: center;
         }
 
+        .print-postit--empty {
+            border-style: dashed;
+        }
+
         .print-postit--aix {
-            background: #e6e6e6;
+            background: #d9d9d9;
         }
 
         .print-a3 .print-postit {
@@ -505,10 +509,6 @@
             padding: 0.8mm;
 
             font-size: 8pt;
-        }
-
-        .print-postit--empty {
-            border-style: dashed;
         }
 
         .print-postit--manual {
@@ -722,6 +722,16 @@
 
             .print-weekly-note:empty::before {
                 content: '';
+            }
+
+            .print-postit {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            /* Radio Aix : gris légèrement plus foncé */
+            .print-postit.print-postit--aix:not(.print-postit--empty) {
+                background-color: #d9d9d9;
             }
         }
     </style>

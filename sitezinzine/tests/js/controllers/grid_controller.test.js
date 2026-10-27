@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest'
 import GridController from '../../../assets/controllers/grid_controller'
-import { mountController, flushDom } from '../support/dom'
+import { mountController, flushDom, jsonResponse } from '../support/dom'
 
 function gridMarkup(readonly = false) {
     return `<div data-controller="grid" data-grid-readonly-value="${readonly}" data-grid-week-start-value="2026-10-06">
@@ -8,6 +8,12 @@ function gridMarkup(readonly = false) {
         <button data-grid-target="modeSpecialBtn" data-action="click->grid#showSpecialMode"></button>
         <div data-grid-target="regularPanel"><input data-grid-target="regularSearch" data-action="input->grid#regularSearch"><div data-grid-target="emissionsList"></div></div>
         <div data-grid-target="specialPanel">
+        <select data-grid-target="specialCategorySelect"
+        data-action="change->grid#specialCategoryChanged">
+        <option value="">Sélectionne une catégorie</option>
+        <option value="42" selected>Catégorie A</option>
+        <option value="43">Catégorie B</option>
+    </select>
             <input data-grid-target="specialSearch"><button data-grid-target="specialShowAllBtn"></button>
             <div data-grid-target="specialStatus"></div><div data-grid-target="specialEmptyState"></div>
             <div data-grid-target="specialSidebarPanel"></div><div data-grid-target="emissionsList"></div>
@@ -34,6 +40,14 @@ describe('Grille avec un vrai cycle Stimulus', () => {
     })
 
     test('les actions Stimulus changent les panneaux et mémorisent le mode', async () => {
+        fetch.mockResolvedValue(
+            jsonResponse({
+                items: [],
+                total: 0,
+                hasMore: false
+            })
+        )
+
         const { controller, root } = await mountController('grid', GridController, gridMarkup())
         root.querySelector('[data-grid-target="modeSpecialBtn"]').click()
         await flushDom()
@@ -128,4 +142,125 @@ describe('Grille avec un vrai cycle Stimulus', () => {
 
         expect(firstDrop).toHaveBeenCalledTimes(1)
     })
+
+    test('recharge les émissions de la catégorie non régulière déjà sélectionnée après reconnexion', async () => {
+        sessionStorage.setItem('gridCurrentMode', 'special')
+
+        fetch.mockResolvedValue(
+            jsonResponse({
+                items: [
+                    {
+                        id: 42,
+                        title: 'Émission test',
+                        durationMinutes: 60,
+                        meta: 'Catégorie A',
+                        playLabel: '1 diffusion'
+                    }
+                ],
+                total: 1,
+                hasMore: false
+            })
+        )
+
+        const { controller, root } = await mountController(
+            'grid',
+            GridController,
+            gridMarkup()
+        )
+
+        expect(controller.currentMode).toBe('special')
+        expect(controller.specialCategorySelectTarget.value).toBe('42')
+
+        await vi.waitFor(() => {
+            const requests = fetch.mock.calls.filter(([url]) =>
+                String(url).includes('/admin/grille/special-candidates')
+            )
+
+            expect(requests).toHaveLength(1)
+
+            const url = new URL(requests[0][0], 'http://localhost')
+            expect(url.searchParams.get('categoryId')).toBe('42')
+
+            const card = root.querySelector(
+                '[data-special-item-type="manual_emission"]'
+            )
+
+            expect(card).not.toBeNull()
+            expect(card.dataset.emissionId).toBe('42')
+            expect(card.draggable).toBe(true)
+        })
+    })
+
+    test('mémorise la catégorie non régulière lors de sa sélection', async () => {
+        const { controller } = await mountController(
+            'grid',
+            GridController,
+            gridMarkup()
+        )
+
+        // Évite une requête réseau : on teste uniquement
+        // la mémorisation de la catégorie.
+        vi.spyOn(controller, 'loadSpecialCandidates')
+            .mockResolvedValue()
+
+        controller.specialCategorySelectTarget.value = '43'
+
+        await controller.specialCategoryChanged()
+
+        expect(
+            sessionStorage.getItem('gridSpecialCategoryId')
+        ).toBe('43')
+    })
+
+    test('restaure la catégorie non régulière mémorisée après rechargement', async () => {
+        sessionStorage.setItem('gridCurrentMode', 'special')
+        sessionStorage.setItem('gridSpecialCategoryId', '43')
+
+        fetch.mockResolvedValue(
+            jsonResponse({
+                items: [{
+                    id: 99,
+                    title: 'Émission restaurée',
+                    durationMinutes: 60,
+                    meta: 'Catégorie B',
+                    playLabel: '0 diffusion'
+                }],
+                total: 1,
+                hasMore: false
+            })
+        )
+
+        const markup = gridMarkup().replace(
+            '<option value="42" selected>',
+            '<option value="42">'
+        )
+
+        const { controller, root } = await mountController(
+            'grid',
+            GridController,
+            markup
+        )
+
+        await vi.waitFor(() => {
+            expect(controller.specialCategorySelectTarget.value).toBe('43')
+
+            const requests = fetch.mock.calls.filter(([url]) =>
+                String(url).includes('/admin/grille/special-candidates')
+            )
+
+            expect(requests).toHaveLength(1)
+
+            const url = new URL(requests[0][0], 'http://localhost')
+            expect(url.searchParams.get('categoryId')).toBe('43')
+
+            const card = root.querySelector(
+                '[data-special-item-type="manual_emission"]'
+            )
+
+            expect(card).not.toBeNull()
+            expect(card.dataset.emissionId).toBe('99')
+            expect(card.draggable).toBe(true)
+        })
+    })
+
 })

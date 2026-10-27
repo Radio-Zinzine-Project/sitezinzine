@@ -889,7 +889,13 @@ class EmissionRepository extends ServiceEntityRepository
     ): array {
         $qb = $this->createQueryBuilder('e')
             ->select('e', 'COUNT(d.id) AS playCount')
-            ->leftJoin('e.diffusions', 'd')
+            ->leftJoin(
+                'e.diffusions',
+                'd',
+                'WITH',
+                'd.publicationStatus = :publishedStatus'
+            )
+            ->setParameter('publishedStatus', Diffusion::STATUS_PUBLISHED)
             ->innerJoin('e.categorie', 'c')
             ->andWhere('e.categorie = :category')
             ->andWhere('c.active = :active')
@@ -963,7 +969,13 @@ class EmissionRepository extends ServiceEntityRepository
     ): array {
         $qb = $this->createQueryBuilder('e')
             ->select('e', 'COUNT(d.id) AS playCount')
-            ->leftJoin('e.diffusions', 'd')
+            ->leftJoin(
+                'e.diffusions',
+                'd',
+                'WITH',
+                'd.publicationStatus = :publishedStatus'
+            )
+            ->setParameter('publishedStatus', Diffusion::STATUS_PUBLISHED)
             ->innerJoin('e.categorie', 'c')
             ->andWhere('e.categorie = :category')
             ->andWhere('c.active = :active')

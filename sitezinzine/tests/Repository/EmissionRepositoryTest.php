@@ -2087,66 +2087,152 @@ class EmissionRepositoryTest extends KernelTestCase
         $this->assertNotContains($assigned->getId(), $ids);
     }
 
+    public function testFindRecentNonRegularEmissionsForPoolIncludesEmissionAfterDraftRemoval(): void
+    {
+        $now = new \DateTimeImmutable('2026-10-20 12:00:00');
+        $categorie = $this->createCategorie();
 
-public function testFindRecentNonRegularEmissionsForPoolIncludesEmissionAfterDraftRemoval(): void
-{
-    $now = new \DateTimeImmutable('2026-10-20 12:00:00');
-    $categorie = $this->createCategorie();
-
-    $neverAssigned = $this->createEmission(
-        $categorie,
-        'Émission jamais affectée',
-        new \DateTime('2026-10-19')
-    );
-
-    $removedFromGrid = $this->createEmission(
-        $categorie,
-        'Émission retirée de la grille',
-        new \DateTime('2026-10-19')
-    );
-
-    $stillAssigned = $this->createEmission(
-        $categorie,
-        'Émission encore affectée',
-        new \DateTime('2026-10-19')
-    );
-
-    $removedDraft = (new DiffusionDraft())
-        ->setEmission($removedFromGrid)
-        ->setDraftType(DiffusionDraft::TYPE_MANUAL_SPECIAL)
-        ->setNombreDiffusion(1)
-        ->setSchedule(
-            new \DateTimeImmutable('2026-10-21 14:00:00'),
-            60
-        )
-        ->softDelete();
-
-    $activeDraft = (new DiffusionDraft())
-        ->setEmission($stillAssigned)
-        ->setDraftType(DiffusionDraft::TYPE_MANUAL_SPECIAL)
-        ->setNombreDiffusion(1)
-        ->setSchedule(
-            new \DateTimeImmutable('2026-10-21 15:00:00'),
-            60
+        $neverAssigned = $this->createEmission(
+            $categorie,
+            'Émission jamais affectée',
+            new \DateTime('2026-10-19')
         );
 
-    $this->em->persist($removedDraft);
-    $this->em->persist($activeDraft);
-    $this->flush();
+        $removedFromGrid = $this->createEmission(
+            $categorie,
+            'Émission retirée de la grille',
+            new \DateTime('2026-10-19')
+        );
 
-    $results = $this->repository
-        ->findRecentNonRegularEmissionsForPool($now);
+        $stillAssigned = $this->createEmission(
+            $categorie,
+            'Émission encore affectée',
+            new \DateTime('2026-10-19')
+        );
 
-    $ids = array_map(
-        static fn(Emission $emission): ?int => $emission->getId(),
-        $results
+        $removedDraft = (new DiffusionDraft())
+            ->setEmission($removedFromGrid)
+            ->setDraftType(DiffusionDraft::TYPE_MANUAL_SPECIAL)
+            ->setNombreDiffusion(1)
+            ->setSchedule(
+                new \DateTimeImmutable('2026-10-21 14:00:00'),
+                60
+            )
+            ->softDelete();
+
+        $activeDraft = (new DiffusionDraft())
+            ->setEmission($stillAssigned)
+            ->setDraftType(DiffusionDraft::TYPE_MANUAL_SPECIAL)
+            ->setNombreDiffusion(1)
+            ->setSchedule(
+                new \DateTimeImmutable('2026-10-21 15:00:00'),
+                60
+            );
+
+        $this->em->persist($removedDraft);
+        $this->em->persist($activeDraft);
+        $this->flush();
+
+        $results = $this->repository
+            ->findRecentNonRegularEmissionsForPool($now);
+
+        $ids = array_map(
+            static fn(Emission $emission): ?int => $emission->getId(),
+            $results
+        );
+
+        $this->assertContains($neverAssigned->getId(), $ids);
+        $this->assertContains($removedFromGrid->getId(), $ids);
+        $this->assertNotContains($stillAssigned->getId(), $ids);
+    }
+
+    public function testRegularSpecialCandidatesCountOnlyPublishedDiffusions(): void
+    {
+        $categorie = $this->createCategorie();
+
+        $emission = $this->createEmission(
+            $categorie,
+            'Émission avec diffusions dévalidées',
+            new \DateTime('-1 day')
+        );
+
+        $this->createDiffusion(
+            $emission,
+            new \DateTime('2026-09-01 10:00:00'),
+            1
+        )->setPublicationStatus(Diffusion::STATUS_PUBLISHED);
+
+        for ($i = 1; $i <= 3; $i++) {
+            $this->createDiffusion(
+                $emission,
+                new \DateTime("2026-09-0{$i} 12:00:00"),
+                $i + 1
+            )->setPublicationStatus(Diffusion::STATUS_UNPUBLISHED);
+        }
+
+        $this->flush();
+
+        $rows = $this->repository->findSpecialCandidatesForRegularCategory(
+            $categorie,
+            null
+        );
+
+        $row = null;
+
+        foreach ($rows as $candidate) {
+            if ($candidate['emission']->getId() === $emission->getId()) {
+                $row = $candidate;
+                break;
+            }
+        }
+
+        $this->assertNotNull($row);
+        $this->assertSame(1, $row['playCount']);
+    }
+    
+public function testNonRegularSpecialCandidatesCountOnlyPublishedDiffusions(): void
+{
+    $categorie = $this->createCategorie();
+
+    $emission = $this->createEmission(
+        $categorie,
+        'Émission ponctuelle avec diffusions dévalidées',
+        new \DateTime('-1 day')
     );
 
-    $this->assertContains($neverAssigned->getId(), $ids);
-    $this->assertContains($removedFromGrid->getId(), $ids);
-    $this->assertNotContains($stillAssigned->getId(), $ids);
-}
+    $this->createDiffusion(
+        $emission,
+        new \DateTime('2026-09-01 10:00:00'),
+        1
+    )->setPublicationStatus(Diffusion::STATUS_PUBLISHED);
 
+    for ($i = 1; $i <= 3; $i++) {
+        $this->createDiffusion(
+            $emission,
+            new \DateTime("2026-09-0{$i} 12:00:00"),
+            $i + 1
+        )->setPublicationStatus(Diffusion::STATUS_UNPUBLISHED);
+    }
+
+    $this->flush();
+
+    $rows = $this->repository->findSpecialCandidatesForNonRegularCategory(
+        $categorie,
+        null
+    );
+
+    $row = null;
+
+    foreach ($rows as $candidate) {
+        if ($candidate['emission']->getId() === $emission->getId()) {
+            $row = $candidate;
+            break;
+        }
+    }
+
+    $this->assertNotNull($row);
+    $this->assertSame(1, $row['playCount']);
+}
 
     private function createEmission(
         Categories $categorie,

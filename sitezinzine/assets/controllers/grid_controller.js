@@ -179,6 +179,22 @@ export default class extends Controller {
       }, listenerOptions)
     }
 
+    if (this.hasSpecialCategorySelectTarget) {
+      const savedCategoryId = sessionStorage.getItem('gridSpecialCategoryId')
+
+      if (savedCategoryId) {
+        const categoryExists = Array.from(
+          this.specialCategorySelectTarget.options
+        ).some(option => option.value === savedCategoryId)
+
+        if (categoryExists) {
+          this.specialCategorySelectTarget.value = savedCategoryId
+        } else {
+          sessionStorage.removeItem('gridSpecialCategoryId')
+        }
+      }
+    }
+
     const savedMode = this.getSavedMode()
 
     if (savedMode === 'special') {
@@ -372,6 +388,10 @@ export default class extends Controller {
     this.specialSidebarPanelTarget.style.display = 'none'
     this.setEmissionsListHtml('')
 
+    if (this.hasSpecialCategorySelectTarget && this.specialCategorySelectTarget.value) {
+      await this.loadSpecialCandidates()
+    }
+
     if (!this.pendingRebroadcastLoaded) {
       await this.loadPendingRebroadcasts()
     }
@@ -379,6 +399,15 @@ export default class extends Controller {
 
   specialCategoryChanged() {
     this.clearSpecialSearch()
+
+    const categoryId = this.specialCategorySelectTarget.value
+
+    if (categoryId) {
+      sessionStorage.setItem('gridSpecialCategoryId', categoryId)
+    } else {
+      sessionStorage.removeItem('gridSpecialCategoryId')
+    }
+
     return this.loadSpecialCandidates()
   }
 

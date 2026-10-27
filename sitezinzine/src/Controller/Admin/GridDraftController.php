@@ -7,6 +7,7 @@ namespace App\Controller\Admin;
 use App\Entity\DiffusionDraft;
 use App\Entity\Emission;
 use App\Entity\PendingRebroadcast;
+use App\Entity\Diffusion;
 use App\Repository\PendingRebroadcastRepository;
 use App\Repository\CategoriesRepository;
 use App\Repository\DiffusionDraftRepository;
@@ -103,12 +104,12 @@ class GridDraftController extends AbstractController
         }
 
         /*
-     * Protection des semaines radiophoniques validées.
-     *
-     * Une semaine commence le mardi à 00:00
-     * et se termine le mardi suivant à 00:00
-     * (borne de fin exclusive).
-     */
+        * Protection des semaines radiophoniques validées.
+        *
+        * Une semaine commence le mardi à 00:00
+        * et se termine le mardi suivant à 00:00
+        * (borne de fin exclusive).
+        */
         $dayOfWeek = (int) $startsAt->format('N');
 
         $daysSinceTuesday = ($dayOfWeek + 5) % 7;
@@ -130,9 +131,9 @@ class GridDraftController extends AbstractController
         }
 
         /*
-     * Vérification des chevauchements
-     * avec les programmations régulières.
-     */
+        * Vérification des chevauchements
+        * avec les programmations régulières.
+        */
         $endsAt = $startsAt->modify(
             sprintf('+%d minutes', $duration)
         );
@@ -149,9 +150,9 @@ class GridDraftController extends AbstractController
         }
 
         /*
-     * Vérification des chevauchements
-     * avec les drafts existants.
-     */
+        * Vérification des chevauchements
+        * avec les drafts existants.
+        */
         $overlaps = $placementConflictService->findBlockingDraftOverlaps(
             $startsAt,
             $endsAt
@@ -182,17 +183,17 @@ class GridDraftController extends AbstractController
         }
 
         /*
-     * Déterminer avant création si l'émission est encore
-     * éligible au parcours des nouvelles émissions.
-     *
-     * On réutilise la sélection métier existante :
-     * - émission récente ;
-     * - non régulière ;
-     * - sans diffusion ;
-     * - sans draft actif.
-     *
-     * Les autres placements manuels restent inchangés.
-     */
+        * Déterminer avant création si l'émission est encore
+        * éligible au parcours des nouvelles émissions.
+        *
+        * On réutilise la sélection métier existante :
+        * - émission récente ;
+        * - non régulière ;
+        * - sans diffusion ;
+        * - sans draft actif.
+        *
+        * Les autres placements manuels restent inchangés.
+        */
         $shouldCreatePending = false;
 
         if (DiffusionDraft::TYPE_MANUAL_SPECIAL === $draftType) {
@@ -210,8 +211,8 @@ class GridDraftController extends AbstractController
         }
 
         /*
-     * Création du draft manuel.
-     */
+        * Création du draft manuel.
+        */
         $draft = new DiffusionDraft();
 
         $draft
@@ -244,10 +245,15 @@ class GridDraftController extends AbstractController
                 $draft->setAssignmentGroupKey($groupKey);
 
                 /*
-             * Uniquement le premier placement d'une
-             * nouvelle émission non régulière.
-             */
-                if ($shouldCreatePending) {
+                * Chaque nouveau groupe de diffusion ponctuelle
+                * doit disposer de sa rediffusion en attente.
+                *
+                * Les directs conservent leur comportement actuel.
+                */
+                if (
+                    $shouldCreatePending
+                    || DiffusionDraft::TYPE_MANUAL_SPECIAL === $draft->getDraftType()
+                ) {
                     $pendingRebroadcastService->createForGroup(
                         $emission,
                         $groupKey
@@ -624,6 +630,14 @@ class GridDraftController extends AbstractController
                     }
 
                     $remainingDraft->setNombreDiffusion($rank);
+
+                    // Synchroniser la diffusion déjà publiée, si elle existe.
+                    $publishedDiffusion = $remainingDraft->getPublishedDiffusion();
+
+                    if ($publishedDiffusion instanceof Diffusion) {
+                        $publishedDiffusion->setNombreDiffusion($rank);
+                    }
+
                     ++$rank;
                 }
             }
@@ -1100,6 +1114,14 @@ class GridDraftController extends AbstractController
 
         foreach ($manualRebroadcasts as $manualRebroadcast) {
             $manualRebroadcast->setNombreDiffusion($rank);
+
+            // Synchroniser la diffusion publiée liée, si elle existe.
+            $publishedDiffusion = $manualRebroadcast->getPublishedDiffusion();
+
+            if ($publishedDiffusion instanceof Diffusion) {
+                $publishedDiffusion->setNombreDiffusion($rank);
+            }
+
             ++$rank;
         }
     }
@@ -1403,8 +1425,16 @@ class GridDraftController extends AbstractController
         $rank = 1;
 
         foreach ($groupDrafts as $groupDraft) {
-
             $groupDraft->setNombreDiffusion($rank);
+
+            // Synchroniser également la diffusion liée,
+            // même si elle appartient à une semaine déjà validée.
+            $publishedDiffusion = $groupDraft->getPublishedDiffusion();
+
+            if ($publishedDiffusion instanceof Diffusion) {
+                $publishedDiffusion->setNombreDiffusion($rank);
+            }
+
             ++$rank;
         }
     }

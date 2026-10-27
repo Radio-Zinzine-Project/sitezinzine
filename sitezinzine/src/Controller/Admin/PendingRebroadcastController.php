@@ -6,6 +6,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\Emission;
 use App\Entity\PendingRebroadcast;
+use App\Entity\Diffusion;
 use App\Repository\PendingRebroadcastRepository;
 use App\Repository\DiffusionRepository;
 use App\Repository\DiffusionDraftRepository;
@@ -58,7 +59,11 @@ class PendingRebroadcastController extends AbstractController
             $assignmentGroupKey = $pendingRebroadcast->getAssignmentGroupKey();
             $groupDiffusions = [];
 
+
             if ('' !== trim($assignmentGroupKey)) {
+                $diffusionIndexes = [];
+                $groupDiffusionIds = [];
+
                 foreach (
                     $diffusionRepository->findByAssignmentGroupKey(
                         $assignmentGroupKey
@@ -70,10 +75,18 @@ class PendingRebroadcastController extends AbstractController
                         continue;
                     }
 
+                    $diffusionId = $diffusion->getId();
+                    $index = count($groupDiffusions);
+
                     $groupDiffusions[] = [
                         'date' => $horaire->format('Y-m-d H:i:s'),
                         'number' => $diffusion->getNombreDiffusion(),
                     ];
+
+                    if (null !== $diffusionId) {
+                        $diffusionIndexes[$diffusionId] = $index;
+                        $groupDiffusionIds[$diffusionId] = $diffusion;
+                    }
                 }
 
                 foreach (
@@ -81,21 +94,36 @@ class PendingRebroadcastController extends AbstractController
                         $assignmentGroupKey
                     ) as $draft
                 ) {
-                    if ($draft->isDeleted()) {
-                        continue;
-                    }
-
-                    if (!$draft->isDraft()) {
-                        continue;
-                    }
-
-                    if (null !== $draft->getPublishedDiffusion()) {
+                    if ($draft->isDeleted() || !$draft->isDraft()) {
                         continue;
                     }
 
                     $horaire = $draft->getHoraireDiffusion();
 
                     if (!$horaire instanceof \DateTimeInterface) {
+                        continue;
+                    }
+
+                    $publishedDiffusion = $draft->getPublishedDiffusion();
+
+                    if (null !== $publishedDiffusion) {
+                        $diffusionId = $publishedDiffusion->getId();
+
+                        // On ne remplace que les diffusions dévalidées
+                        // appartenant au groupe actuellement affiché.
+                        if (
+                            null !== $diffusionId
+                            && isset($diffusionIndexes[$diffusionId])
+                            && $groupDiffusionIds[$diffusionId]
+                            ->getPublicationStatus() === Diffusion::STATUS_UNPUBLISHED
+                        ) {
+                            $groupDiffusions[$diffusionIndexes[$diffusionId]] = [
+                                'date' => $horaire->format('Y-m-d H:i:s'),
+                                'number' => $draft->getNombreDiffusion(),
+                            ];
+                        }
+
+                        // Une Diffusion liée ne doit jamais apparaître deux fois.
                         continue;
                     }
 
@@ -122,6 +150,7 @@ class PendingRebroadcastController extends AbstractController
                     }
                 );
             }
+
 
             $items[] = [
                 'type' => 'pending_rebroadcast',

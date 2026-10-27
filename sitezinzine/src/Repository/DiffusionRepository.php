@@ -375,4 +375,94 @@ class DiffusionRepository extends ServiceEntityRepository
 
         return $result;
     }
+
+    public function countPublishedByEmission(Emission $emission): int
+    {
+        return (int) $this->createQueryBuilder('d')
+            ->select('COUNT(d.id)')
+            ->andWhere('d.emission = :emission')
+            ->andWhere('d.publicationStatus = :status')
+            ->setParameter('emission', $emission)
+            ->setParameter('status', Diffusion::STATUS_PUBLISHED)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+
+    /**
+     * @param int[] $emissionIds
+     * @return array<int, array{total: int, items: Diffusion[]}>
+     */
+    public function findPublishedHistoryForEmissionIds(
+        array $emissionIds,
+        int $limit = 6
+    ): array {
+        $ids = array_values(array_unique(array_filter(
+            array_map('intval', $emissionIds),
+            static fn(int $id): bool => $id > 0
+        )));
+
+        if ([] === $ids) {
+            return [];
+        }
+
+        if ($limit < 1) {
+            throw new \InvalidArgumentException(
+                'La limite doit être supérieure à zéro.'
+            );
+        }
+
+        $history = [];
+
+        foreach ($ids as $id) {
+            $history[$id] = [
+                'total' => 0,
+                'items' => [],
+            ];
+        }
+
+        // 1. Compter les diffusions publiées par émission.
+        $counts = $this->createQueryBuilder('d')
+            ->select('IDENTITY(d.emission) AS emissionId')
+            ->addSelect('COUNT(d.id) AS total')
+            ->andWhere('d.emission IN (:ids)')
+            ->andWhere('d.publicationStatus = :status')
+            ->setParameter('ids', $ids)
+            ->setParameter('status', Diffusion::STATUS_PUBLISHED)
+            ->groupBy('d.emission')
+            ->getQuery()
+            ->getArrayResult();
+
+        foreach ($counts as $row) {
+            $history[(int) $row['emissionId']]['total'] = (int) $row['total'];
+        }
+
+        // 2. Récupérer les diffusions publiées de toutes les émissions.
+        $diffusions = $this->createQueryBuilder('d')
+            ->andWhere('d.emission IN (:ids)')
+            ->andWhere('d.publicationStatus = :status')
+            ->setParameter('ids', $ids)
+            ->setParameter('status', Diffusion::STATUS_PUBLISHED)
+            ->orderBy('d.horaireDiffusion', SortDirection::Descending)
+            ->addOrderBy('d.id', SortDirection::Descending)
+            ->getQuery()
+            ->getResult();
+
+        // La limite s'applique individuellement à chaque émission.
+        foreach ($diffusions as $diffusion) {
+            $emissionId = $diffusion->getEmission()?->getId();
+
+            if (null === $emissionId) {
+                continue;
+            }
+
+            if (count($history[$emissionId]['items']) >= $limit) {
+                continue;
+            }
+
+            $history[$emissionId]['items'][] = $diffusion;
+        }
+
+        return $history;
+    }
 }

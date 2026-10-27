@@ -264,6 +264,7 @@ final class ProgrammationAssignmentSynchronizer
         return $result;
     }
 
+
     private function synchronizeGroup(
         ProgrammationRule $rule,
         string $groupKey,
@@ -324,21 +325,15 @@ final class ProgrammationAssignmentSynchronizer
         }
 
         /*
-     * IMPORTANT :
-     *
      * L'état actif/inactif de la règle n'est volontairement pas utilisé ici.
      *
      * Une règle peut avoir été désactivée automatiquement parce qu'une
-     * modification de créneau a créé un conflit structurel. Dans ce cas,
-     * la nouvelle structure doit être synchronisée sans provoquer la
-     * disparition complète de ses affectations.
+     * modification de créneau a créé un conflit structurel.
      *
      * Une désactivation manuelle ou une suppression volontaire de la règle
      * passe par ProgrammationRuleMutationService::invalidateRule().
      */
-        [$weekStart, $weekEnd] = $this->resolveRadioWeekBounds(
-            $origin
-        );
+        [$weekStart, $weekEnd] = $this->resolveRadioWeekBounds($origin);
 
         $segments = $this->gridBuilder
             ->buildRuleOccurrencesForWeek(
@@ -358,14 +353,6 @@ final class ProgrammationAssignmentSynchronizer
      *
      * On ne migre jamais arbitrairement l'émission vers une nouvelle
      * occurrence de rang 1.
-     *
-     * IMPORTANT :
-     *
-     * le synchronizer ne dépublie aucune Diffusion.
-     *
-     * Si le groupe possède des Diffusion publiées futures,
-     * ProgrammationRuleMutationService doit avoir dévalidé leurs semaines
-     * avant d'arriver ici.
      */
         if (!$this->containsFirstBroadcast($expectedSegments, $origin)) {
             $invalidated = $this->invalidateWholeGroup(
@@ -383,9 +370,7 @@ final class ProgrammationAssignmentSynchronizer
         }
 
         /*
-     * Le groupe existe toujours.
-     *
-     * On synchronise les passages réguliers par broadcastRank,
+     * Les passages réguliers sont synchronisés par broadcastRank,
      * jamais selon leur ordre chronologique.
      */
         $expectedByRank = $this->indexExpectedSegmentsByRank(
@@ -408,16 +393,8 @@ final class ProgrammationAssignmentSynchronizer
         $slotsById = $this->indexRuleSlotsById($rule);
 
         /*
-     * On valide l'ordre structurel des rangs AVANT d'appliquer
-     * les mutations.
-     *
-     * Exemple :
-     *
-     * rang 1 : mardi
-     * rang 2 : vendredi
-     * rang 3 : jeudi
-     *
-     * Le rang 3 est invalide. Il ne devient jamais rang 2.
+     * On valide l'ordre structurel des rangs AVANT les mutations.
+     * Un rang chronologiquement invalide ne devient jamais un autre rang.
      */
         $validExpectedRanks = $this->resolveChronologicallyValidRanks(
             $expectedByRank
@@ -428,22 +405,9 @@ final class ProgrammationAssignmentSynchronizer
      */
         foreach ($regularDraftsByRank as $rank => $regularDraft) {
             if (1 === $rank) {
-                /*
-             * Le rang 1 est déjà garanti par la présence de l'origine.
-             *
-             * On le resynchronise uniquement si une donnée a réellement
-             * changé, par exemple sa durée ou son slot.
-             */
                 $segment = $expectedByRank[$rank] ?? null;
 
                 if (\is_array($segment)) {
-                    /*
-                 * On résout le slot attendu AVANT la comparaison.
-                 *
-                 * Cela permet de comparer directement l'identité de l'objet
-                 * Doctrine, y compris lorsqu'un nouveau slot n'a pas encore
-                 * reçu d'ID SQL.
-                 */
                     $expectedSlot = $this->resolveSlotFromSegment(
                         $segment,
                         $slotsById,
@@ -475,20 +439,16 @@ final class ProgrammationAssignmentSynchronizer
          * Le slot a disparu ou le rang est devenu chronologiquement
          * incohérent avec un rang précédent.
          *
-         * La semaine publiée éventuelle a déjà été dévalidée par
-         * ProgrammationRuleMutationService.
-         *
-         * Le synchronizer s'occupe uniquement du Draft et du Parc.
+         * La semaine publiée éventuelle a déjà été dévalidée
+         * par ProgrammationRuleMutationService.
          */
             if (
                 !\is_array($segment)
                 || !isset($validExpectedRanks[$rank])
             ) {
-
                 $existingPendings = $this->pendingRepository
                     ->findByAssignmentGroupKey($groupKey);
 
-                // On vérifie uniquement les Pending de l'émission concernée.
                 $existingPendingForEmission = false;
 
                 foreach ($existingPendings as $existingPending) {
@@ -501,12 +461,11 @@ final class ProgrammationAssignmentSynchronizer
                 $restoredPending = $this->pendingRebroadcastService
                     ->restoreToPoolIfEligible($emission, $groupKey);
 
-                // Le compteur augmente uniquement si un nouveau Pending a été créé.
                 if (
                     null !== $restoredPending
                     && !$existingPendingForEmission
                 ) {
-                    $result['createdPendingRebroadcasts']++;
+                    ++$result['createdPendingRebroadcasts'];
                 }
 
                 ++$result['removedRegularDrafts'];
@@ -516,13 +475,6 @@ final class ProgrammationAssignmentSynchronizer
                 continue;
             }
 
-            /*
-         * Même principe pour les rediffusions régulières :
-         *
-         * on résout le slot réellement attendu afin que le remplacement
-         * d'un slot par un nouvel objet de même rang, même horaire et même
-         * durée soit malgré tout détecté.
-         */
             $expectedSlot = $this->resolveSlotFromSegment(
                 $segment,
                 $slotsById,
@@ -548,8 +500,8 @@ final class ProgrammationAssignmentSynchronizer
         /*
      * Ajout des nouveaux slots réguliers.
      *
-     * Un nouveau rang reçoit automatiquement la même émission
-     * que le groupe existant, à condition que son ordre soit cohérent.
+     * Un nouveau rang reçoit la même émission que le groupe existant,
+     * à condition que son ordre soit cohérent.
      */
         foreach ($expectedByRank as $rank => $segment) {
             if (isset($regularDraftsByRank[$rank])) {
@@ -593,9 +545,6 @@ final class ProgrammationAssignmentSynchronizer
      *
      * Si une modification de règle la fait passer avant ou pendant
      * les régulières, elle retourne dans le Parc.
-     *
-     * Là encore, une éventuelle semaine publiée a déjà été dévalidée
-     * par ProgrammationRuleMutationService.
      */
         $lastRegularEnd = $this->findLastValidRegularEnd(
             $expectedByRank,
@@ -624,11 +573,9 @@ final class ProgrammationAssignmentSynchronizer
                     continue;
                 }
 
-
                 $existingPendings = $this->pendingRepository
                     ->findByAssignmentGroupKey($groupKey);
 
-                // On vérifie uniquement les Pending de l'émission concernée.
                 $existingPendingForEmission = false;
 
                 foreach ($existingPendings as $existingPending) {
@@ -641,12 +588,11 @@ final class ProgrammationAssignmentSynchronizer
                 $restoredPending = $this->pendingRebroadcastService
                     ->restoreToPoolIfEligible($emission, $groupKey);
 
-                // Le compteur augmente uniquement si un nouveau Pending a été créé.
                 if (
                     null !== $restoredPending
                     && !$existingPendingForEmission
                 ) {
-                    $result['createdPendingRebroadcasts']++;
+                    ++$result['createdPendingRebroadcasts'];
                 }
 
                 ++$result['removedManualRebroadcasts'];
@@ -655,8 +601,70 @@ final class ProgrammationAssignmentSynchronizer
             }
         }
 
+        /*
+     * CORRECTION :
+     *
+     * Les rangs réguliers restent structurels.
+     * Les rediffusions manuelles encore compatibles sont renumérotées
+     * chronologiquement après le rang régulier maximal valide.
+     *
+     * Les Drafts destinés à être supprimés sont exclus.
+     * Les Diffusion liées sont synchronisées, même si elles sont publiées.
+     */
+        $maxRegularRank = 0;
+
+        foreach (array_keys($validExpectedRanks) as $rank) {
+            $maxRegularRank = max($maxRegularRank, (int) $rank);
+        }
+
+        $manualRebroadcasts = [];
+
+        foreach ($groupDrafts as $draft) {
+            if (
+                !$draft instanceof DiffusionDraft
+                || DiffusionDraft::TYPE_MANUAL_REBROADCAST !== $draft->getDraftType()
+            ) {
+                continue;
+            }
+
+            $startsAt = $draft->getHoraireDiffusion();
+
+            if (
+                !$startsAt instanceof \DateTimeImmutable
+                || (
+                    $lastRegularEnd instanceof \DateTimeImmutable
+                    && $startsAt < $lastRegularEnd
+                )
+            ) {
+                continue;
+            }
+
+            $manualRebroadcasts[] = $draft;
+        }
+
+        usort(
+            $manualRebroadcasts,
+            static fn(DiffusionDraft $a, DiffusionDraft $b): int =>
+            $a->getHoraireDiffusion() <=> $b->getHoraireDiffusion()
+        );
+
+        $rank = $maxRegularRank + 1;
+
+        foreach ($manualRebroadcasts as $draft) {
+            $draft->setNombreDiffusion($rank);
+
+            $publishedDiffusion = $draft->getPublishedDiffusion();
+
+            if ($publishedDiffusion instanceof Diffusion) {
+                $publishedDiffusion->setNombreDiffusion($rank);
+            }
+
+            ++$rank;
+        }
+
         return $result;
     }
+
 
     /**
      * Invalide complètement les données de travail d'un groupe futur.

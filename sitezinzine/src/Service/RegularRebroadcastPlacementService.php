@@ -55,13 +55,13 @@ class RegularRebroadcastPlacementService
         }
 
         /*
-     * Une semaine radiophonique validée ne peut pas
-     * recevoir de nouvelle affectation.
-     *
-     * La semaine commence le mardi à 00:00
-     * et se termine le mardi suivant à 00:00
-     * (borne de fin exclusive).
-     */
+        * Une semaine radiophonique validée ne peut pas
+        * recevoir de nouvelle affectation.
+        *
+        * La semaine commence le mardi à 00:00
+        * et se termine le mardi suivant à 00:00
+        * (borne de fin exclusive).
+        */
         $dayOfWeek = (int) $startsAt->format('N');
 
         $daysSinceTuesday = ($dayOfWeek + 5) % 7;
@@ -94,13 +94,15 @@ class RegularRebroadcastPlacementService
             ->findPublishedByAssignmentGroupKey($assignmentGroupKey);
 
         /*
-     * On distingue les rangs des diffusions régulières
-     * et celui de la première diffusion manuelle.
-     *
-     * Une émission ponctuelle possède un manual_special
-     * de rang 1, même si aucune diffusion régulière
-     * n'existe dans son groupe.
-     */
+        * On distingue les rangs des diffusions régulières
+        * et celui de la première diffusion manuelle.
+        *
+        * Une émission ponctuelle possède un manual_special
+        * de rang 1, même si aucune diffusion régulière
+        * n'existe dans son groupe.
+        */
+
+        $maxLinkedRebroadcastRank = 0;
         $maxRegularRank = 0;
         $maxManualInitialRank = 0;
         $hasRegularDraft = false;
@@ -111,12 +113,30 @@ class RegularRebroadcastPlacementService
                 continue;
             }
 
+            if (
+                DiffusionDraft::TYPE_MANUAL_REBROADCAST
+                === $groupDraft->getDraftType()
+            ) {
+                $linkedDiffusion = $groupDraft->getPublishedDiffusion();
+
+                if ($linkedDiffusion instanceof Diffusion) {
+                    $linkedRank = $linkedDiffusion->getNombreDiffusion();
+
+                    if (null !== $linkedRank && $linkedRank > 0) {
+                        $maxLinkedRebroadcastRank = max(
+                            $maxLinkedRebroadcastRank,
+                            $linkedRank
+                        );
+                    }
+                }
+            }
+
             /*
-         * Première diffusion d'un groupe manuel.
-         *
-         * Son rang est réservé et ne doit jamais
-         * être réattribué à une rediffusion.
-         */
+            * Première diffusion d'un groupe manuel.
+            *
+            * Son rang est réservé et ne doit jamais
+            * être réattribué à une rediffusion.
+            */
             if (
                 DiffusionDraft::TYPE_MANUAL_SPECIAL
                 === $groupDraft->getDraftType()
@@ -128,9 +148,9 @@ class RegularRebroadcastPlacementService
             }
 
             /*
-         * Les autres traitements concernent uniquement
-         * les diffusions régulières.
-         */
+            * Les autres traitements concernent uniquement
+            * les diffusions régulières.
+            */
             if (
                 DiffusionDraft::TYPE_REGULAR
                 !== $groupDraft->getDraftType()
@@ -159,12 +179,12 @@ class RegularRebroadcastPlacementService
         }
 
         /*
-     * Un groupe issu d'une règle doit toujours posséder
-     * une diffusion régulière.
-     *
-     * Une rediffusion issue d'une non-régulière peut,
-     * elle, exister sans draft regular.
-     */
+        * Un groupe issu d'une règle doit toujours posséder
+        * une diffusion régulière.
+        *
+        * Une rediffusion issue d'une non-régulière peut,
+        * elle, exister sans draft regular.
+        */
         if (
             str_starts_with($assignmentGroupKey, 'rule_')
             && !$hasRegularDraft
@@ -175,9 +195,9 @@ class RegularRebroadcastPlacementService
         }
 
         /*
-     * Pour un groupe régulier, une rediffusion ponctuelle
-     * doit être placée après la dernière diffusion régulière.
-     */
+        * Pour un groupe régulier, une rediffusion ponctuelle
+        * doit être placée après la dernière diffusion régulière.
+        */
         if (
             $hasRegularDraft
             && $lastRegularEndsAt instanceof \DateTimeImmutable
@@ -189,12 +209,12 @@ class RegularRebroadcastPlacementService
         }
 
         /*
-     * Les Diffusion publiées occupent déjà des rangs.
-     *
-     * Un DiffusionDraft possédant une publishedDiffusion
-     * représente la même occurrence et ne doit donc jamais
-     * être compté comme une occurrence supplémentaire.
-     */
+        * Les Diffusion publiées occupent déjà des rangs.
+        *
+        * Un DiffusionDraft possédant une publishedDiffusion
+        * représente la même occurrence et ne doit donc jamais
+        * être compté comme une occurrence supplémentaire.
+        */
         $maxPublishedRank = 0;
 
         foreach ($publishedDiffusions as $publishedDiffusion) {
@@ -209,21 +229,22 @@ class RegularRebroadcastPlacementService
         }
 
         /*
-     * Le rang de départ doit tenir compte :
-     *
-     * - des diffusions régulières ;
-     * - de la première diffusion manuelle ;
-     * - des diffusions déjà publiées.
-     *
-     * Exemple :
-     * manual_special = 1
-     * première rediffusion = 2
-     * deuxième rediffusion = 3
-     */
+        * Le rang de départ doit tenir compte :
+        *
+        * - des diffusions régulières ;
+        * - de la première diffusion manuelle ;
+        * - des diffusions déjà publiées.
+        *
+        * Exemple :
+        * manual_special = 1
+        * première rediffusion = 2
+        * deuxième rediffusion = 3
+        */
         $maxExistingRank = max(
             $maxRegularRank,
             $maxManualInitialRank,
-            $maxPublishedRank
+            $maxPublishedRank,
+            $maxLinkedRebroadcastRank
         );
 
         $nextRebroadcastRank = $maxExistingRank + 1;
