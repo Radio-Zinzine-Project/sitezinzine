@@ -8,6 +8,7 @@ use App\Entity\Diffusion;
 use App\Entity\Emission;
 use App\Entity\PendingRebroadcast;
 use App\Entity\DiffusionDraft;
+use App\Entity\ProgrammationRule;
 use App\Repository\DiffusionDraftRepository;
 use App\Repository\DiffusionRepository;
 use App\Repository\PendingRebroadcastRepository;
@@ -23,6 +24,11 @@ final class PendingRebroadcastService implements PendingRebroadcastPopulatorInte
         private readonly PendingRebroadcastRepository $pendingRebroadcastRepository,
         private readonly DiffusionDraftRepository $draftRepository,
     ) {}
+
+    public static function regularRuleAllowsAdditionalRebroadcast(ProgrammationRule $rule): bool
+    {
+        return !$rule->isDeleted() && $rule->hasAdditionalRebroadcast();
+    }
 
     /**
      * Crée une rediffusion en attente pour un groupe.
@@ -41,6 +47,16 @@ final class PendingRebroadcastService implements PendingRebroadcastPopulatorInte
             );
         }
 
+        if (str_starts_with($assignmentGroupKey, 'rule_')) {
+            return $this->restoreToPoolIfEligible($emission, $assignmentGroupKey)
+                ?? throw new \DomainException('Ce groupe régulier ne peut pas recevoir de rediffusion supplémentaire.');
+        }
+
+        return $this->persistForGroup($emission, $assignmentGroupKey);
+    }
+
+    private function persistForGroup(Emission $emission, string $assignmentGroupKey): PendingRebroadcast
+    {
         $pendingRebroadcast = (new PendingRebroadcast())
             ->setEmission($emission)
             ->setAssignmentGroupKey($assignmentGroupKey);
@@ -234,7 +250,8 @@ final class PendingRebroadcastService implements PendingRebroadcastPopulatorInte
 
     public function restoreToPoolIfEligible(
         Emission $emission,
-        string $assignmentGroupKey
+        string $assignmentGroupKey,
+        array $excludedDrafts = []
     ): ?PendingRebroadcast {
         if ('' === trim($assignmentGroupKey)) {
             throw new \InvalidArgumentException(
@@ -297,6 +314,12 @@ final class PendingRebroadcastService implements PendingRebroadcastPopulatorInte
             }
         }
 
+        $isRegularGroup = str_starts_with($assignmentGroupKey, 'rule_');
+
+        if ($isRegularGroup && !$this->canRestoreRegularGroup($assignmentGroupKey, $excludedDrafts)) {
+            return null;
+        }
+
         /*
      * Réutiliser le Pending actif, qu'il soit déjà en base
      * ou simplement en attente d'insertion.
@@ -311,9 +334,57 @@ final class PendingRebroadcastService implements PendingRebroadcastPopulatorInte
             }
         }
 
-        return $this->createForGroup(
+        // Une autre émission du même groupe ne doit pas recevoir une seconde proposition.
+        if ($isRegularGroup) {
+            foreach ($existingPendings as $pending) {
+                if ($pending->isPending()) {
+                    return null;
+                }
+            }
+        }
+
+        return $this->persistForGroup(
             $emission,
             $assignmentGroupKey
         );
+    }
+
+    /** @param DiffusionDraft[] $excludedDrafts Drafts retirés par l'opération courante. */
+    private function canRestoreRegularGroup(string $groupKey, array $excludedDrafts): bool
+    {
+        if (!preg_match('/^rule_([1-9][0-9]*)_origin_[0-9]{8}_[0-9]{4}$/D', $groupKey, $matches)) {
+            return false;
+        }
+
+        $rule = $this->entityManager->find(ProgrammationRule::class, (int) $matches[1]);
+
+        if (!$rule instanceof ProgrammationRule || !self::regularRuleAllowsAdditionalRebroadcast($rule)) {
+            return false;
+        }
+
+        $unitOfWork = $this->entityManager->getUnitOfWork();
+        $excludedDrafts = array_merge($excludedDrafts, $unitOfWork->getScheduledEntityDeletions());
+        $drafts = array_merge(
+            $this->draftRepository->findByAssignmentGroupKey($groupKey),
+            $unitOfWork->getScheduledEntityInsertions()
+        );
+
+        foreach ($drafts as $draft) {
+            if (
+                !$draft instanceof DiffusionDraft
+                || $draft->getAssignmentGroupKey() !== $groupKey
+                || $draft->isDeleted()
+                || DiffusionDraft::STATUS_CANCELLED === $draft->getPublicationStatus()
+                || \in_array($draft, $excludedDrafts, true)
+            ) {
+                continue;
+            }
+
+            if (DiffusionDraft::TYPE_MANUAL_REBROADCAST === $draft->getDraftType()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

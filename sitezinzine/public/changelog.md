@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.0.128] - 2026-10-28
+
+### Corrections
+- Correction de la création de rediffusions supplémentaires non autorisées pour les émissions régulières.
+- Respect strict de l'option `ProgrammationRule::hasAdditionalRebroadcast` pour l'alimentation du parc « Émissions à diffuser ».
+- Suppression des retours automatiques au parc lors du retrait ou du déplacement d'une diffusion régulière.
+- Correction de la restauration des rediffusions supplémentaires : vérification de l'autorisation et de l'absence d'une autre supplémentaire déjà placée.
+- Correction des réaffectations exceptionnelles et des transferts de pending entre émissions.
+- Empêchement de la duplication des pending réguliers.
+- Prise en compte de la désactivation de l'option sans suppression des diffusions déjà placées.
+- Préservation des groupes manuels, des pending `dismissed` et des cycles de publication/dévalidation.
+
+### Tests
+- Ajout et adaptation de tests de non-régression couvrant les différents chemins de création, restauration, suppression et réaffectation des pending réguliers.
+- Validation PHPUnit : 1 830 tests, 11 314 assertions.
+- Validation Vitest : 172 tests réussis.
+- Total : 2 002 tests réussis.
+
+### Maintenance
+- Centralisation des contrôles d'éligibilité des pending réguliers dans `PendingRebroadcastService`.
+
+
 ## [1.0.127] - 2026-10-28
 ### Ajouts
 - Ajout de tests fonctionnels couvrant l'affichage des rediffusions supplémentaires des émissions régulières dans le parc « Émissions à diffuser ».
@@ -73,7 +95,7 @@
 ### Correction
 - Correction de la publication des créneaux déplacés/annulés : les arbitrages sont désormais respectés lors de la validation de grille.
 - Correction de l’horaire réellement enregistré pour les créneaux replanifiés.
--Amélioration du parc de rediffusions : affichage de toutes les diffusions du groupe, y compris les occurrences futures planifiées.
+- Amélioration du parc de rediffusions : affichage de toutes les diffusions du groupe, y compris les occurrences futures planifiées.
 - Suppression des doublons entre Diffusion et DiffusionDraft dans l’historique des rediffusions.
 - Ajout et mise à jour des tests de régression associés.
 

@@ -205,24 +205,16 @@ class GridAssignmentService
                  * 7. SYNCHRONISER LES PENDING
                  * ==========================================================
                  *
-                 * Une rediffusion supplémentaire est autorisée si :
-                 * - la règle prévoit une rediffusion supplémentaire ;
-                 * - OU l'émission appartient à une autre catégorie.
+                 * Seule l'option de la règle autorise une proposition
+                 * supplémentaire, y compris pour une autre catégorie.
                  *
                  * Une exclusion dismissed appartient à une émission.
                  * Elle ne doit jamais être transférée ou annulée
                  * automatiquement.
                  */
 
-                $ruleCategory = $rule->getCategory();
-                $emissionCategory = $emission->getCategorie();
-
-                $isExceptionalAssignment =
-                    $ruleCategory?->getId() !== $emissionCategory?->getId();
-
                 $needsAdditionalRebroadcast =
-                    $rule->hasAdditionalRebroadcast()
-                    || $isExceptionalAssignment;
+                    PendingRebroadcastService::regularRuleAllowsAdditionalRebroadcast($rule);
 
                 $pendingRebroadcasts = $this->pendingRebroadcastRepository
                     ->findBy([

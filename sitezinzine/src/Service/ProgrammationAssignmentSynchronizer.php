@@ -324,6 +324,14 @@ final class ProgrammationAssignmentSynchronizer
             return $result;
         }
 
+        if (!PendingRebroadcastService::regularRuleAllowsAdditionalRebroadcast($rule)) {
+            foreach ($this->pendingRepository->findByAssignmentGroupKey($groupKey) as $pending) {
+                if ($pending->isPending()) {
+                    $this->entityManager->remove($pending);
+                }
+            }
+        }
+
         /*
      * L'état actif/inactif de la règle n'est volontairement pas utilisé ici.
      *
@@ -446,28 +454,6 @@ final class ProgrammationAssignmentSynchronizer
                 !\is_array($segment)
                 || !isset($validExpectedRanks[$rank])
             ) {
-                $existingPendings = $this->pendingRepository
-                    ->findByAssignmentGroupKey($groupKey);
-
-                $existingPendingForEmission = false;
-
-                foreach ($existingPendings as $existingPending) {
-                    if ($existingPending->getEmission() === $emission) {
-                        $existingPendingForEmission = true;
-                        break;
-                    }
-                }
-
-                $restoredPending = $this->pendingRebroadcastService
-                    ->restoreToPoolIfEligible($emission, $groupKey);
-
-                if (
-                    null !== $restoredPending
-                    && !$existingPendingForEmission
-                ) {
-                    ++$result['createdPendingRebroadcasts'];
-                }
-
                 ++$result['removedRegularDrafts'];
 
                 $this->entityManager->remove($regularDraft);
@@ -573,6 +559,8 @@ final class ProgrammationAssignmentSynchronizer
                     continue;
                 }
 
+                $this->entityManager->remove($draft);
+
                 $existingPendings = $this->pendingRepository
                     ->findByAssignmentGroupKey($groupKey);
 
@@ -596,8 +584,6 @@ final class ProgrammationAssignmentSynchronizer
                 }
 
                 ++$result['removedManualRebroadcasts'];
-
-                $this->entityManager->remove($draft);
             }
         }
 

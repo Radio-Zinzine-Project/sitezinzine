@@ -224,6 +224,13 @@ class PendingRebroadcastController extends AbstractController
         PendingRebroadcast $pendingRebroadcast,
         EntityManagerInterface $entityManager
     ): JsonResponse {
+        if (str_starts_with($pendingRebroadcast->getAssignmentGroupKey(), 'rule_')) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Un groupe régulier ne peut recevoir qu’une seule proposition supplémentaire.',
+            ], 409);
+        }
+
         $emission = $pendingRebroadcast->getEmission();
 
         if (!$emission instanceof Emission) {

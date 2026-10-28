@@ -575,7 +575,8 @@ class GridDraftController extends AbstractController
             if ($emission instanceof Emission) {
                 $pendingRebroadcastService->restoreToPoolIfEligible(
                     $emission,
-                    $groupKey
+                    $groupKey,
+                    $draftsToDelete
                 );
             }
         }
