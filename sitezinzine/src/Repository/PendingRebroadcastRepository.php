@@ -39,12 +39,10 @@ class PendingRebroadcastRepository extends ServiceEntityRepository
             ->innerJoin('pending.emission', 'emission')
             ->leftJoin('emission.categorie', 'category')
             ->andWhere('pending.status = :status')
-            ->andWhere('pending.assignmentGroupKey NOT LIKE :regularPrefix')
             ->setParameter(
                 'status',
                 PendingRebroadcast::STATUS_PENDING
             )
-            ->setParameter('regularPrefix', 'rule\_%')
             ->orderBy('pending.createdAt', SortDirection::Ascending)
             ->addOrderBy('pending.id', SortDirection::Ascending)
             ->getQuery()

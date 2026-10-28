@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.127] - 2026-10-28
+### Ajouts
+- Ajout de tests fonctionnels couvrant l'affichage des rediffusions supplémentaires des émissions régulières dans le parc « Émissions à diffuser ».
+- Ajout de tests de non-régression sur les réaffectations entre émissions partageant un même groupe de programmation.
+### Corrections
+- Correction de l'absence des rediffusions supplémentaires issues des règles de programmation régulières dans le parc « Émissions à diffuser ».
+- Suppression du filtre excluant les `PendingRebroadcast` associés aux groupes réguliers (`rule_*`).
+- Affichage de tous les pending actifs, réguliers ou ponctuels, tout en conservant l'exclusion des pending au statut `dismissed`.
+- Correction des doublons dans le tooltip « Diffusions du groupe » lors de la réaffectation d'une émission.
+- Filtrage des `Diffusion` et `DiffusionDraft` par émission et par `assignmentGroupKey` pour éviter le mélange des passages de différentes émissions.
+- Correction de l'affichage des drafts liés à une ancienne diffusion dévalidée d'une autre émission.
+- Préservation des diffusions historiques et de la priorité des horaires publiés, sans modification du cycle de publication et de dévalidation.
+
+
 ## [1.0.126] - 2026-10-27
 ### Ajouts
 - Infobulles affichant les 6 dernières diffusions publiées sur les émissions régulières et ponctuelles.
@@ -27,7 +41,6 @@
 - Conservation des bordures pointillées pour les créneaux non affectés.
 - Fond de la grille maintenu en blanc pour mieux distinguer les tranches horaires.
 - Amélioration de la lisibilité à l'impression en noir et blanc.
-
 
 
 ## [1.0.125] - 2026-10-25

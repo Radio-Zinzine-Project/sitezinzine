@@ -69,6 +69,10 @@ class PendingRebroadcastController extends AbstractController
                         $assignmentGroupKey
                     ) as $diffusion
                 ) {
+                    if ($diffusion->getEmission()?->getId() !== $emission->getId()) {
+                        continue;
+                    }
+
                     $horaire = $diffusion->getHoraireDiffusion();
 
                     if (!$horaire instanceof \DateTimeInterface) {
@@ -94,7 +98,11 @@ class PendingRebroadcastController extends AbstractController
                         $assignmentGroupKey
                     ) as $draft
                 ) {
-                    if ($draft->isDeleted() || !$draft->isDraft()) {
+                    if (
+                        $draft->isDeleted()
+                        || !$draft->isDraft()
+                        || $draft->getEmission()?->getId() !== $emission->getId()
+                    ) {
                         continue;
                     }
 
@@ -106,7 +114,12 @@ class PendingRebroadcastController extends AbstractController
 
                     $publishedDiffusion = $draft->getPublishedDiffusion();
 
-                    if (null !== $publishedDiffusion) {
+                    // Un lien vers une ancienne émission ne représente pas
+                    // le passage actuel du draft de cette émission.
+                    if (
+                        null !== $publishedDiffusion
+                        && $publishedDiffusion->getEmission()?->getId() === $emission->getId()
+                    ) {
                         $diffusionId = $publishedDiffusion->getId();
 
                         // On ne remplace que les diffusions dévalidées
