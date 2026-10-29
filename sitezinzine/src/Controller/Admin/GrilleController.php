@@ -1241,7 +1241,8 @@ class GrilleController extends AbstractController
         ProgrammationRuleSlotRepository $slotRepository,
         GridSlotArbitrationRepository $gridSlotArbitrationRepository,
         EntityManagerInterface $em,
-        ProgrammationGridBuilder $programmationGridBuilder
+        ProgrammationGridBuilder $programmationGridBuilder,
+        GridAssignmentService $assignmentService
     ): JsonResponse {
         $slotId = $request->request->get('slotId');
         $startsAt = $request->request->get('startsAt');
@@ -1307,54 +1308,67 @@ class GrilleController extends AbstractController
             $slotsToCancel = $slotRepository->findActiveByRule($rule);
         }
 
-        $cancelledCount = 0;
+        $cancelledCount = $em->wrapInTransaction(function () use (
+            $slotsToCancel, $slot, $originalStartsAt, $anchorWeekStart,
+            $programmationGridBuilder, $gridSlotArbitrationRepository,
+            $arbitrationGroupKey, $rebroadcastStrategy, $assignmentService, $em
+        ): int {
+            $cancelledCount = 0;
 
-        foreach ($slotsToCancel as $slotToCancel) {
-            if (!$slotToCancel instanceof ProgrammationRuleSlot) {
-                continue;
+            $assignmentService->removeCancelledOccurrenceInCurrentUnitOfWork(
+                $slot,
+                $originalStartsAt,
+                1 === (int) ($slot->getBroadcastRank() ?? 1)
+                    && \in_array($rebroadcastStrategy, ['cancel', 'move'], true)
+            );
+
+            foreach ($slotsToCancel as $slotToCancel) {
+                if (!$slotToCancel instanceof ProgrammationRuleSlot) {
+                    continue;
+                }
+
+                if ($slotToCancel->isDeleted() || !$slotToCancel->isActive()) {
+                    continue;
+                }
+
+                $linkedStartsAt = $slotToCancel === $slot
+                    ? $originalStartsAt
+                    : $this->buildStartsAtForLinkedSlot($slotToCancel, $anchorWeekStart);
+
+                if (!$this->occurrenceExistsForSlot($slotToCancel, $linkedStartsAt, $programmationGridBuilder)) {
+                    continue;
+                }
+
+                $duration = $slotToCancel->getDurationMinutes() ?? 15;
+
+                if ($duration <= 0) {
+                    $duration = 15;
+                }
+
+                $linkedEndsAt = $linkedStartsAt->modify(sprintf('+%d minutes', $duration));
+
+                $arbitration = $gridSlotArbitrationRepository->findOneActiveForOccurrence($slotToCancel, $linkedStartsAt)
+                    ?? new GridSlotArbitration();
+
+                $arbitration
+                    ->setSlot($slotToCancel)
+                    ->setOriginalStartsAt($linkedStartsAt)
+                    ->setOriginalEndsAt($linkedEndsAt)
+                    ->setType(GridSlotArbitration::TYPE_CALENDAR_ADJUSTMENT)
+                    ->setAction(GridSlotArbitration::ACTION_CANCEL)
+                    ->setRescheduledStartsAt(null)
+                    ->setRescheduledEndsAt(null)
+                    ->setStatus(GridSlotArbitration::STATUS_RESOLVED)
+                    ->setArbitrationGroupKey($arbitrationGroupKey);
+
+                $arbitration->markResolved();
+
+                $em->persist($arbitration);
+                $cancelledCount++;
             }
 
-            if ($slotToCancel->isDeleted() || !$slotToCancel->isActive()) {
-                continue;
-            }
-
-            $linkedStartsAt = $slotToCancel === $slot
-                ? $originalStartsAt
-                : $this->buildStartsAtForLinkedSlot($slotToCancel, $anchorWeekStart);
-
-            if (!$this->occurrenceExistsForSlot($slotToCancel, $linkedStartsAt, $programmationGridBuilder)) {
-                continue;
-            }
-
-            $duration = $slotToCancel->getDurationMinutes() ?? 15;
-
-            if ($duration <= 0) {
-                $duration = 15;
-            }
-
-            $linkedEndsAt = $linkedStartsAt->modify(sprintf('+%d minutes', $duration));
-
-            $arbitration = $gridSlotArbitrationRepository->findOneActiveForOccurrence($slotToCancel, $linkedStartsAt)
-                ?? new GridSlotArbitration();
-
-            $arbitration
-                ->setSlot($slotToCancel)
-                ->setOriginalStartsAt($linkedStartsAt)
-                ->setOriginalEndsAt($linkedEndsAt)
-                ->setType(GridSlotArbitration::TYPE_CALENDAR_ADJUSTMENT)
-                ->setAction(GridSlotArbitration::ACTION_CANCEL)
-                ->setRescheduledStartsAt(null)
-                ->setRescheduledEndsAt(null)
-                ->setStatus(GridSlotArbitration::STATUS_RESOLVED)
-                ->setArbitrationGroupKey($arbitrationGroupKey);
-
-            $arbitration->markResolved();
-
-            $em->persist($arbitration);
-            $cancelledCount++;
-        }
-
-        $em->flush();
+            return $cancelledCount;
+        });
 
         return $this->json([
             'success' => true,

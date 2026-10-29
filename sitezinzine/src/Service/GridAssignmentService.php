@@ -338,6 +338,52 @@ class GridAssignmentService
         );
     }
 
+    /**
+     * Retire les affectations d'une occurrence sans modifier les rangs des slots.
+     * L'appelant possède la transaction et le flush des arbitrages associés.
+     */
+    public function removeCancelledOccurrenceInCurrentUnitOfWork(
+        ProgrammationRuleSlot $slot,
+        \DateTimeImmutable $startsAt,
+        bool $removeGroup
+    ): void {
+        $draft = $this->draftRepository->findOneRegularBySlotAndHoraire($slot, $startsAt);
+        if (!$draft instanceof DiffusionDraft) {
+            return;
+        }
+
+        $groupKey = $draft->getAssignmentGroupKey();
+        $drafts = $groupKey ? $this->draftRepository->findByAssignmentGroupKey($groupKey) : [$draft];
+        $survivors = [];
+        foreach ($drafts as $member) {
+            if ($removeGroup || $member === $draft) {
+                // Conserver l'historique, mais ne plus présenter le passage annulé
+                // comme publié. Le lien doit être traité avant le retrait du Draft.
+                $member->getPublishedDiffusion()?->markAsUnpublished();
+                $this->em->remove($member);
+            } else {
+                $survivors[] = $member;
+            }
+        }
+
+        usort($survivors, static fn(DiffusionDraft $a, DiffusionDraft $b): int =>
+            ($a->getHoraireDiffusion() <=> $b->getHoraireDiffusion())
+            ?: ($a->getId() <=> $b->getId())
+        );
+        foreach ($survivors as $index => $member) {
+            $member->setNombreDiffusion($index + 1);
+            $member->getPublishedDiffusion()?->setNombreDiffusion($index + 1);
+        }
+
+        if ($groupKey && ([] === $survivors || !PendingRebroadcastService::regularRuleAllowsAdditionalRebroadcast($slot->getRule()))) {
+            foreach ($this->pendingRebroadcastRepository->findByAssignmentGroupKey($groupKey) as $pending) {
+                if ($pending->isPending()) {
+                    $this->em->remove($pending);
+                }
+            }
+        }
+    }
+
     public function remove(
         ProgrammationRuleSlot $slot,
         \DateTimeImmutable $selectedDate

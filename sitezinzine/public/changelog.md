@@ -1,7 +1,25 @@
 # Changelog
 
-## [1.0.128] - 2026-10-28
+## [1.0.129] - 2026-10-29
 
+### Corrections
+- Correction de l'annulation d'un créneau contenant une émission affectée : retrait automatique de l'affectation et mise à jour du parc « Émissions à diffuser ».
+- Suppression des `PendingRebroadcast` actifs devenus inéligibles lors de l'annulation d'un créneau.
+- Correction de l'annulation de la première diffusion (R1) avec prise en compte des stratégies `keep` et `cancel`.
+- Conservation des rediffusions restantes avec renumérotation chronologique (R2 → R1, R3 → R2), sans modification de leurs horaires.
+- Correction de l'annulation isolée d'une rediffusion, sans suppression des autres passages du groupe.
+- Prise en charge des annulations sur les grilles passées et déjà publiées.
+- Passage des diffusions annulées au statut `unpublished`, tout en préservant leurs identifiants et leur historique.
+- Correction de la restauration des créneaux annulés afin d'éviter la réapparition automatique des émissions précédemment retirées.
+- Sécurisation des opérations d'annulation dans une transaction Doctrine avec rollback en cas d'échec.
+- Préservation des rangs structurels des `ProgrammationRuleSlot` et des cycles de publication/dévalidation.
+### Tests
+- Ajout de 16 tests fonctionnels couvrant l'annulation des créneaux affectés, la renumérotation, les diffusions publiées, les annulations historiques et l'atomicité.
+- Adaptation des tests du contrôleur aux nouvelles dépendances et au traitement transactionnel.
+- Validation PHPUnit : 1 846 tests, 11 685 assertions, aucun échec.
+
+
+## [1.0.128] - 2026-10-28
 ### Corrections
 - Correction de la création de rediffusions supplémentaires non autorisées pour les émissions régulières.
 - Respect strict de l'option `ProgrammationRule::hasAdditionalRebroadcast` pour l'alimentation du parc « Émissions à diffuser ».
@@ -11,13 +29,11 @@
 - Empêchement de la duplication des pending réguliers.
 - Prise en compte de la désactivation de l'option sans suppression des diffusions déjà placées.
 - Préservation des groupes manuels, des pending `dismissed` et des cycles de publication/dévalidation.
-
 ### Tests
 - Ajout et adaptation de tests de non-régression couvrant les différents chemins de création, restauration, suppression et réaffectation des pending réguliers.
 - Validation PHPUnit : 1 830 tests, 11 314 assertions.
 - Validation Vitest : 172 tests réussis.
 - Total : 2 002 tests réussis.
-
 ### Maintenance
 - Centralisation des contrôles d'éligibilité des pending réguliers dans `PendingRebroadcastService`.
 
