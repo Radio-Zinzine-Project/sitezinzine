@@ -6,3 +6,5 @@ compose_old.yaml merge=ours
 READMEold.md merge=ours
 test.log merge=ours
 .phpunit.result.cache merge=ours
+# Normalisation des fins de ligne PHP
+*.php text eol=lf

@@ -175,7 +175,7 @@ describe('Sélection et données de la sidebar', () => {
 
         expect(
             ctx.loadLinkedDiffusions
-        ).not.toHaveBeenCalled()
+        ).toHaveBeenCalledOnce()
 
         expect(
             ctx.loadCandidatesForSelectedPostit
@@ -254,4 +254,134 @@ describe('Sélection et données de la sidebar', () => {
             ).not.toBeNull()
         }
     )
+})
+
+// Contrat de consultation : le serveur résout les occurrences et leurs liens.
+// Le navigateur affiche chaque item, sans rapprochement heuristique supplémentaire.
+function consultationContext(readonly = false) {
+    const ctx = selectionContext(readonly)
+    Object.assign(ctx, {
+        specialEmptyStateTarget: element(), specialSidebarPanelTarget: element(),
+        specialSlotSummaryTarget: element(), escapeHtml: value => String(value ?? ''),
+        getStatusLabel: sidebar.getStatusLabel,
+        buildProjectionSummary: () => '', buildConflictSummary: () => '',
+    })
+    ctx.buildSlotSummary = (postit, title) => sidebar.buildSlotSummary(ctx, postit, title)
+    ctx.buildSpecialSlotSummary = postit => sidebar.buildSpecialSlotSummary(ctx, postit)
+    ctx.loadLinkedDiffusions = vi.fn(() => sidebar.loadLinkedDiffusions.call(ctx))
+    return ctx
+}
+
+const distinctOccurrences = [
+    { draftId: 751, diffusionId: null, label: 'Draft seul', startsAt: '2026-10-11 22:00:00' },
+    { draftId: null, diffusionId: 1867257, label: 'Diffusion seule', startsAt: '2026-10-11 22:00:00' },
+    { draftId: 752, diffusionId: 1867483, label: 'Paire liée', startsAt: '2026-11-04 14:00:00' },
+]
+
+describe('Consultation exhaustive du groupe depuis la sidebar (RED)', () => {
+    test.each([
+        ['régulière non validée', false, false],
+        ['régulière validée', false, true],
+        ['manuelle non validée', true, false],
+        ['manuelle validée', true, true],
+    ])('%s : ouvre, consulte et termine le chargement', async (_name, manual, published) => {
+        const ctx = consultationContext(published)
+        const postit = element({
+            ...(published ? { diffusionId: '42' } : { draftId: '42' }),
+            isManualDraft: String(manual),
+            draftType: published ? 'validated_diffusion' : (manual ? 'manual_special' : 'regular'),
+            assignedEmissionTitle: 'Émission du groupe', assignmentGroupKey: 'groupe_test',
+        })
+        const request = deferred()
+        fetch.mockReturnValue(request.promise)
+        const selection = sidebar.selectSlot(ctx, { currentTarget: postit })
+        const panel = manual ? ctx.specialSidebarPanelTarget : ctx.sidebarPanelTarget
+        const summary = manual ? ctx.specialSlotSummaryTarget : ctx.slotSummaryTarget
+
+        expect(panel.style.display).toBe('block')
+        expect(postit.classList.contains('is-selected')).toBe(true)
+        expect.soft(fetch).toHaveBeenCalledOnce()
+        expect.soft(summary.textContent).toContain('Chargement des diffusions liées')
+        request.resolve(jsonResponse({ success: true, assignmentGroupKey: 'groupe_test', items: distinctOccurrences }))
+        await selection
+
+        expect.soft(summary.textContent).not.toContain('Chargement')
+        expect.soft(summary.querySelectorAll('.linked-diffusions small')).toHaveLength(3)
+        for (const item of distinctOccurrences) {
+            expect.soft(Array.from(summary.querySelectorAll('.linked-diffusions strong'))
+                .filter(node => node.textContent === item.label)).toHaveLength(1)
+        }
+        if (fetch.mock.calls.length) {
+            const url = String(fetch.mock.calls[0][0])
+            expect(url).toContain('42')
+            if (published) expect(url).toBe('/admin/diffusions/42/group')
+            else expect(url).toBe('/admin/grid-drafts/42/group')
+        }
+        if (published) expect(ctx.loadCandidatesForSelectedPostit).not.toHaveBeenCalled()
+    })
+
+    test('deux sources sans relation et de même ID numérique gardent une identité HTTP différente', async () => {
+        fetch.mockImplementation(async () => jsonResponse({ success: true, items: distinctOccurrences }))
+        const ctx = consultationContext(true)
+        for (const identity of [{ draftId: '42' }, { diffusionId: '42' }]) {
+            await sidebar.selectSlot(ctx, {
+                currentTarget: element({ ...identity, assignedEmissionTitle: 'Source' }),
+            })
+        }
+        expect(fetch).toHaveBeenCalledTimes(2)
+        const urls = fetch.mock.calls.map(([url]) => String(url))
+        expect(urls[0]).toBe('/admin/grid-drafts/42/group')
+        expect(urls[1]).toBe('/admin/diffusions/42/group')
+    })
+
+    test('première diffusion et rediffusion du même groupe affichent les mêmes trois occurrences', async () => {
+        fetch.mockImplementation(async () => jsonResponse({ success: true, assignmentGroupKey: 'groupe_test', items: distinctOccurrences }))
+        const ctx = consultationContext(true)
+        const contents = []
+        for (const draftId of ['751', '752']) {
+            await sidebar.selectSlot(ctx, { currentTarget: element({ draftId, assignedEmissionTitle: 'Émission' }) })
+            contents.push(ctx.slotSummaryTarget.querySelector('.linked-diffusions').textContent)
+        }
+        expect(fetch.mock.calls.map(([url]) => url)).toEqual([
+            '/admin/grid-drafts/751/group', '/admin/grid-drafts/752/group',
+        ])
+        expect(contents[0]).toBe(contents[1])
+        expect(ctx.slotSummaryTarget.querySelectorAll('.linked-diffusions small')).toHaveLength(3)
+    })
+
+    test.each([
+        ['groupe vide', () => jsonResponse({ success: true, items: [] }), false],
+        ['groupe introuvable', () => ({ ...jsonResponse({ success: false, error: 'Introuvable', items: [] }, false), status: 404 }), true],
+        ['erreur HTTP', () => ({ ...jsonResponse({ error: 'Erreur serveur' }, false), status: 500 }), true],
+        ['JSON invalide', () => ({ ok: true, json: async () => { throw new SyntaxError('JSON invalide') } }), true],
+        ['success false', () => jsonResponse({ success: false, error: 'Consultation refusée', items: [] }), true],
+        ['erreur réseau', () => Promise.reject(new TypeError('Réseau indisponible')), true],
+    ])('%s : termine le chargement et distingue erreur et absence de résultat', async (_name, response, error) => {
+        fetch.mockImplementation(async () => response())
+        const ctx = consultationContext(true)
+        await sidebar.selectSlot(ctx, { currentTarget: element({ draftId: '12', assignedEmissionTitle: 'Émission' }) })
+        const root = ctx.slotSummaryTarget.querySelector('.linked-diffusions')
+        expect(root.textContent).not.toContain('Chargement')
+        if (error) expect(root.textContent).toMatch(/impossible|erreur|introuvable|refusée/i)
+        else expect(root.querySelectorAll('small')).toHaveLength(0)
+    })
+
+    test('une réponse tardive ne remplace ni la liste ni la clé de la nouvelle sélection', async () => {
+        const first = deferred()
+        fetch.mockReturnValueOnce(first.promise).mockResolvedValueOnce(jsonResponse({
+            success: true, assignmentGroupKey: 'nouveau', items: distinctOccurrences,
+        }))
+        const ctx = consultationContext(true)
+        const oldPostit = element({ draftId: '12', assignedEmissionTitle: 'Ancienne' })
+        const newPostit = element({ draftId: '13', assignedEmissionTitle: 'Nouvelle' })
+        const oldSelection = sidebar.selectSlot(ctx, { currentTarget: oldPostit })
+        await sidebar.selectSlot(ctx, { currentTarget: newPostit })
+        const newHtml = ctx.slotSummaryTarget.innerHTML
+        first.resolve(jsonResponse({ success: true, assignmentGroupKey: 'ancien', items: [{ label: 'Obsolète' }] }))
+        await oldSelection
+        expect(ctx.slotSummaryTarget.innerHTML).toBe(newHtml)
+        expect(newPostit.dataset.assignmentGroupKey).toBe('nouveau')
+        expect(ctx.slotSummaryTarget.textContent).not.toContain('Chargement')
+        expect(ctx.slotSummaryTarget.querySelectorAll('.linked-diffusions small')).toHaveLength(3)
+    })
 })

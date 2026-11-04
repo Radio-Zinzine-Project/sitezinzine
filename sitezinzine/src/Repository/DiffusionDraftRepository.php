@@ -66,6 +66,20 @@ class DiffusionDraftRepository extends ServiceEntityRepository
         return $qb->getQuery()->getResult();
     }
 
+    /** @return DiffusionDraft[] */
+    public function findActiveForGroupConsultation(string $assignmentGroupKey): array
+    {
+        return $this->createQueryBuilder('d')
+            ->addSelect('publishedDiffusion')
+            ->leftJoin('d.publishedDiffusion', 'publishedDiffusion')
+            ->andWhere('d.assignmentGroupKey = :groupKey')
+            ->andWhere('d.deletedAt IS NULL')
+            ->setParameter('groupKey', $assignmentGroupKey)
+            ->orderBy('d.horaireDiffusion', SortDirection::Ascending)
+            ->addOrderBy('d.id', SortDirection::Ascending)
+            ->getQuery()->getResult();
+    }
+
     public function findByAssignmentGroupKey(string $assignmentGroupKey): array
     {
         return $this->createQueryBuilder('d')

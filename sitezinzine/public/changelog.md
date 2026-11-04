@@ -1,9 +1,17 @@
 # Changelog
 
-## [1.0.129] - 2026-10-xx
+
+## [1.0.130] - 2026-11-04
+
 ### Ajout
 - Ajout de tests fonctionnels pour vérifier l'affichage des erreurs globales des formulaires de programmation.
 - Ajout de tests de non-régression pour la synchronisation des groupes historiques complets et incomplets, ainsi que des groupes futurs.
+- Ajout du service `GridGroupConsultation` pour centraliser la consultation des diffusions liées à un même groupe d'affectation.
+- Ajout de la route `/admin/diffusions/{diffusionId}/group` pour consulter les diffusions liées depuis une grille validée.
+- Ajout de tests de non-régression PHPUnit et Vitest couvrant les différents états des grilles, les identifiants Draft/Diffusion et la suppression des doublons.
+- Réintégration au suivi Git des tests PHPUnit précédemment ignorés, ainsi que de leurs fixtures.
+- Ajout d'une règle `.gitattributes` pour normaliser les fins de ligne des fichiers PHP en LF.
+
 ### Corrections
 - Correction d'une erreur HTTP 500 lors de la modification d'une règle de programmation contenant un groupe historique sans Draft de rang 1.
 - Correction de `ProgrammationAssignmentSynchronizer` pour identifier les groupes historiques avant de vérifier la présence d'une première diffusion.
@@ -11,7 +19,23 @@
 - Maintien de la détection des groupes futurs incomplets et des contrôles de synchronisation.
 - Correction de l'affichage des erreurs globales Symfony et CSRF dans les formulaires de règles et de créneaux.
 - Amélioration de l'accessibilité des messages d'erreur avec `role="alert"`, sans duplication des erreurs de champs.
-- Validation du correctif par 130 tests et 872 assertions, ainsi que par une vérification manuelle sur une copie locale de la préproduction.
+- Correction du chargement infini des diffusions liées dans la sidebar pour les émissions régulières et non régulières, sur les grilles validées et non validées.
+- Distinction des identifiants `draftId` et `diffusionId` afin d'interroger la route adaptée à l'état de la grille.
+- Consultation unifiée des occurrences appartenant au même `assignmentGroupKey`, quel que soit leur état de publication.
+- Suppression des doublons entre `DiffusionDraft` et `Diffusion` lorsqu'ils représentent une même occurrence explicitement liée.
+- Exclusion des Drafts supprimés logiquement, tout en conservant la visibilité de leurs Diffusions associées.
+- Amélioration de la gestion des erreurs lors du chargement des diffusions liées.
+- Correction du `.gitignore` afin que les nouveaux tests PHPUnit puissent être versionnés sans ajout d'exceptions individuelles.
+- Normalisation des fins de ligne des nouveaux tests PHP et correction des espaces superflus détectés.
+
+### Tests et validation
+- Validation du correctif de synchronisation par 130 tests et 872 assertions, ainsi que par une vérification manuelle sur une copie locale de la préproduction.
+- Validation du correctif de la sidebar par 187 tests Vitest et 389 tests PHPUnit (3 040 assertions).
+- Compilation Webpack réussie.
+- Vérification manuelle des quatre scénarios : émissions régulières et non régulières, grilles validées et non validées.
+- Vérification de l'absence de doublons dans l'affichage des diffusions liées.
+
+
 
 ## [1.0.129] - 2026-10-29
 ### Correctionss

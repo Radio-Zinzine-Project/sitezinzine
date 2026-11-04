@@ -16,6 +16,7 @@ use App\Repository\DiffusionRepository;
 use App\Service\LiveEmissionCreator;
 use App\Service\GridPlacementConflictService;
 use App\Service\PendingRebroadcastService;
+use App\Service\GridGroupConsultation;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -1345,11 +1346,12 @@ class GridDraftController extends AbstractController
     #[Route('/{draftId}/group', name: 'group', methods: ['GET'])]
     public function group(
         int $draftId,
-        DiffusionDraftRepository $draftRepository
+        DiffusionDraftRepository $draftRepository,
+        GridGroupConsultation $consultation
     ): JsonResponse {
         $draft = $draftRepository->find($draftId);
 
-        if (!$draft instanceof DiffusionDraft) {
+        if (!$draft instanceof DiffusionDraft || $draft->isDeleted()) {
             return $this->json([
                 'success' => false,
                 'error' => 'Draft introuvable.',
@@ -1357,47 +1359,7 @@ class GridDraftController extends AbstractController
             ], 404);
         }
 
-        $groupKey = $draft->getAssignmentGroupKey();
-
-        if (!$groupKey) {
-            return $this->json([
-                'success' => true,
-                'assignmentGroupKey' => null,
-                'items' => [[
-                    'id' => $draft->getId(),
-                    'label' => $this->buildDraftGroupLabel($draft),
-                    'draftType' => $draft->getDraftType(),
-                    'nombreDiffusion' => $draft->getNombreDiffusion(),
-                    'startsAt' => $draft->getHoraireDiffusion()?->format('Y-m-d H:i:s'),
-                    'endsAt' => $draft->getEndsAt()?->format('Y-m-d H:i:s'),
-                ]],
-            ]);
-        }
-
-        $groupDrafts = $draftRepository->findBy(
-            ['assignmentGroupKey' => $groupKey],
-            ['horaireDiffusion' => 'ASC']
-        );
-
-        $items = [];
-
-        foreach ($groupDrafts as $item) {
-
-            $items[] = [
-                'id' => $item->getId(),
-                'label' => $this->buildDraftGroupLabel($item),
-                'draftType' => $item->getDraftType(),
-                'nombreDiffusion' => $item->getNombreDiffusion(),
-                'startsAt' => $item->getHoraireDiffusion()?->format('Y-m-d H:i:s'),
-                'endsAt' => $item->getEndsAt()?->format('Y-m-d H:i:s'),
-            ];
-        }
-
-        return $this->json([
-            'success' => true,
-            'assignmentGroupKey' => $groupKey,
-            'items' => $items,
-        ]);
+        return $this->json($consultation->consult($draft));
     }
 
     private function buildDraftGroupLabel(DiffusionDraft $draft): string
