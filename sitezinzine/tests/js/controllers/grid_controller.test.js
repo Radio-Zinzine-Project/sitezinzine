@@ -25,6 +25,29 @@ function gridMarkup(readonly = false) {
 }
 
 describe('Grille avec un vrai cycle Stimulus', () => {
+    test('changer la valeur Stimulus de semaine recharge le parc ouvert une seule fois', async () => {
+        fetch.mockImplementation(async () => jsonResponse({ success: true, count: 0, items: [] }))
+        const markup = gridMarkup().replace('<div class="day-col"', `
+            <button data-grid-target="pendingRebroadcastToggle"></button>
+            <span data-grid-target="pendingRebroadcastCount"></span>
+            <section data-grid-target="pendingRebroadcastPanel" hidden>
+                <div data-grid-target="pendingRebroadcastStatus"></div>
+                <div data-grid-target="pendingRebroadcastList"></div>
+            </section><div class="day-col"`)
+        const { controller } = await mountController('grid', GridController, markup)
+        await controller.togglePendingRebroadcastPool()
+        controller.weekStartValue = '2026-10-13'
+        await flushDom()
+        expect(fetch.mock.calls.map(([url]) => url)).toEqual([
+            '/admin/pending-rebroadcasts?weekStart=2026-10-06',
+            '/admin/pending-rebroadcasts?weekStart=2026-10-13',
+        ])
+        expect(controller.pendingRebroadcastLoadedWeek).toBe('2026-10-13')
+        await controller.togglePendingRebroadcastPool()
+        await controller.togglePendingRebroadcastPool()
+        expect(fetch).toHaveBeenCalledTimes(2)
+    })
+
     test('readonly désactive le drag & drop au connect et bloque les mutations publiques', async () => {
         const { controller, root } = await mountController('grid', GridController, gridMarkup(true))
         const postit = root.querySelector('.postit'); const day = root.querySelector('.day-col')

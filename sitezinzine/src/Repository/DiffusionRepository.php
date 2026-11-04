@@ -246,6 +246,19 @@ class DiffusionRepository extends ServiceEntityRepository
      *
      * @return Diffusion[]
      */
+    public function findForPoolByGroupKeys(array $groupKeys): array
+    {
+        if ($groupKeys === []) {
+            return [];
+        }
+        return $this->createQueryBuilder('d')
+            ->andWhere('d.assignmentGroupKey IN (:keys)')->setParameter('keys', $groupKeys)
+            ->orderBy('d.horaireDiffusion', SortDirection::Ascending)
+            ->addOrderBy('d.id', SortDirection::Ascending)
+            ->getQuery()->getResult();
+    }
+
+    /** @return Diffusion[] */
     public function findByAssignmentGroupKey(
         string $assignmentGroupKey
     ): array {

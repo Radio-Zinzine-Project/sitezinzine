@@ -15,7 +15,7 @@ export async function togglePendingRebroadcastPool() {
     panel.hidden = false
     this.updatePendingRebroadcastToggle(true)
 
-    if (!this.pendingRebroadcastLoaded) {
+    if (!this.pendingRebroadcastLoaded || this.pendingRebroadcastLoadedWeek !== (this.weekStartValue || '')) {
         await this.loadPendingRebroadcasts()
     }
 }
@@ -46,14 +46,28 @@ export async function loadPendingRebroadcasts() {
         return
     }
 
+    const week = this.weekStartValue || ''
+    if (this.pendingRebroadcastRequest?.week === week) {
+        return this.pendingRebroadcastRequest.promise
+    }
+    const request = { week }
+    this.pendingRebroadcastRequest = request
+    request.promise = fetchPendingRebroadcasts.call(this, request)
+    return request.promise
+}
+
+async function fetchPendingRebroadcasts(request) {
+    const { week } = request
     const list = this.pendingRebroadcastListTarget
     const status = this.pendingRebroadcastStatusTarget
-
     status.textContent = 'Chargement du parc…'
     list.innerHTML = ''
 
     try {
-        const response = await fetch('/admin/pending-rebroadcasts', {
+        const url = week
+            ? `/admin/pending-rebroadcasts?${new URLSearchParams({ weekStart: week })}`
+            : '/admin/pending-rebroadcasts'
+        const response = await fetch(url, {
             method: 'GET',
             headers: {
                 Accept: 'application/json'
@@ -78,12 +92,17 @@ export async function loadPendingRebroadcasts() {
             )
         }
 
+        if (this.pendingRebroadcastRequest !== request || (this.weekStartValue || '') !== week) {
+            return
+        }
+
         const items = Array.isArray(data.items)
             ? data.items
             : []
 
         this.pendingRebroadcastItems = items
         this.pendingRebroadcastLoaded = true
+        this.pendingRebroadcastLoadedWeek = week
 
         this.updatePendingRebroadcastCount(
             Number.isInteger(data.count)
@@ -93,6 +112,9 @@ export async function loadPendingRebroadcasts() {
 
         this.renderPendingRebroadcasts()
     } catch (error) {
+        if (this.pendingRebroadcastRequest !== request || (this.weekStartValue || '') !== week) {
+            return
+        }
         console.error(
             'Erreur pendant le chargement du parc à rediff :',
             error
@@ -100,6 +122,7 @@ export async function loadPendingRebroadcasts() {
 
         this.pendingRebroadcastItems = []
         this.pendingRebroadcastLoaded = false
+        this.pendingRebroadcastLoadedWeek = null
 
         status.textContent = error instanceof Error
             ? error.message
@@ -118,13 +141,31 @@ export async function loadPendingRebroadcasts() {
         </button>
       </div>
     `
+    } finally {
+        if (this.pendingRebroadcastRequest === request) {
+            this.pendingRebroadcastRequest = null
+        }
     }
 }
 
 export async function reloadPendingRebroadcasts() {
     this.pendingRebroadcastLoaded = false
+    this.pendingRebroadcastLoadedWeek = null
+    this.pendingRebroadcastRequest = null
 
     await this.loadPendingRebroadcasts()
+}
+
+export async function pendingRebroadcastWeekChanged() {
+    this.pendingRebroadcastLoaded = false
+    this.pendingRebroadcastLoadedWeek = null
+    this.pendingRebroadcastRequest = null
+    this.pendingRebroadcastItems = []
+    this.updatePendingRebroadcastCount(0)
+    this.renderPendingRebroadcasts()
+    if (this.hasPendingRebroadcastPanelTarget && !this.pendingRebroadcastPanelTarget.hidden) {
+        await this.loadPendingRebroadcasts()
+    }
 }
 
 export function searchPendingRebroadcasts() {

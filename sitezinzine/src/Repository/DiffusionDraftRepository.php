@@ -80,6 +80,26 @@ class DiffusionDraftRepository extends ServiceEntityRepository
             ->getQuery()->getResult();
     }
 
+    /**
+     * Inclut les suppressions logiques pour identifier les Diffusions liées,
+     * sans réintroduire ces Drafts dans le calendrier ni dans l'historique affiché.
+     * @return DiffusionDraft[]
+     */
+    public function findForPoolByGroupKeys(array $groupKeys): array
+    {
+        if ($groupKeys === []) {
+            return [];
+        }
+        return $this->createQueryBuilder('d')
+            ->addSelect('publishedDiffusion', 'slot')
+            ->leftJoin('d.publishedDiffusion', 'publishedDiffusion')
+            ->leftJoin('d.slot', 'slot')
+            ->andWhere('d.assignmentGroupKey IN (:keys)')->setParameter('keys', $groupKeys)
+            ->orderBy('d.horaireDiffusion', SortDirection::Ascending)
+            ->addOrderBy('d.id', SortDirection::Ascending)
+            ->getQuery()->getResult();
+    }
+
     public function findByAssignmentGroupKey(string $assignmentGroupKey): array
     {
         return $this->createQueryBuilder('d')

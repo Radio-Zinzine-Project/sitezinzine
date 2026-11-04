@@ -3,7 +3,7 @@ import * as pool from '../../../../assets/controllers/grid/pendingRebroadcasts'
 import { escapeHtml } from '../../../../assets/controllers/grid/utils'
 import { element, jsonResponse, mockNavigation, deferred } from '../../support/dom'
 
-function poolContext(readonly = false) {
+function poolContext(readonly = false, weekStart = '') {
     const ctx = {
         hasPendingRebroadcastListTarget: true, hasPendingRebroadcastStatusTarget: true,
         hasPendingRebroadcastSearchTarget: true, hasPendingRebroadcastCountTarget: true,
@@ -12,10 +12,11 @@ function poolContext(readonly = false) {
         pendingRebroadcastSearchTarget: element({}, 'input'), pendingRebroadcastCountTarget: element(),
         pendingRebroadcastPanelTarget: element(), pendingRebroadcastToggleTarget: element({}, 'button'),
         pendingRebroadcastItems: [], pendingRebroadcastLoaded: false,
+        weekStartValue: weekStart, pendingRebroadcastLoadedWeek: null, pendingRebroadcastRequest: null,
         isReadonly: () => readonly, escapeHtml, makeDraggable: vi.fn(),
         getStartsAtFromDrop: () => '2026-10-07 15:00:00',
     }
-    for (const name of ['loadPendingRebroadcasts', 'reloadPendingRebroadcasts', 'renderPendingRebroadcasts', 'updatePendingRebroadcastCount', 'updatePendingRebroadcastToggle']) {
+    for (const name of ['loadPendingRebroadcasts', 'reloadPendingRebroadcasts', 'renderPendingRebroadcasts', 'updatePendingRebroadcastCount', 'updatePendingRebroadcastToggle', 'pendingRebroadcastWeekChanged']) {
         ctx[name] = pool[name].bind(ctx)
     }
     return ctx
@@ -24,6 +25,67 @@ function poolContext(readonly = false) {
 const item = { id: 42, emissionId: 12, title: 'Émission été', category: 'Actualités', durationMinutes: 60, assignmentGroupKey: 'rule_12' }
 
 describe('Émissions à diffuser', () => {
+    test('transmet la semaine affichée et mémorise le contexte chargé', async () => {
+        const ctx = poolContext(false, '2099-01-20')
+        fetch.mockResolvedValue(jsonResponse({ success: true, count: 1, items: [item] }))
+        await ctx.loadPendingRebroadcasts()
+        expect(fetch.mock.calls[0][0]).toBe('/admin/pending-rebroadcasts?weekStart=2099-01-20')
+        expect(ctx.pendingRebroadcastLoadedWeek).toBe('2099-01-20')
+    })
+
+    test('réutilise la même semaine mais recharge au changement et au retour arrière', async () => {
+        const ctx = poolContext(false, '2099-01-20')
+        ctx.pendingRebroadcastPanelTarget.hidden = true
+        fetch.mockImplementation(async () => jsonResponse({ success: true, count: 1, items: [item] }))
+        await pool.togglePendingRebroadcastPool.call(ctx)
+        await pool.togglePendingRebroadcastPool.call(ctx)
+        await pool.togglePendingRebroadcastPool.call(ctx)
+        expect(fetch).toHaveBeenCalledOnce()
+        await pool.togglePendingRebroadcastPool.call(ctx)
+        ctx.weekStartValue = '2099-01-13'
+        await ctx.pendingRebroadcastWeekChanged()
+        expect(fetch).toHaveBeenCalledOnce() // Panneau fermé : attendre son ouverture.
+        expect(ctx.pendingRebroadcastItems).toEqual([])
+        expect(ctx.pendingRebroadcastCountTarget.textContent).toBe('0')
+        await pool.togglePendingRebroadcastPool.call(ctx)
+        ctx.weekStartValue = '2099-01-20'
+        await ctx.pendingRebroadcastWeekChanged()
+        expect(fetch.mock.calls.map(([url]) => url)).toEqual([
+            '/admin/pending-rebroadcasts?weekStart=2099-01-20',
+            '/admin/pending-rebroadcasts?weekStart=2099-01-13',
+            '/admin/pending-rebroadcasts?weekStart=2099-01-20',
+        ])
+    })
+
+    test('deux chargements simultanés de la même semaine partagent la requête', async () => {
+        const ctx = poolContext(false, '2099-01-20')
+        const request = deferred()
+        fetch.mockReturnValue(request.promise)
+        const first = ctx.loadPendingRebroadcasts()
+        const second = ctx.loadPendingRebroadcasts()
+        expect(fetch).toHaveBeenCalledOnce()
+        request.resolve(jsonResponse({ success: true, items: [item] }))
+        await Promise.all([first, second])
+        expect(ctx.pendingRebroadcastLoaded).toBe(true)
+    })
+
+    test.each([false, true])('une ancienne réponse ne remplace pas la nouvelle semaine (erreur=%s)', async error => {
+        const ctx = poolContext(false, '2099-01-20')
+        const old = deferred()
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+        fetch.mockReturnValueOnce(old.promise).mockResolvedValueOnce(jsonResponse({ success: true, items: [{ ...item, title: 'Nouvelle semaine' }] }))
+        const first = ctx.loadPendingRebroadcasts()
+        ctx.weekStartValue = '2099-01-13'
+        await ctx.pendingRebroadcastWeekChanged()
+        if (error) old.reject(new Error('Ancienne erreur'))
+        else old.resolve(jsonResponse({ success: true, items: [{ ...item, title: 'Ancienne semaine' }] }))
+        await first
+        expect(ctx.pendingRebroadcastLoadedWeek).toBe('2099-01-13')
+        expect(ctx.pendingRebroadcastListTarget.textContent).toContain('Nouvelle semaine')
+        expect(ctx.pendingRebroadcastListTarget.textContent).not.toContain('Ancienne semaine')
+        expect(consoleError).not.toHaveBeenCalled()
+    })
+
     test('charge les cartes et leur historique sans autoriser du HTML dans les données', async () => {
         const ctx = poolContext()
         fetch.mockResolvedValue(jsonResponse({ success: true, count: 1, items: [{ ...item, title: '<img src=x>', previousDiffusions: [{ date: '2026-10-06 14:00:00', number: 1 }] }] }))

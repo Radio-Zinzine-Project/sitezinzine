@@ -42,6 +42,28 @@ class GridSlotArbitrationRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /** @return GridSlotArbitration[] */
+    public function findActiveForOccurrences(array $occurrences): array
+    {
+        if ($occurrences === []) {
+            return [];
+        }
+        $slots = [];
+        $dates = [];
+        foreach ($occurrences as [$slotId, $startsAt]) {
+            $slots[$slotId] = $slotId;
+            $date = $startsAt->format('Y-m-d H:i:s');
+            $dates[$date] = $date;
+        }
+        // La correspondance exacte slot / origine est ensuite indexée en mémoire.
+        return $this->createQueryBuilder('a')
+            ->andWhere('IDENTITY(a.slot) IN (:slots)')->setParameter('slots', array_values($slots))
+            ->andWhere('a.originalStartsAt IN (:dates)')->setParameter('dates', array_values($dates))
+            ->andWhere('a.status != :cancelled')->setParameter('cancelled', GridSlotArbitration::STATUS_CANCELLED)
+            ->orderBy('a.id', SortDirection::Ascending)
+            ->getQuery()->getResult();
+    }
+
     public function findOneActiveForOccurrence(
         ProgrammationRuleSlot $slot,
         \DateTimeImmutable $originalStartsAt
@@ -58,5 +80,5 @@ class GridSlotArbitrationRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    
+
 }

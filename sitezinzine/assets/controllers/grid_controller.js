@@ -57,6 +57,12 @@ export default class extends Controller {
     readonly: Boolean
   }
 
+  weekStartValueChanged(value, previousValue) {
+    if (value !== previousValue && Array.isArray(this.pendingRebroadcastItems)) {
+      return pendingRebroadcasts.pendingRebroadcastWeekChanged.call(this)
+    }
+  }
+
   connect() {
     console.log('readonlyValue =', this.readonlyValue)
     console.log('weekStartValue =', this.weekStartValue)
@@ -76,6 +82,8 @@ export default class extends Controller {
     this.specialSearchTimeout = null
     this.pendingRebroadcastItems = []
     this.pendingRebroadcastLoaded = false
+    this.pendingRebroadcastLoadedWeek = null
+    this.pendingRebroadcastRequest = null
 
     this.syncSidebarHeight = this.syncSidebarHeight.bind(this)
 
@@ -392,7 +400,7 @@ export default class extends Controller {
       await this.loadSpecialCandidates()
     }
 
-    if (!this.pendingRebroadcastLoaded) {
+    if (!this.pendingRebroadcastLoaded || this.pendingRebroadcastLoadedWeek !== (this.weekStartValue || '')) {
       await this.loadPendingRebroadcasts()
     }
   }

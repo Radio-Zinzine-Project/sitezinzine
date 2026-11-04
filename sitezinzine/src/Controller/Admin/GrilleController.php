@@ -1449,19 +1449,7 @@ class GrilleController extends AbstractController
 
     private function getRadioWeekStart(\DateTimeImmutable $date): \DateTimeImmutable
     {
-        $midnight = $date->setTime(0, 0, 0);
-        $dayOfWeek = (int) $midnight->format('N');
-
-        return match ($dayOfWeek) {
-            2 => $midnight,
-            3 => $midnight->modify('-1 day'),
-            4 => $midnight->modify('-2 days'),
-            5 => $midnight->modify('-3 days'),
-            6 => $midnight->modify('-4 days'),
-            7 => $midnight->modify('-5 days'),
-            1 => $midnight->modify('-6 days'),
-            default => $midnight,
-        };
+        return \App\Service\RadioWeek::start($date);
     }
 
     private function radioDayIndexFromDayOfWeek(?int $dayOfWeek): int

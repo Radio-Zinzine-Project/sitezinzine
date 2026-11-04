@@ -12,6 +12,8 @@ use App\Repository\DiffusionRepository;
 use App\Repository\DiffusionDraftRepository;
 use App\Repository\EmissionRepository;
 use App\Service\RegularRebroadcastPlacementService;
+use App\Service\RegularPendingVisibility;
+use App\Service\RadioWeek;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -30,9 +32,37 @@ class PendingRebroadcastController extends AbstractController
         PendingRebroadcastRepository $pendingRepository,
         DiffusionRepository $diffusionRepository,
         DiffusionDraftRepository $diffusionDraftRepository,
-        EmissionRepository $emissionRepository
+        EmissionRepository $emissionRepository,
+        Request $request,
+        RegularPendingVisibility $visibility
     ): JsonResponse {
+        $weekStart = null;
+        if ($request->query->has('weekStart')) {
+            $raw = $request->query->all()['weekStart'];
+            $date = \is_string($raw) && preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/D', $raw)
+                ? \DateTimeImmutable::createFromFormat('!Y-m-d', $raw, new \DateTimeZone('Europe/Paris')) : false;
+            $errors = \DateTimeImmutable::getLastErrors();
+            if ($date === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+                return $this->json(['success' => false, 'error' => 'Semaine affichée invalide.', 'count' => 0, 'items' => []], 400);
+            }
+            $weekStart = RadioWeek::start($date);
+        }
+        // Sans contexte explicite, conserver intégralement l'ancien affichage.
         $pendingRebroadcasts = $pendingRepository->findAllForPool();
+        $groupKeys = array_values(array_unique(array_map(
+            static fn(PendingRebroadcast $pending): string => $pending->getAssignmentGroupKey(), $pendingRebroadcasts
+        )));
+        $draftsByGroup = [];
+        foreach ($diffusionDraftRepository->findForPoolByGroupKeys($groupKeys) as $draft) {
+            $draftsByGroup[$draft->getAssignmentGroupKey()][] = $draft;
+        }
+        $diffusionsByGroup = [];
+        foreach ($diffusionRepository->findForPoolByGroupKeys($groupKeys) as $diffusion) {
+            $diffusionsByGroup[$diffusion->getAssignmentGroupKey()][] = $diffusion;
+        }
+        if ($weekStart !== null) {
+            $pendingRebroadcasts = $visibility->filter($pendingRebroadcasts, $weekStart, $draftsByGroup, $diffusionsByGroup);
+        }
 
         $items = [];
 
@@ -64,11 +94,7 @@ class PendingRebroadcastController extends AbstractController
                 $diffusionIndexes = [];
                 $groupDiffusionIds = [];
 
-                foreach (
-                    $diffusionRepository->findByAssignmentGroupKey(
-                        $assignmentGroupKey
-                    ) as $diffusion
-                ) {
+                foreach ($diffusionsByGroup[$assignmentGroupKey] ?? [] as $diffusion) {
                     if ($diffusion->getEmission()?->getId() !== $emission->getId()) {
                         continue;
                     }
@@ -93,11 +119,7 @@ class PendingRebroadcastController extends AbstractController
                     }
                 }
 
-                foreach (
-                    $diffusionDraftRepository->findByAssignmentGroupKey(
-                        $assignmentGroupKey
-                    ) as $draft
-                ) {
+                foreach ($draftsByGroup[$assignmentGroupKey] ?? [] as $draft) {
                     if (
                         $draft->isDeleted()
                         || !$draft->isDraft()

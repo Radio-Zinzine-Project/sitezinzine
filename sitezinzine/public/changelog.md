@@ -1,8 +1,6 @@
 # Changelog
 
-
 ## [1.0.130] - 2026-11-04
-
 ### Ajout
 - Ajout de tests fonctionnels pour vérifier l'affichage des erreurs globales des formulaires de programmation.
 - Ajout de tests de non-régression pour la synchronisation des groupes historiques complets et incomplets, ainsi que des groupes futurs.
@@ -11,7 +9,10 @@
 - Ajout de tests de non-régression PHPUnit et Vitest couvrant les différents états des grilles, les identifiants Draft/Diffusion et la suppression des doublons.
 - Réintégration au suivi Git des tests PHPUnit précédemment ignorés, ainsi que de leurs fixtures.
 - Ajout d'une règle `.gitattributes` pour normaliser les fins de ligne des fichiers PHP en LF.
-
+- Ajout du service `RegularPendingVisibility` pour calculer dynamiquement la visibilité des rediffusions supplémentaires des émissions régulières.
+- Ajout du service `RadioWeek` pour centraliser le calcul des semaines radiophoniques du mardi au lundi, avec prise en compte du fuseau `Europe/Paris`.
+- Ajout de tests fonctionnels couvrant les calendriers de diffusion, les déplacements, les arbitrages, les annulations, les groupes historiques et les exclusions volontaires.
+- Ajout de tests de validation du paramètre `weekStart` et de non-régression du chargement du parc.
 ### Corrections
 - Correction d'une erreur HTTP 500 lors de la modification d'une règle de programmation contenant un groupe historique sans Draft de rang 1.
 - Correction de `ProgrammationAssignmentSynchronizer` pour identifier les groupes historiques avant de vérifier la présence d'une première diffusion.
@@ -27,14 +28,31 @@
 - Amélioration de la gestion des erreurs lors du chargement des diffusions liées.
 - Correction du `.gitignore` afin que les nouveaux tests PHPUnit puissent être versionnés sans ajout d'exceptions individuelles.
 - Normalisation des fins de ligne des nouveaux tests PHP et correction des espaces superflus détectés.
-
+- Correction de l'affichage prématuré des `PendingRebroadcast` supplémentaires des émissions régulières dans le parc « Émissions à diffuser ».
+- Affichage différé jusqu'à la semaine radiophonique suivant la dernière diffusion régulière effective du groupe d'affectation.
+- Prise en compte de la semaine affichée dans la grille, indépendamment de la date courante, y compris lors de la navigation vers une semaine antérieure.
+- Prise en compte des déplacements publiés et des arbitrages dans le calcul de la dernière occurrence régulière.
+- Exclusion des occurrences annulées, des Drafts supprimés et des rediffusions supplémentaires manuelles du calcul d'éligibilité.
+- Préservation de la visibilité existante pour les groupes historiques dont le calendrier ne peut pas être reconstitué de manière fiable.
+- Conservation des exclusions volontaires (`dismissed`) sans recréation automatique des Pending concernés.
+- Préservation du comportement existant des Pending non réguliers, des nouvelles émissions et des appels sans `weekStart`.
+- Validation du paramètre `weekStart` avec réponse JSON HTTP 400 en cas de valeur invalide.
+- Adaptation du cache frontend à la semaine affichée, avec rechargement lors des changements de semaine et protection contre les réponses asynchrones obsolètes.
+- Optimisation de la récupération des occurrences régulières par des lectures groupées.
 ### Tests et validation
 - Validation du correctif de synchronisation par 130 tests et 872 assertions, ainsi que par une vérification manuelle sur une copie locale de la préproduction.
 - Validation du correctif de la sidebar par 187 tests Vitest et 389 tests PHPUnit (3 040 assertions).
 - Compilation Webpack réussie.
 - Vérification manuelle des quatre scénarios : émissions régulières et non régulières, grilles validées et non validées.
 - Vérification de l'absence de doublons dans l'affichage des diffusions liées.
-
+- Validation de la visibilité différée par 24 tests fonctionnels et 431 assertions.
+- Validation des régressions PHPUnit ciblées : 252 tests et 1 564 assertions.
+- Validation des tests Vitest ciblés : 34 tests réussis.
+- Validation de la suite Vitest complète : 193 tests réussis.
+- Compilation Webpack réussie.
+- Audit du diff sans anomalie bloquante, majeure ou mineure démontrée.
+- Première vérification manuelle en développement conforme au comportement attendu.
+- Validation complète sur les données de préproduction restant à effectuer.
 
 
 ## [1.0.129] - 2026-10-29
