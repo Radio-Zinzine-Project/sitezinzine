@@ -1,8 +1,20 @@
 # Changelog
 
-## [1.0.129] - 2026-10-29
-
+## [1.0.129] - 2026-10-xx
+### Ajout
+- Ajout de tests fonctionnels pour vérifier l'affichage des erreurs globales des formulaires de programmation.
+- Ajout de tests de non-régression pour la synchronisation des groupes historiques complets et incomplets, ainsi que des groupes futurs.
 ### Corrections
+- Correction d'une erreur HTTP 500 lors de la modification d'une règle de programmation contenant un groupe historique sans Draft de rang 1.
+- Correction de `ProgrammationAssignmentSynchronizer` pour identifier les groupes historiques avant de vérifier la présence d'une première diffusion.
+- Préservation des affectations des groupes historiques lors de la modification des règles de programmation.
+- Maintien de la détection des groupes futurs incomplets et des contrôles de synchronisation.
+- Correction de l'affichage des erreurs globales Symfony et CSRF dans les formulaires de règles et de créneaux.
+- Amélioration de l'accessibilité des messages d'erreur avec `role="alert"`, sans duplication des erreurs de champs.
+- Validation du correctif par 130 tests et 872 assertions, ainsi que par une vérification manuelle sur une copie locale de la préproduction.
+
+## [1.0.129] - 2026-10-29
+### Correctionss
 - Correction de l'annulation d'un créneau contenant une émission affectée : retrait automatique de l'affectation et mise à jour du parc « Émissions à diffuser ».
 - Suppression des `PendingRebroadcast` actifs devenus inéligibles lors de l'annulation d'un créneau.
 - Correction de l'annulation de la première diffusion (R1) avec prise en compte des stratégies `keep` et `cancel`.
@@ -20,7 +32,7 @@
 
 
 ## [1.0.128] - 2026-10-28
-### Corrections
+### Correctionss
 - Correction de la création de rediffusions supplémentaires non autorisées pour les émissions régulières.
 - Respect strict de l'option `ProgrammationRule::hasAdditionalRebroadcast` pour l'alimentation du parc « Émissions à diffuser ».
 - Suppression des retours automatiques au parc lors du retrait ou du déplacement d'une diffusion régulière.
@@ -42,7 +54,7 @@
 ### Ajouts
 - Ajout de tests fonctionnels couvrant l'affichage des rediffusions supplémentaires des émissions régulières dans le parc « Émissions à diffuser ».
 - Ajout de tests de non-régression sur les réaffectations entre émissions partageant un même groupe de programmation.
-### Corrections
+### Correctionss
 - Correction de l'absence des rediffusions supplémentaires issues des règles de programmation régulières dans le parc « Émissions à diffuser ».
 - Suppression du filtre excluant les `PendingRebroadcast` associés aux groupes réguliers (`rule_*`).
 - Affichage de tous les pending actifs, réguliers ou ponctuels, tout en conservant l'exclusion des pending au statut `dismissed`.
@@ -82,7 +94,7 @@
 
 
 ## [1.0.125] - 2026-10-25
-### Corrections
+### Correctionss
 - fix: mise à jour de Node.js 18 vers 24 pour le build Docker
 
 
@@ -90,7 +102,7 @@
 ### Ajouts
 - Ajout de tests php.
 - Ajout des tests JS (vitest@2.1.9 jsdom@24.1.3).
-### Corrections
+### Correctionss
 - Correction de l'hydratation des diffusions déplacées après arbitrage.
 - Correction des conflits de validation de grille : résolution des faux conflits lorsqu'une diffusion existante est déplacée après dévalidation, permettant de réutiliser son ancien créneau sans perdre les liens historiques. Ajout de tests unitaires et d'intégration pour prévenir les régressions.
 
@@ -100,7 +112,7 @@
 - Conservation des informations d'une occurrence déplacée lorsqu'une autre émission occupe son ancien créneau.
 - Affichage de la destination d'une occurrence déplacée dans la sidebar.
 - Tests de régression sur les déplacements, la publication et l'impression de la grille.
-### Corrections
+### Correctionss
 - Correction des faux conflits empêchant la validation des semaines contenant des occurrences déplacées.
 - Correction de la publication des occurrences déplacées afin d'utiliser leur horaire effectif.
 - Correction de la superposition entre un ancien emplacement déplacé et l'émission réellement programmée.
@@ -108,7 +120,7 @@
 
 
 ## [1.0.122] - 2026-10-06
-### Correction
+### Corrections
 - Correction de la publication des créneaux déplacés/annulés : les arbitrages sont désormais respectés lors de la validation de grille.
 - Correction de l’horaire réellement enregistré pour les créneaux replanifiés.
 - Amélioration du parc de rediffusions : affichage de toutes les diffusions du groupe, y compris les occurrences futures planifiées.
@@ -120,13 +132,13 @@
 OK (1660 tests, 9264 assertions)
 ### Ajout
 - Tooltip sur les pendings pour afficher les diffusions.
-### Correction
+### Corrections
 - Correction du parc à rediff, numérotation des rangs et suppression des non régulières.
 - Correction de l'affichage des diffusions sur la fiche émission.
 
 
 ## [1.0.120] - 2026-10-01
-### Correction
+### Corrections
 - Correction de l'affichage des rangs pour les non régulières quand la grille est validée.
 - Récupération des émissions oubliées lors d'un transfert de data de l'ancienne à la nouvelle BDD.
 - Correction métier du parc à rediff.
@@ -136,14 +148,14 @@ OK (1660 tests, 9264 assertions)
 OK (1621 tests, 8821 assertions)
 ### Ajout
 - Parc à rediff — Frontend : ajout de l’affichage/recherche et du compteur du parc dans la sidebar « Non régulières », envoi d’une première diffusion régulière vers le parc, drag & drop des Pending vers la grille, duplication et suppression, synchronisation des états/compteurs et désactivation du drag des créneaux réguliers.
-### Correction
+### Corrections
 - Correction des faux positifs des règles de programmation. (semaines paires et impaires)
 
 
 ## [1.0.118] - 2026-09-26
 ### Ajout
 - Ajout des SiteImage pour gérer les images du site (playlist du carrousel, loupe de recherche ?).
-### Correction
+### Corrections
 - Correction de l'affichage du bandeau catégorie sur les cartes du carrousel.
 
 
@@ -153,7 +165,7 @@ OK (1621 tests, 8821 assertions)
 - Ajout des playlists sur les têtes de colonnes des grilles imprimées.
 - Ajout des playlists dans le carrousel.
 - Ajout sur les cartes et sur les fiches émissions, publiques et admin, des ancien·nes animateur·ices et des invité·es.
-### Correction
+### Corrections
 - Correction/mise à jour des vulnerabilités connue de node.js et de ses dépendances.
 - Correction de la logique des conflits pour les règles de programmation qui faisaient remonter des faux positifs.
 - Correction de show catégories. La requête garantit maintenant que seules les émissions de la bonne catégorie avec une url réellement renseignée sont récupérées, avant la pagination.
@@ -173,7 +185,7 @@ OK (1621 tests, 8821 assertions)
 - Ajout d'une sécurité lors de la création de règles de programmation pour empêcher les conflits de créneaux.
 - Ajout d'une purge des créneaux orphelins lorsque l'ont modifie les règles sans avoir nettoyé la grille avant.
 - Ajout de rate-limiter pour éviter le spam d'email de vérification de compte.
-### Correction
+### Corrections
 - Retrait des boutons partager facebook et bluesky.
 - Modification des pages règles de programmation et créneaux de programmation.
 - Correction du nom des grilles à imprimer qui ne contenaient pas le format papier.
@@ -186,7 +198,7 @@ Montée vers symfony 7.4
 - Début des tests fonctionnels.
 - Changement du fonctionnement des forumlaires d'émissions (création et édition). À présent, seul les admin et super admin voient la totalités des animateurices, les autres rôles ne voient que les utilisateurices reliées à la catégorie choisie.
 - Ajout des pages d'erreurs personnalisées (403, 404, 500).
-### Correction
+### Corrections
 - Correction des alertes alertes sécurités et dépréciations du code.
 - Correction du code afin de permettre la montée en symfony 7.4.
 - Correction d'emissionRepository pour que la liste d'émissions régulières et non régulières soient identiques.
@@ -202,7 +214,7 @@ Montée vers symfony 7.4
 
 
 ## [1.0.113] - 2026-09-09
-### Correction
+### Corrections
 - Correction de l'entity emission qui n'autoriseait pas la ref nullable alors que le form le rend ainsi.
 
 
@@ -210,7 +222,7 @@ Montée vers symfony 7.4
 ### Ajout
 - Ajout du contenu de la page infos du soir côté public en lien avec le flux rss.
 - Début des tests d'intégration.
-### Correction
+### Corrections
 - Correction et mise à jour des tests existants (voir Docs/TEST.md).
 - Correction de la regex de recherche de la grille.
 - Correction d'un certain nombre de bugs remontés par les tests.
@@ -218,7 +230,7 @@ Montée vers symfony 7.4
 
 
 ## [1.0.111] - 2026-09-05
-### Correction
+### Corrections
 - Correction du responsive du tableau de bord.
 - Correction de la liste à scroller des émissions à finaliser.
 - Correction du style et de la forme de la page invité·es, ancien·nes animateur·ices, create, edit et show.
@@ -235,7 +247,7 @@ Montée vers symfony 7.4
 ### Ajout
 - Ajout du numéro d'annonce sur les fiches côté public.
 - Ajout sur la fiche émission (création et édition) de la coche "émission en direct".
-### Correction
+### Corrections
 - Modification des tag annonce (à valider, validée, terminée) et des codes couleurs associés.
 - Quand on choisit "Autre" comme type d'annonce que ce soit à la création ou à l'édition, c'est ce qui sera indiqué dans le champ à remplir qui s'affichera, si rien, alors "Autre" s'affichera.
 - Les 3 évènements les plus récents s'affichent (futurs ou passés).
@@ -249,7 +261,7 @@ Montée vers symfony 7.4
 - Affichage du titre de l'émission sur les petits créneaux (comme sur la grille imprimée).
 - Ajout du format d'impression dans le nom du fichier à imprimer.
 - Ajout de la section remarque sur la grille A3 qui permet la personnalisation du message lors de l'impression.
-### Correction
+### Corrections
 - Style page annonces public et admin revu et corrigé suite à l'import des annonces de l'ancien site.
 - Correction du double affichage créneau annulé/nouvelle émission posée sur la grille.
 - Correction des rangs de diffusion lorsque la grille est validée.
@@ -260,7 +272,7 @@ Montée vers symfony 7.4
 ## [1.0.108] - 2026-09-01
 ### Ajout
 - Ajout des liens de partage sur les réseaux sociaux sur les fiches émissions.
-### Correction
+### Corrections
 - Correction du bug qui empêchait le drop d'émissions non régulières sur la grille.
 - Correction d'affichage des rang de diffusion pour les très petits créneaux.
 
@@ -268,7 +280,7 @@ Montée vers symfony 7.4
 ## [1.0.107] - 2026-08-31
 ### Ajout
 - Ajout de l'heure de fin d'émission sur les cartes du carrousel.
-### Correction
+### Corrections
 - refonte du lecteur radio en direct.
 - refonte de la navbar et de son responsive.
 - refonte de la page annonces et son responsive.
@@ -279,14 +291,14 @@ Montée vers symfony 7.4
 - Impression du document Émissions à annoncer.
 - Ajout d'une ancre sur les résultats de recherche côté public et admin.
 - Ajout d'un filtre alpha-numérique sur la recherche publique et admin.
-### Correction
+### Corrections
 - Dispatch des "Un livre, un jour" dans leurs catégories dédiées(samedi, dimanche, lundi).
 - Correction du bouton réinitialiser du formulaire recherche côté public et admin.
 - Refonte du style de la page admin catégories + pagination alpha-numérique.
 
 
 ## [1.0.105] - 2026-08-28
-### Correction
+### Corrections
 - Retrait du dump qui fout le bordel.
 
 
@@ -294,7 +306,7 @@ Montée vers symfony 7.4
 ### Ajout
 - Ajout du bouton d'impression de la grille.
 - Ajout de la grille de la semaine (page programme) côté public.
-### Correction
+### Corrections
 - Modification de la hauteur de la grille en a3 afin d'optimiser la place sur la feuille.
 - Affichage des 6 dernières diffusions de l'émission sur la fiche émission côté public.
 - Affichage de toutes les diffusions de l'émission sur la fiche de l'émission côté admin.
@@ -310,12 +322,12 @@ Montée vers symfony 7.4
 ### Ajout
 - Gestion des diffusions historiques (ancienne table grille), afin qu'elle correspondent au nouveau système de groupement de programmation.
 - Système de validation et dévalidation de la grille de programmation. ( *\o/* <= Joëlle en Pom-pom girl )
-### Correction
+### Corrections
 - Correction de l'adresse no-reply de zinzine pour les courrier du site (reset password).
 
 
 ## [1.0.101] - 2026-06-14
-### Correction
+### Corrections
 - Correction du bug ne permettant pas de mettre une émission sur un créneau annulé ou déplacé. (méthode plus robuste).
 - Correction de la numérotation des diffusions en cas de changement sur la grille. (méthode plus robuste).
 
@@ -323,7 +335,7 @@ Montée vers symfony 7.4
 ## [1.0.100] - 2026-06-13
 ### Ajout
 - Ajout d'une ancre permettant de se retrouvé au même endroit de la grille une fois celle ci rechargée.
-### Correction
+### Corrections
 - Correction du bug ne permettant pas de mettre une émission sur un créneau annulé ou déplacé.
 - Correction de la numérotation des diffusions en cas de changement sur la grille.
 - Correction UX : Quand on change de contexte, on vide la recherche.
@@ -331,12 +343,12 @@ Montée vers symfony 7.4
 
 
 ## [1.0.99] - 2026-06-03
-### Correction
+### Corrections
 - Reset des migrations doctrine avec une base propre pour la prod.
 
 
 ## [1.0.98] - 2026-06-02
-### Correction
+### Corrections
 - Correction du carrousel qui faisait n'importe quoi à cause de ces ù&!$ de fuseaux horaires de $ù!&^... les dates et heures c'est une plaie à coder quelque soit le language. De toute façon je sais que personne lit mon change log alors je râle si je veux !.
 - Correction de la table de migration afin de pouvoir créer le site sur le nouveau serveur.
 
@@ -351,7 +363,7 @@ Montée vers symfony 7.4
 - Ajout du champ de recherche dans la liste des émissions non régulières.
 - Possibilité de rajouter des rediffs aux émissions non régulières (gestion aussi des suppressions).
 - Ajout du scroll de la sidebar pour facilité le remplissage de la grille.
-### Correction
+### Corrections
 - Correction du partial ondes, cartes carousel en double, sécurité si rien dans diffusion, js qui met en actif le programme qui passe à ce moment à la radio.
 - Amélioration graphique du carousel.
 - Correction du bug de token CSRF à la connection.
@@ -368,7 +380,7 @@ Montée vers symfony 7.4
 - Ajout sur la grille, émissions régulières, du champs de recherche dans titre.
 - Ajout du changement de catégorie sur un créneau.
 - Ajout de "plus d'émissions" si besoin.
-### Correction
+### Corrections
 - Correction du manque de fiabilité de la propagation et de la suppression des redifs d'émission quand elles sont attribuées à un créneau.
 - Correction du placement multiple des émissions non régulière qui ne mettait pas à jour la date et l'heure.
 - Correction du système de règle, maintenant les rediff sont calculées à partir de la première diffusion.
@@ -379,12 +391,12 @@ Montée vers symfony 7.4
 ## [1.0.95] - 2026-05-01
 ### Ajout
 - Ajout du n° de la semaine sur la grille.
-### Correction
+### Corrections
 - Correction du calcul des semaines paires ou impaire en tenant compte de la semaine radio (du mardi au lundi).
 
 
 ## [1.0.94] - 2026-04-28
-### Correction
+### Corrections
 - Correction du formulaire edit emission qui ne se validait plus à cause d'un bug de token csrf.
 
 
@@ -396,14 +408,14 @@ Montée vers symfony 7.4
 ## [1.0.92] - 2026-04-23
 ### Ajout
 - Ajout de la gestion des émissions non régulières.
-### Correction
+### Corrections
 - Correction de la requête lastemission qui faisait planter la page d'accueil public.
 
 
 ## [1.0.91] - 2026-04-22
 ### Ajout
 - Ajout de l'ajustement de la programmation en cas de créneau bancal à cause des mois coupés.
-### Correction
+### Corrections
 - Changement de type pour editeur de int à entity et modif du code des pages associées.
 - Modification du style de la page index émission pour uniformiser le visuel du site.
 
@@ -411,14 +423,14 @@ Montée vers symfony 7.4
 ## [1.0.90] - 2026-04-21
 ### Ajout
 - Gestion des conflits de créneaux dans la grille et leurs visualisation.
-### Correction
+### Corrections
 - Correction de l'affichage de texte des créneaux et du tooltip associé pour une meilleure lisibilité sur les créneau d'un quart d'heure.
 
 
 ## [1.0.89] - 2026-04-20
 ### Ajout
 - Ajout des jours de la semaine sur les colonnes de la grille.
-### Correction
+### Corrections
 - Agrandissement de la grille pour une meilleure visibilité.
 - Modification de la navigation des semaines de la grille.
 - Modification des boutons régulière/non régulière pour une meilleure experience ux.
@@ -427,11 +439,11 @@ Montée vers symfony 7.4
 
 
 ## [1.0.88] - 2026-04-19 bis
-### Correction
+### Corrections
 - Changement pour le mail, passage de smtp à api de mailjet.
 
 ## [1.0.87] - 2026-04-19
-### Correction
+### Corrections
 - Correction de l'affichage du nombre de créneaux existant pour une règle.
 - Correction du DSN mailjet afin que les mail systèmes du site fonctionnent (changement de mot de passe).
 
@@ -453,14 +465,14 @@ Montée vers symfony 7.4
 ### Ajout
 - Ajout de la propagation des émissions programmées (choisir une émission en première diffusion la place automatiquement sur les créneaux de rediffusions prévues par les règles).
 - Ajout de la programmation par semaine paire ou impaire.
-### Correction
+### Corrections
 - Tri des ancien·nes animateur·ices par ordre alphabétique sur le formulaire émission.
 
 
 ## [1.0.83] - 2026-04-10
 ### Ajout
 - Ajout du thème éducation dans un groupe de thème.
-### Correction
+### Corrections
 - Correction du form emission qui supprimait la catégorie si elle était inactive.
 - Correction des pages recherche qui sortaient plus de page que de résultats.
 - Correction de la duplication des champs date en cas de retour arrière sur le form recherche.
@@ -473,7 +485,7 @@ Montée vers symfony 7.4
 - Ajout de la liste des émissions possible quand on clic sur un créneau.
 - Ajout de la grille temporaire diffusionDraft.
 - Ajout de la suppression d'une émission sur un créneau.
-### Correction
+### Corrections
 - Mise à jour de la base de données le 7 avril 2026.
 
 
@@ -493,17 +505,17 @@ Montée vers symfony 7.4
 
 
 ## [1.0.78] - 2026-04-05 bis
-### Correction
+### Corrections
 - Ajustement du css des cartes émission de lastEmission.
 
 
 ## [1.0.77] - 2026-04-05
-### Correction
+### Corrections
 - Correction du css des cartes émission de lastEmission.
 
 
 ## [1.0.76] - 2026-04-01
-### Correction
+### Corrections
 - Correction des liens titre des émission sur la page de recherche admin.
 - Correction du CSS des listes d'émissions côté admin et ajout des bouton modifier en supprimer.
 
@@ -511,13 +523,13 @@ Montée vers symfony 7.4
 ## [1.0.75] - 2026-03-31
 ### Ajout
 - Ajout de la fonction regexpFunction.php pour la gestion des regex sur la recherche d'émission.
-### Correction
+### Corrections
 - Correction de la recherche sur le champs ref.
 
 ## [1.0.74] - 2026-03-30
 ### Ajout
 - Ajout de la possibilité de recherche sur un user ou ancien animateurice (public et admin).
-### Correction
+### Corrections
 - Correction du css de la pagination admin.
 - Correction de la recherche de mot court.
 - Optimisation de la recherche lors de plusieurs mots.
@@ -527,7 +539,7 @@ Montée vers symfony 7.4
 ### Ajout
 - Rajout des imagesTags (entity, form, controller, repository, twig index/create/edit/form responsive).
 - Ajout de la suppression du fichier mp3 de la fiche émission.
-### Correction
+### Corrections
 - Modification de la navbar admin pour intégrer les imagesTags.
 - Modification de la structure du tag titre pour correspondre à la charte RZ.
 - Modification de la structure de l'url pour correspondre à la charte RZ.
@@ -539,7 +551,7 @@ Montée vers symfony 7.4
 
 
 ## [1.0.71] - 2026-01-24
-### Correction
+### Corrections
 - Réparation du formulaire de création des émissions.
 
 
@@ -547,13 +559,13 @@ Montée vers symfony 7.4
 ### Ajout
 - Ajout de la visibilité des mots de passes sur les formulaire de création de compte et de reset de mot de passe.
 - Ajout de la page profil qui permet aux utilisateurs d'utiliser un nom au lieu de son identifiant de compte et de changer son email si besoin.
-### Correction
+### Corrections
 - Correction des flèches du carrousel qui avaient disparues en mode desktop.
 - Modification du mailer_DNS avec mailjet (vrai envoi de mail) mais ça ne fonctionne pas en local, à voir en prod ce que ça donne puisqu'il y a un rebuild du container.
 
 
 ## [1.0.69] - 2026-01-04
-### Correction
+### Corrections
 - Correction de la gestion des erreurs de formulaire pour catégorie
 
 
@@ -562,7 +574,7 @@ Montée vers symfony 7.4
 - Gestion de multiple propriétaires des émissions.
 - Gestion des erreurs de formulaire pour catégorie et émission.
 - Ajout d'une ancre pour la recherche côté public (échec, mais renfort du formulaire car les contraintes de catégorie s'appliquaient sur la recherche par erreur).
-### Correction
+### Corrections
 - Modification de admin/categorie/show sur le modèle du public.
 - Modification de admin/emission/show sur le modèle du public.
 - Modification des formulaires edit et create des émissions et ajout du responsive.
@@ -572,7 +584,7 @@ Montée vers symfony 7.4
 ## [1.0.67] - 2026-01-02
 ### Ajout
 - Gestion de multiple propriétaires des catégories.
-### Correction
+### Corrections
 - Modification des formulaires edit et create des catégories et ajout du responsive.
 - Modification des formulaires edit et create des invités et ancien·nes animateurices et ajout du responsive.
 - Seul le prénom est obligatoire pour les invités et ancien·nes animateurices dans les formulaires.
@@ -586,27 +598,27 @@ Montée vers symfony 7.4
 
 
 ## [1.0.65] - 2025-12-30
-### Correction
+### Corrections
 - Correction responsive et uniformisation des listes côté public, correction responsive d'évènements et du lecteur.
 
 
 ## [1.0.64] - 2025-12-27
-### Correction
+### Corrections
 - Correction du CSS coté public (tout les partials, les éditables, navbar, annonces, emissions recherche, login, register), restructuration de l'architecture du CSS (factorisation dans base + editable.css, personnalisation possible sur les pages elles même).
 
 
 ## [1.0.63] - 2025-12-18
-### Correction
+### Corrections
 - correction du yml vitch pour suppression correcte des fichiers entêtes des pages éditables.(ter)
 
 
 ## [1.0.62] - 2025-12-18
-### Correction
+### Corrections
 - correction du yml vitch pour suppression correcte des fichiers entêtes des pages éditables.(bis)
 
 
 ## [1.0.61] - 2025-12-18
-### Correction
+### Corrections
 - correction du yml vitch pour suppression correcte des fichiers entêtes des pages éditables.
 
 
@@ -614,12 +626,12 @@ Montée vers symfony 7.4
 ### Ajout
 - Ajout du responsive pour le menu, ondes, vagues, footer, lecteur et lastemission côté public.
 - Ajout de la partie grille côté public (en cours).
-### Correction
+### Corrections
 - correction des formulaires d'édition des pages pour réparer la suppression de l'image de tête.
 
 
 ## [1.0.59] - 2025-12-15
-### Correction
+### Corrections
 - Correction de la page edit qui empêchait la validation de la page.
 
 
@@ -628,18 +640,18 @@ Montée vers symfony 7.4
 - Ajout du css de la page d'index d'admin.
 - Ajour de la barre de menu dans l'éditeur tinymce pour l'édition des pages.
 - Ajout de la mise en page de la page index côté admin (page d'acceuil).
-### Correction
+### Corrections
 - Correction de la page zone d'écoute qui ne prenait pas en compte les valeurs du formulaire d'édition.
 
 
 ## [1.0.57] - 2025-12-14
-### Correction
+### Corrections
 - Correction du bug qui empêchait la validation des formulaires d'édition de pages.
 - Correction de l'affichage du bouton supprimer l'image sur le formulaire d'édition qui apparaissait même s'il n'y avait pas d'image.
 
 
 ## [1.0.56] - 2025-12-14
-### Correction
+### Corrections
 - Correction du controller js de tinymce afin que la preview fonctionne correctement en prod.
 - Correction du bouton supprimer l'image des pages éditable qui apparait quand il ne faut pas.
 
@@ -649,18 +661,18 @@ Montée vers symfony 7.4
 - Ajout du visuel de preview pour les pages éditables identique aux pages côté public.
 - Ajout du CSS des pages éditables côtés admin.
 - Ajout de toutes les pages éditables.
-### Correction
+### Corrections
 - Blocage dur slug en édition afin de ne pas casser les liens.
 - Possibilité de créer de nouvelles pages bloquée pour l'instant.
 
 
 ## [1.0.54] - 2025-12-12
-### Correction
+### Corrections
 - Correction du controller js tinymce pour corriger les erreurs d'upload d'image.
 
 
 ## [1.0.53] - 2025-12-12
-### Correction
+### Corrections
 - Correction du docker-compose.prod pour persister les nouveaux dossiers images des pages éditables.
 
 
@@ -669,64 +681,64 @@ Montée vers symfony 7.4
 - Création de l'édition des pages fixes du site côté admin. Création du menu, de la page d'index, de la page de création et de la page d'édition.
 - Modification de la base de données en conséquence, ajout de la table page.
 - Modification du module tinymce pour qu'il gère l'upload de photos et de vidéos.
-### Correction
+### Corrections
 - Correction d'attribut d'entity concernant la base de donnée. (datetime mutable -> datetime) dans un soucis de solidité des données.
 
 
 ## [1.0.51] - 2025-11-22
 ### Ajout
 - MAJ de la base de donnée au 21 novembre 2025
-### Correction
+### Corrections
 - MAJ de la page don
 
 
 ## [1.0.50] - 2025-08-16
-### Correction
+### Corrections
 - Correction de admin.html.twig auquel il manque un block stylesheets.
 
 
 ## [1.0.49] - 2025-08-16
-### Correction
+### Corrections
 - Correction des reste d'importmap pour réparer le côté admin.
 
 ## [1.0.48] - 2025-08-16
-### Correction
+### Corrections
 - Correction des images qui ne marchent pas en prod, suppression de assets/images pour cause de conflit (5ème essai).
 
 
 ## [1.0.47] - 2025-08-16
-### Correction
+### Corrections
 - Correction des images qui ne marchent pas en prod, suppression de assets/images pour cause de conflit (4ème essai).
 
 
 ## [1.0.46] - 2025-08-16
-### Correction
+### Corrections
 - Correction des images qui ne marchent pas en prod (3ème essai).
 
 
 ## [1.0.45] - 2025-08-16
-### Correction
+### Corrections
 - Correction des images qui ne marchent pas en prod (second essai).
 
 
 ## [1.0.44] - 2025-08-16
-### Correction
+### Corrections
 - Correction des images qui ne marchent pas en prod.
 
 
 ## [1.0.43] - 2025-08-16
-### Correction
+### Corrections
 - Correction live component qui ne marche pas en prod.
 
 
 ## [1.0.42] - 2025-08-15
-### Correction
+### Corrections
 - Correction du css de la liste d'émissions de la page showCat.
 - Correction de la page show (filtrage avec livecomponent et pagination en dynamique) et css de la pagination.
 
 
 ## [1.0.41] - 2025-08-08
-### Correction
+### Corrections
 - Correction du lien titre dans les résultats de recherche public qui envoyait côté admin et recherche admin qui envoyait dans public.
 - Suppression de l'attribution user_id si pas de user en cas d'édition.
 - Modification de la navbar, fusion d'émissions et recherche.
@@ -738,7 +750,7 @@ Montée vers symfony 7.4
 ### Ajout
 - Ajout du softDelete sur categories, annule la redirection sur ce bouton (conflit controllerjs).
 - Ajout du user_id dans catégories, modification en conséquence des méthodes, controller et navbar.
-### Correction
+### Corrections
 - Correction de l'erreur 500 de la page Annonce côté admin.
 ### BUG
 - la liste émissions est plantée, en cours de réparation.
@@ -748,7 +760,7 @@ Montée vers symfony 7.4
 ### Ajout
 - Ajout des annonces et du mot recherche dans la navbar publique.
 - Ajour de le page newsletter, changement dans vagues de la case "aide à l'écoute" (en doublon avec le footer).
-### Correction
+### Corrections
 - Factorisation de la liste des émissions de recherche dans le but de l'intégrer sur d'autre pages (modèle liste émissions de recherche).
 - Correction de la page de présentation des catégories.
 
@@ -756,14 +768,14 @@ Montée vers symfony 7.4
 ## [1.0.38] - 2025-08-01
 ### Ajout
 - Ajout de la page admin/evenement/show qui avait été oublié.
-### Correction
+### Corrections
 - Correction css de showevenement.
 - Correction du controller tinymce qui n'était pas parfaitement opérationnel ( bug du champ descriptif sur les formulaire ).
 - Gestion de la redirection après suppression d'émissions, annonces, évènements ou de catégories.
 
 
 ## [1.0.37] - 2025-07-24
-### Correction
+### Corrections
 - Correction du formulaire d'édition d'émission, si pas d'animateur·ice référent·e indiqué, prend le nom de la personne qui édite l'émission, si le descriptif est vide, met "descriptif à remplir".
 - Correction de la redirection des pages après validation de formulaire edit.
 
@@ -771,7 +783,7 @@ Montée vers symfony 7.4
 ## [1.0.36] - 2025-07-24
 ### Ajout
 - Ajout de la recherche côté admin, selectionne aussi les émissions sans fichier audio.
-### Correction
+### Corrections
 - Correction de la logique d'affichage des émissions côté admin, maintenant une émission qui n'a pas de fichier son, mais qui a un user s'affiche(j'espère !).
 - Correction de la couleur de la bordure de la catégorie sur la page home/show (du rouge vers le noir).
 
@@ -779,7 +791,7 @@ Montée vers symfony 7.4
 ## [1.0.35] - 2025-07-23
 ### Ajout
 - Ajout du responsive pour le lecteur.
-### Correction
+### Corrections
 - Correction des noms de groupe de thèmes.
 - Correction côté admin de l'affichage des émissions n'ayant pas d'url mais ayant un user.
 - Déplacement du menu invité ancien·nes animateur·ices dans le groupe admin droit user.
@@ -788,7 +800,7 @@ Montée vers symfony 7.4
 ## [1.0.34] - 2025-07-23
 ### Ajout
 - Ajout d'un début de responsive sur la navbar publique (en attente de retour des graphistes).
-### Correction
+### Corrections
 - Correction de la logique d'affichage des émissions côté admin, maintenant une émission qui n'a pas de fichier son, mais qui a un user s'affiche.
 - Correction de la navbar publique (espacement avec le bord sur les icone de zinzine et la loupe de recherche).
 - Uniformisation des tailles sur les balise h1 et h3 de la page d'accueil, décalage des images à gauche du titre.
@@ -797,16 +809,16 @@ Montée vers symfony 7.4
 
 
 ## [1.0.33] - 2025-07-22
-### Correction
+### Corrections
 - Hotfix affichage des émissions côté admin.
 
 ## [1.0.32] - 2025-07-22
-### Correction
+### Corrections
 - bug de migration de base de donnée changement des annotations entity diffusion.
 
 
 ## [1.0.30] - 2025-07-22
-### Correction
+### Corrections
 - Correction de la recherche (bug de date obligatoire) et classement par date de diffusion decroissante avec affichage de la date de diffusion.
 - Optimisation de certaine requêtes car la table diffusion est très lourde et ça ralentissait beaucoup le site (à vérifer).
 - Correction de la requête qui empêchait d'aller dans le menu émission du site publique.
@@ -819,7 +831,7 @@ Montée vers symfony 7.4
 - Ajout de la gestion de l'affichage de categorie.show si elle n'a pas d'émission.
 - Ajout de la diffusion : Entity, Controller, Form, Repository, et les templates.
 - Ajout de la table et des données de diffusion (migration ).
-### Correction
+### Corrections
 - Correction des templates affectés par l'affichage de la diffusion.
 - Correction des formulaires create et edit (url null, si ref vide user_id).
 - Correction du formulaire de recherche qui forçait à mettre des dates.
@@ -830,7 +842,7 @@ Montée vers symfony 7.4
 - Ajout des alt sur les images de la navbar côté auditeurices.
 - Ajout des controllers tinymce et flatpickr.
 - Ajout d'une favicon.ico.
-### Correction
+### Corrections
 - Correction du partial vague qui soulignait les liens.
 - Correction de l'implémentation de tinymce, conflit stimulus et webpack helper.
 - Corrections des fichiers docker en conséquence.
@@ -840,7 +852,7 @@ Montée vers symfony 7.4
 ### Ajout
 - Ajout d'un bouton supprimer pour les émissions de la catégorie archive (visible uniquement pour superadmin).
 - Ajout d'une nouvelle règle de nommage des fichiers uploadés afin d'éviter les bugs de charactères spéciaux (vitch).
-### Correction
+### Corrections
 - Correction de la redirection de page quand on validait un changement sur une émission ou une catégorie, maintenant on se retrouve sur la page précédent le formulaire et pas sur la première page de la liste.
 - Correction de l'affichage des images en background cartes de lastemission contenant un charactère spécial.
 - Factorisation du code de la page categorie.show pour éviter des doublons.
@@ -849,7 +861,7 @@ Montée vers symfony 7.4
 ## [1.0.25] - 2025-07-19
 ### Base de données
 - Récupération de la base de données réelle pour tests de script d'adaptation.
-### Correction
+### Corrections
 - Correction du glide.js avec stimulus pour que le chargement du carrousel soit plus fluide.
 - correction du coupage automatique des titre d'émission sur l'affichage de lastemission et carrousel.
 
@@ -859,7 +871,7 @@ Montée vers symfony 7.4
 - Ajout du bouton pause sur le lecteur et le js nécessaire pour que ça fonctionne.
 - Ajout d'un lien vers le site publique sur le logo radio zinzine de la navbar côté admin.
 - Ajout de Node.js.
-### Correction
+### Corrections
 - Correction des groupes de thèmes (rajout de /).
 - Correction de l'édition des évènements qui ne préremplissait pas le champ titre du formulaire.
 - Correction des formulaires utilisant tinymce avec un controller stimulus afin d'éviter le rechargement de la page à cause de turbo.
@@ -869,12 +881,12 @@ Montée vers symfony 7.4
 ## [1.0.23] - 2025-07-16
 ### Serveur
 - Modification des droits du dossier uploads pour permettre le chargement des images.
-### Correction
+### Corrections
 - Correction des groupes de thèmes selon la nouvelle proposition.
 
 
 ## [1.0.22] - 2025-07-15
-### Correction
+### Corrections
 - Correction du js de la page home/show.html.twig qui avait besoin d'un refresh pour fonctionner (pb de turbo:load)
 
 
@@ -882,7 +894,7 @@ Montée vers symfony 7.4
 ### Ajout
 - Ajout de la logique de groupe de thème pour le partial lastemissionbytheme qui devient lastEmissionsByGroupTheme.
 - Ajout du js pour le filtrage dynamique par thème dans la page home/show.html.twig.
-### Correction
+### Corrections
 - Correction du formulaire de création de thème (problème d'updateAt et de dateimmutable).
 - Correction de la gestion de l'affichage des descriptions d'émission sur la page emission home/show.html.twig qui pouvaient dépasser du cadre et déformer la page.
 - Modification de la base de donnée pour que chaque émission n'ai qu'un seul thème.
@@ -900,7 +912,7 @@ Montée vers symfony 7.4
 - Ajout du bouton télécharger sur la liste des émission en bas de page home/show.html.twig.
 - Ajout du tableau infos diverses, horaire de passage, liens, dans la partie émission de la page home/show.html.twig.
 - Ajout d'un contenu provisoire pour les pages aide à l'écoute et zone d'écoute (en attente de Klaus) et contacts (en attente de Joëlle).
-### Correction
+### Corrections
 - Correction de la couleur des H1 et des liens a et a:hover dans la page home/amis.html.twig et modification de la hierarchisation des titres H.
 - Correction du css de la page don.
 - Correction de la gestion de l'affichage des images sur la page emission home/show.html.twig.
@@ -910,7 +922,7 @@ Montée vers symfony 7.4
 ## [1.0.18] - 2025-07-06
 ### Ajout
 - Ajout de titre de pages côté admin.
-### Correction
+### Corrections
 - Correction du css de la page Mentions légales.
 - Correction de la page home/show.html.twig et du controller EmissionShowController.php pour coller à la vision de Nick. Transfert de la catégorie dans le haut de la page pour laisser la place à la liste des émissions ayant un lien, sur le même thème, du plus récent au plus ancien avec le css associé et le responsive. En prévision du changement de gestion des thèmes et leurs affichages.
 - Correction du menu de navigation côté auditeurs qui ne mettait plus en avant le menu dans lequel on était (page active, menu en rouge).
@@ -921,22 +933,22 @@ Montée vers symfony 7.4
 ## [1.0.17] - 2025-07-05
 ### Ajout
 - Ajout du changelog en dynamique sur le tableau de bord du côté admin.
-### Correction
+### Corrections
 - Factorisation de tinymce dans admin.html.twig.
 - Correction centrage menu déroulant navbar admin + problème de conflit css avec pagination.
 - Correction du rappel des données de catégorie et thème dans le formulaire émission create et edit.
 
 
 ## [1.0.16] - 2025-07-04
-### Correction
+### Corrections
 - Correction du conflit entre turbo (fixation du lecteur en header) et la page recherche problème de chargement du js(suite et fin !).
 
 
 ## [1.0.15] - 2025-07-04
-### Correction
+### Corrections
 - Correction du conflit entre turbo (fixation du lecteur en header) et la page recherche.
 
 
 ## [1.0.14] - 2025-07-04
-### Correction
+### Corrections
 - Correction du conflit entre turbo (fixation du lecteur en header) et les pages login et registration.

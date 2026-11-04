@@ -243,6 +243,11 @@
     {{ form_title }}
   </h1>
   {{ form_start(form) }}
+  {% if form.vars.errors|length %}
+    <div class="field" role="alert">
+      {{ form_errors(form) }}
+    </div>
+  {% endif %}
   {% if rule is defined and rule.id %}
     <div class="field">
       <label>

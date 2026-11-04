@@ -27,6 +27,7 @@ vich_uploader:
                 service: App\Service\SafeFilenameNamer
                 options: { property: 'titre'}     
         emissionsMp3:
+            delete_on_update: false
             uri_prefix: /uploads/emissionsMp3
             upload_destination: '%kernel.project_dir%/public/uploads/emissionsMp3'
             namer:

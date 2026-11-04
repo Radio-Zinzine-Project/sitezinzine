@@ -1,0 +1,5 @@
+vich_uploader:
+    mappings:
+        emissionsMp3:
+            upload_destination: '%env(MP3_TEST_STORAGE)%'
+            uri_prefix: 'https://example.test/uploads/emissionsMp3'

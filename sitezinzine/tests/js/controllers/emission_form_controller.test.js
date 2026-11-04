@@ -9,6 +9,30 @@ const markup = `<form data-controller="emission-form" data-emission-form-users-u
 </form>`
 
 describe('Formulaire d’émission', () => {
+    test('un formulaire soumis conserve durée et éditeur à la reconnexion', async () => {
+        const submitted = markup
+            .replace('data-controller="emission-form"', 'data-controller="emission-form" data-emission-form-preserve-submitted-value="true"')
+            .replace('<input data-emission-form-target="duree">', '<input data-emission-form-target="duree" value="90">')
+        const { controller } = await mountController('emission-form', EmissionFormController, submitted)
+        expect(controller.editeurTarget.value).toBe('1')
+        expect(controller.dureeTarget.value).toBe('90')
+        expect(fetch).not.toHaveBeenCalled()
+    })
+
+    test('un changement volontaire de catégorie réapplique les valeurs après restauration', async () => {
+        const submitted = markup
+            .replace('data-controller="emission-form"', 'data-controller="emission-form" data-emission-form-preserve-submitted-value="true"')
+            .replace('<input data-emission-form-target="duree">', '<input data-emission-form-target="duree" value="90">')
+            .replace('<option value="8">', '<option value="8" data-editeur-id="2" data-duree="60">')
+        const { controller } = await mountController('emission-form', EmissionFormController, submitted)
+        fetch.mockResolvedValue(jsonResponse({ users: [] }))
+        controller.categorieTarget.value = '8'
+        await controller.categoryChanged()
+        expect(controller.editeurTarget.value).toBe('2')
+        expect(controller.dureeTarget.value).toBe('60')
+        expect(fetch).toHaveBeenCalledTimes(1)
+    })
+
     test('les valeurs de catégorie mettent à jour éditeur et durée via change natif', async () => {
         const { controller, root } = await mountController('emission-form', EmissionFormController, markup)
         expect(controller.editeurTarget.value).toBe('2')

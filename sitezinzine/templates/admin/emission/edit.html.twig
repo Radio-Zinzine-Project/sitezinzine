@@ -585,6 +585,7 @@
     attr: {
         'data-turbo': 'false',
         'data-controller': 'emission-form',
+        'data-emission-form-preserve-submitted-value': formEmission.vars.submitted ? 'true' : 'false',
         'data-emission-form-users-url-value': path(
             'admin.emission.users_for_category',
             { id: 0 }
@@ -592,7 +593,9 @@
         'data-emission-form-emission-id-value': emission.id
     }
 }) }}
-  {{ form_errors(formEmission) }}
+  {% if formEmission.vars.errors|length > 0 %}
+    <div role="alert">{{ form_errors(formEmission) }}</div>
+  {% endif %}
   {# ==========================================================
     INFORMATIONS PRINCIPALES
     Catégorie / Thème / Durée + Direct / Éditeur
@@ -725,7 +728,7 @@
           {{ form_row(formEmission.url) }}
         </div>
         {# MP3 actuellement enregistré #}
-        {% if emission.thumbnailMp3 and emission.url %}
+        {% if emission.thumbnailMp3 and emission.url and (mp3ShowCurrent ?? true) %}
           <div class="field field-full">
             <div class="current-mp3-card">
               <div class="current-mp3-content">
@@ -769,7 +772,9 @@
         SAUVEGARDE
       ========================================================== #}
       <div class="form-actions">
-        {{ form_row(formEmission.Sauvegarder) }}
+        {{ form_row(formEmission.Sauvegarder, {
+          attr: mp3RetryBlocked|default(false) ? {disabled: 'disabled'} : {}
+        }) }}
       </div>
       {# ==========================================================
         TOKEN CSRF
@@ -783,4 +788,3 @@
   }) }}
     </div>
   {% endblock %}
-  

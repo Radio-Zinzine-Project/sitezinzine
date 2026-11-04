@@ -289,6 +289,23 @@ final class ProgrammationAssignmentSynchronizer
             'unpublishedDiffusions' => 0,
         ];
 
+        $diffusions = $this->diffusionRepository
+            ->findByAssignmentGroupKey($groupKey);
+
+        /*
+     * Dès qu'un groupe publié a commencé, il est historique.
+     *
+     * On ne touche alors :
+     * - ni aux Diffusion publiées ;
+     * - ni aux Drafts du groupe ;
+     * - ni au Parc à rediff.
+     */
+        if ($this->isHistoricalGroup($diffusions, $now)) {
+            $result['historicalGroups'] = 1;
+
+            return $result;
+        }
+
         $firstDraft = $this->findFirstRegularDraft($groupDrafts);
 
         if (!$firstDraft instanceof DiffusionDraft) {
@@ -305,23 +322,6 @@ final class ProgrammationAssignmentSynchronizer
                 'Le groupe régulier "%s" ne possède pas d’origine valide.',
                 $groupKey
             ));
-        }
-
-        $diffusions = $this->diffusionRepository
-            ->findByAssignmentGroupKey($groupKey);
-
-        /*
-     * Dès qu'un groupe publié a commencé, il est historique.
-     *
-     * On ne touche alors :
-     * - ni aux Diffusion publiées ;
-     * - ni aux Drafts du groupe ;
-     * - ni au Parc à rediff.
-     */
-        if ($this->isHistoricalGroup($diffusions, $now)) {
-            $result['historicalGroups'] = 1;
-
-            return $result;
         }
 
         if (!PendingRebroadcastService::regularRuleAllowsAdditionalRebroadcast($rule)) {

@@ -23,7 +23,20 @@ docker/xdebug.ini
 
 ### Tests (optionnel si pas requis en prod)
 /tests/*
+!/tests/Controller/
+/tests/Controller/*
+!/tests/Controller/Admin/
+/tests/Controller/Admin/*
+!/tests/Controller/Admin/ProgrammationFormErrorsTest.php
 !/tests/js/
+!/tests/Service/
+/tests/Service/*
+!/tests/Service/ProgrammationAssignmentSynchronizerTest.php
+!/tests/Service/Mp3ProcessorTest.php
+!/tests/Support/
+/tests/Support/*
+!/tests/Support/Mp3TestStorage.php
+!/tests/Support/check_mp3_storage.php
 
 ### Docker/dev files (optionnel, surtout sur main)
 dockerfile.dev

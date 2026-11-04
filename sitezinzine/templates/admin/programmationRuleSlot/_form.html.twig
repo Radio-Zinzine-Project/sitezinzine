@@ -226,6 +226,11 @@
       'data-controller': 'programmation-rule-slot'
     }
   }) }}
+  {% if form.vars.errors|length %}
+    <div class="field" role="alert">
+      {{ form_errors(form) }}
+    </div>
+  {% endif %}
   <div class="grid">
     <div class="field">
       {{ form_label(form.recurrenceType) }}

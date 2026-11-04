@@ -1,3 +1,8 @@
+parameters:
+    app.mp3_base_dir: '%env(MP3_TEST_STORAGE)%'
+    app.mp3_work_dir: '%env(MP3_TEST_STORAGE)%/private'
+    app.mp3_public_base_url: 'https://example.test/uploads/emissionsMp3'
+
 services:
     Symfony\Component\Mailer\EventListener\MessageLoggerListener: ~
 

@@ -1,6 +1,13 @@
 monolog:
     channels:
+        - mp3
         - deprecation # Deprecations are logged in the dedicated "deprecation" channel when it exists
+    handlers:
+        mp3:
+            type: stream
+            path: "%kernel.logs_dir%/%kernel.environment%.log"
+            level: error
+            channels: [mp3]
 
 when@dev:
     monolog:
@@ -9,7 +16,7 @@ when@dev:
                 type: stream
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
                 level: debug
-                channels: ["!event"]
+                channels: ["!event", "!mp3"]
             # uncomment to get logging in your browser
             # you may have to allow bigger header sizes in your Web server configuration
             #firephp:
@@ -21,7 +28,7 @@ when@dev:
             console:
                 type: console
                 process_psr_3_messages: false
-                channels: ["!event", "!doctrine", "!console"]
+                channels: ["!event", "!doctrine", "!console", "!mp3"]
 
 when@test:
     monolog:
@@ -31,7 +38,7 @@ when@test:
                 action_level: error
                 handler: nested
                 excluded_http_codes: [404, 405]
-                channels: ["!event"]
+                channels: ["!event", "!mp3"]
             nested:
                 type: stream
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
@@ -46,6 +53,7 @@ when@prod:
                 handler: nested
                 excluded_http_codes: [404, 405]
                 buffer_size: 50 # How many messages should be saved? Prevent memory leaks
+                channels: ["!mp3"]
             nested:
                 type: stream
                 path: php://stderr
@@ -54,7 +62,10 @@ when@prod:
             console:
                 type: console
                 process_psr_3_messages: false
-                channels: ["!event", "!doctrine"]
+                channels: ["!event", "!doctrine", "!mp3"]
+            mp3:
+                path: php://stderr
+                formatter: monolog.formatter.json
             deprecation:
                 type: stream
                 channels: [deprecation]

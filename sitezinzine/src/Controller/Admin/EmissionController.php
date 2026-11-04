@@ -26,6 +26,11 @@ use Vich\UploaderBundle\Storage\StorageInterface;
 use Vich\UploaderBundle\Mapping\PropertyMappingFactory;
 use App\Entity\User;
 use App\Service\Mp3Processor;
+use App\Service\Mp3Replacement;
+use App\Service\Mp3IncidentReporter;
+use App\Exception\Mp3OperationFailure;
+use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Form\FormError;
 use App\Entity\Categories;
 use App\Repository\CategoriesRepository;
 use App\Service\EmissionUserChoicesProvider;
@@ -233,7 +238,10 @@ class EmissionController extends AbstractController
         UrlGeneratorInterface $urlGenerator,
         StorageInterface $storage,
         PropertyMappingFactory $mappingFactory,
-        Mp3Processor $mp3Processor
+        Mp3Processor $mp3Processor,
+        Mp3Replacement $mp3Replacement,
+        Mp3IncidentReporter $mp3Incidents,
+        ManagerRegistry $doctrine
     ): Response {
         $user = $security->getUser();
 
@@ -257,6 +265,11 @@ class EmissionController extends AbstractController
             'can_manage_all_users' => $this->isGranted('ROLE_SUPER_ADMIN'),
             'with_mp3' => true,
         ]);
+        $originalMp3 = $emission->getThumbnailMp3();
+        $originalMp3Url = $emission->getUrl();
+        $originalEditorialState = $originalMp3
+            ? $mp3Processor->editorialState($emission, $em->getUnitOfWork()->getOriginalEntityData($emission))
+            : null;
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -301,14 +314,31 @@ class EmissionController extends AbstractController
                 $mp3Processor->delete($emission);
             }
 
-            $emission->setUpdatedat(new \DateTime());
-            $em->flush();
-
-            // Si un nouveau MP3 est envoyé, on le traite après flush
-            if ($newMp3Uploaded) {
-                $mp3Processor->process($emission);
-                $emission->setUpdatedat(new \DateTime());
-                $em->flush();
+            try {
+                if ($newMp3Uploaded) {
+                    $mp3Replacement->replace($emission, $em, $originalMp3, $originalMp3Url);
+                } elseif (!$deleteMp3 && $originalMp3 && $originalEditorialState !== $mp3Processor->editorialState($emission)) {
+                    $mp3Replacement->reprocess($emission, $em, $originalMp3, $originalMp3Url);
+                } else {
+                    $emission->setUpdatedat(new \DateTime());
+                    $em->flush();
+                }
+            } catch (Mp3OperationFailure $failure) {
+                // Keep the bound form/draft objects for display, but discard their managed
+                // state so a later flush cannot accidentally save a rolled-back request.
+                $em->clear();
+                if (!$em->isOpen()) {
+                    $doctrine->resetManager();
+                }
+                $operation = $newMp3Uploaded ? ($originalMp3 ? 'replacement' : 'upload') : 'editorial_reprocessing';
+                $incident = $mp3Incidents->report($failure, $emission->getId(), $operation);
+                $form->addError(new FormError($incident->message));
+                return $this->render('admin/emission/edit.html.twig', [
+                    'emission' => $emission,
+                    'formEmission' => $form->createView(),
+                    'mp3RetryBlocked' => $incident->retryBlocked,
+                    'mp3ShowCurrent' => $incident->showOriginal,
+                ], new Response(status: $incident->retryBlocked ? 409 : 422));
             }
 
             $this->addFlash('success', 'L\'émission a bien été modifiée.');

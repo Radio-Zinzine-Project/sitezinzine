@@ -934,7 +934,10 @@ class EmissionControllerTest extends WebTestCase
             $mp3Field
         );
 
-        $mp3Field->upload($mp3Path);
+        $uploadPath = \App\Tests\Support\Mp3TestStorage::root() . '/upload-' . bin2hex(random_bytes(16)) . '.mp3';
+        $fixtureHash = hash_file('sha256', $mp3Path);
+        self::assertTrue(copy($mp3Path, $uploadPath));
+        $mp3Field->upload($uploadPath);
 
         $this->client->submit($form);
 
@@ -967,11 +970,13 @@ class EmissionControllerTest extends WebTestCase
         );
 
         $finalMp3Path =
-            dirname(__DIR__, 3)
-            . '/public/uploads/emissionsMp3/'
+            \App\Tests\Support\Mp3TestStorage::root()
+            . '/'
             . $updatedEmission->getThumbnailMp3();
 
         $this->assertFileExists($finalMp3Path);
+        self::assertSame($fixtureHash, hash_file('sha256', $mp3Path));
+        self::assertStringStartsWith(\App\Tests\Support\Mp3TestStorage::root() . DIRECTORY_SEPARATOR, realpath($finalMp3Path));
     }
 
     public function testMarkCompletedDeniedForUserNotLinkedToEmission(): void

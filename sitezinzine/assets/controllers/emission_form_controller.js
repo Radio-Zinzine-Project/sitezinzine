@@ -5,13 +5,16 @@ export default class extends Controller {
 
   static values = {
     usersUrl: String,
-    emissionId: Number
+    emissionId: Number,
+    preserveSubmitted: Boolean
   }
 
   connect() {
     this.abortController = null
 
-    this.syncCategoryDefaults()
+    if (!this.preserveSubmittedValue) {
+      this.syncCategoryDefaults()
+    }
   }
 
   disconnect() {
