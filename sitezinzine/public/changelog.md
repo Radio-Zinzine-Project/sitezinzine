@@ -1,5 +1,34 @@
 # Changelog
 
+## [1.0.131] - 2026-11-09
+### Ajout
+- Ajout de la visibilité différée des PendingRebroadcast pour les émissions non régulières dans le parc « Émissions à diffuser ».
+- Ajout du service `NonRegularPendingVisibility` pour calculer la semaine d'apparition des propositions.
+- Ajout du service `NonRegularScheduledOccurrences` pour compter les occurrences programmées par émission et groupe d'affectation.
+- Ajout du service `NonRegularGroupMutation` pour synchroniser les opérations concurrentes de placement et de retrait.
+- Ajout de tests fonctionnels couvrant le cycle des Pending, leur visibilité et les changements d'état des grilles.
+- Ajout de tests de concurrence réels avec processus PHP indépendants, transactions MySQL et synchronisation IPC.
+### Corrections
+- Modification du jour de départ des playlists sur la grille imprimée (dimanche au lieu de mardi).
+- Création d'un nouveau Pending après consommation d'une rediffusion lorsque le groupe compte moins de trois occurrences programmées.
+- Prise en compte des Drafts actifs et des Diffusions publiées dans l'objectif de trois diffusions par groupe.
+- Conservation de la possibilité de programmer plus de trois diffusions.
+- Suppression du double comptage des Drafts partageant une même Diffusion, y compris après dévalidation.
+- Affichage des Pending à partir de la semaine radiophonique suivant la dernière occurrence programmée pertinente.
+- Prise en compte de la semaine affichée, des déplacements, des publications et des dévalidations.
+- Préservation des exclusions volontaires (`dismissed`) et de l'indépendance des groupes.
+- Correction d'une anomalie concurrente pouvant laisser un groupe avec moins de trois occurrences et aucun Pending actif.
+- Harmonisation du verrouillage transactionnel entre placement et retrait/restauration des rediffusions non régulières.
+- Préservation du comportement des Pending réguliers et des nouvelles émissions non régulières jamais affectées.
+### Tests et validation
+- Validation du cycle non régulier et de la visibilité régulière : 66 tests, 1 019 assertions.
+- Validation des services et contrôleurs concernés : 289 tests, 2 774 assertions.
+- Validation de six scénarios de concurrence réels, exécutés deux fois : 329 assertions par passage.
+- Vérification des états SQL après commit depuis des connexions indépendantes.
+- Revue finale du correctif sans anomalie bloquante confirmée.
+- Validation manuelle en préproduction restant à effectuer.
+
+
 ## [1.0.130] - 2026-11-04
 ### Ajout
 - Ajout de tests fonctionnels pour vérifier l'affichage des erreurs globales des formulaires de programmation.

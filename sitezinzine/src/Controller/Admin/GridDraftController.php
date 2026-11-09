@@ -17,6 +17,7 @@ use App\Service\LiveEmissionCreator;
 use App\Service\GridPlacementConflictService;
 use App\Service\PendingRebroadcastService;
 use App\Service\GridGroupConsultation;
+use App\Service\NonRegularGroupMutation;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -412,7 +413,8 @@ class GridDraftController extends AbstractController
         DiffusionDraftRepository $draftRepository,
         PendingRebroadcastRepository $pendingRepository,
         PendingRebroadcastService $pendingRebroadcastService,
-        EntityManagerInterface $em
+        EntityManagerInterface $em,
+        NonRegularGroupMutation $groupMutation
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
@@ -444,215 +446,247 @@ class GridDraftController extends AbstractController
             ], 400);
         }
 
-        $draft = $draftRepository->find((int) $draftId);
-
-        if (!$draft instanceof DiffusionDraft) {
-            return $this->json([
-                'success' => false,
-                'error' => 'Draft introuvable',
-            ], 404);
-        }
-
-        if (!\in_array($draft->getDraftType(), [
-            DiffusionDraft::TYPE_MANUAL_SPECIAL,
-            DiffusionDraft::TYPE_MANUAL_REBROADCAST,
-            DiffusionDraft::TYPE_MANUAL_LIVE,
-        ], true)) {
-            return $this->json([
-                'success' => false,
-                'error' => 'Ce draft ne peut pas être supprimé via cette action',
-            ], 403);
-        }
-
-        $draftsToDelete = [$draft];
-        $groupKey = $draft->getAssignmentGroupKey();
-
-        $groupDrafts = [];
-        $groupHasRegularDrafts = false;
-
-        if ($groupKey) {
-            $groupDrafts = $draftRepository->findBy([
-                'assignmentGroupKey' => $groupKey,
-            ]);
-
-            $groupHasRegularDrafts = \count(array_filter(
-                $groupDrafts,
-                static fn(DiffusionDraft $item): bool =>
-                DiffusionDraft::TYPE_REGULAR === $item->getDraftType()
-            )) > 0;
-        }
-
-        /*
-        * Nouvelle règle métier :
-        *
-        * Supprimer la première diffusion d'un groupe manuel
-        * supprime aussi toutes ses rediffusions.
-        */
-        $isManualFirstDiffusion = (
-            null !== $groupKey
-            && !$groupHasRegularDrafts
-            && \in_array($draft->getDraftType(), [
-                DiffusionDraft::TYPE_MANUAL_SPECIAL,
-                DiffusionDraft::TYPE_MANUAL_LIVE,
-            ], true)
-            && 1 === (int) $draft->getNombreDiffusion()
+        // Routing only, outside the new transaction; no group state is reused from this read.
+        $owner = $em->getConnection()->fetchAssociative(
+            'SELECT emission_id, assignment_group_key FROM diffusion_draft WHERE id = ?', [(int) $draftId]
         );
-
-        if ($isManualFirstDiffusion && 'single' === $deleteMode) {
-            $draftsToDelete = $groupDrafts;
-        } elseif ($groupKey && 'single' !== $deleteMode) {
-            if ('rebroadcasts' === $deleteMode) {
-                $draftsToDelete = array_values(array_filter(
-                    $groupDrafts,
-                    static fn(DiffusionDraft $item): bool =>
-                    DiffusionDraft::TYPE_MANUAL_REBROADCAST
-                        === $item->getDraftType()
-                ));
+        if ($owner === false) {
+            return $this->json(['success' => false, 'error' => 'Draft introuvable'], 404);
+        }
+        $operation = function (bool $locked = false) use (
+            $draftId, $deleteMode, $draftRepository, $pendingRepository, $pendingRebroadcastService, $em, $owner
+        ): JsonResponse {
+            if ($locked) {
+                // A binding/routing lookup before the transaction is not authoritative.
+                $current = $em->getConnection()->fetchAssociative(
+                    'SELECT emission_id, assignment_group_key FROM diffusion_draft WHERE id = ? FOR UPDATE', [(int) $draftId]
+                );
+                if ($current === false) {
+                    return $this->json(['success' => false, 'error' => 'Draft introuvable'], 404);
+                }
+                if ((int) $current['emission_id'] !== (int) $owner['emission_id']
+                    || $current['assignment_group_key'] !== $owner['assignment_group_key']) {
+                    return $this->json(['success' => false, 'error' => 'Cette affectation a été modifiée. Rechargez la grille.'], 409);
+                }
+            }
+            $draft = $draftRepository->find((int) $draftId);
+            if ($locked && $draft instanceof DiffusionDraft) {
+                $em->refresh($draft);
             }
 
-            if ('group' === $deleteMode) {
-                if ($groupHasRegularDrafts) {
-                    /*
-                 * Préserver les drafts réguliers.
-                 */
+            if (!$draft instanceof DiffusionDraft) {
+                return $this->json([
+                    'success' => false,
+                    'error' => 'Draft introuvable',
+                ], 404);
+            }
+
+            if (!\in_array($draft->getDraftType(), [
+                DiffusionDraft::TYPE_MANUAL_SPECIAL,
+                DiffusionDraft::TYPE_MANUAL_REBROADCAST,
+                DiffusionDraft::TYPE_MANUAL_LIVE,
+            ], true)) {
+                return $this->json([
+                    'success' => false,
+                    'error' => 'Ce draft ne peut pas être supprimé via cette action',
+                ], 403);
+            }
+
+            $draftsToDelete = [$draft];
+            $groupKey = $draft->getAssignmentGroupKey();
+
+            $groupDrafts = [];
+            $groupHasRegularDrafts = false;
+
+            if ($groupKey) {
+                $groupDrafts = $draftRepository->findBy([
+                    'assignmentGroupKey' => $groupKey,
+                ]);
+
+                $groupHasRegularDrafts = \count(array_filter(
+                    $groupDrafts,
+                    static fn(DiffusionDraft $item): bool =>
+                    DiffusionDraft::TYPE_REGULAR === $item->getDraftType()
+                )) > 0;
+            }
+
+            /*
+            * Nouvelle règle métier :
+            *
+            * Supprimer la première diffusion d'un groupe manuel
+            * supprime aussi toutes ses rediffusions.
+            */
+            $isManualFirstDiffusion = (
+                null !== $groupKey
+                && !$groupHasRegularDrafts
+                && \in_array($draft->getDraftType(), [
+                    DiffusionDraft::TYPE_MANUAL_SPECIAL,
+                    DiffusionDraft::TYPE_MANUAL_LIVE,
+                ], true)
+                && 1 === (int) $draft->getNombreDiffusion()
+            );
+
+            if ($isManualFirstDiffusion && 'single' === $deleteMode) {
+                $draftsToDelete = $groupDrafts;
+            } elseif ($groupKey && 'single' !== $deleteMode) {
+                if ('rebroadcasts' === $deleteMode) {
                     $draftsToDelete = array_values(array_filter(
                         $groupDrafts,
                         static fn(DiffusionDraft $item): bool =>
                         DiffusionDraft::TYPE_MANUAL_REBROADCAST
                             === $item->getDraftType()
                     ));
-                } else {
-                    $draftsToDelete = $groupDrafts;
+                }
+
+                if ('group' === $deleteMode) {
+                    if ($groupHasRegularDrafts) {
+                        /*
+                     * Préserver les drafts réguliers.
+                     */
+                        $draftsToDelete = array_values(array_filter(
+                            $groupDrafts,
+                            static fn(DiffusionDraft $item): bool =>
+                            DiffusionDraft::TYPE_MANUAL_REBROADCAST
+                                === $item->getDraftType()
+                        ));
+                    } else {
+                        $draftsToDelete = $groupDrafts;
+                    }
                 }
             }
-        }
 
-        if ([] === $draftsToDelete) {
+            if ([] === $draftsToDelete) {
+                return $this->json([
+                    'success' => false,
+                    'error' => 'Aucun draft à supprimer.',
+                ], 400);
+            }
+
+            /*
+         * Déterminer si le groupe disparaît entièrement.
+         *
+         * On utilise les identifiants afin de comparer
+         * les drafts indépendamment de leur identité Doctrine.
+         */
+            $deletedIds = [];
+
+            foreach ($draftsToDelete as $item) {
+                if ($item instanceof DiffusionDraft && null !== $item->getId()) {
+                    $deletedIds[] = $item->getId();
+                }
+            }
+
+            $remainingGroupDrafts = array_values(array_filter(
+                $groupDrafts,
+                static fn(DiffusionDraft $item): bool =>
+                !\in_array($item->getId(), $deletedIds, true)
+            ));
+
+            $manualGroupCompletelyDeleted = (
+                null !== $groupKey
+                && !$groupHasRegularDrafts
+                && [] === $remainingGroupDrafts
+            );
+
+            /*
+         * Une rediffusion supprimée individuellement retourne
+         * au parc lorsqu'elle est éligible.
+         *
+         * On conserve le fonctionnement existant.
+         */
+            if (
+                'single' === $deleteMode
+                && DiffusionDraft::TYPE_MANUAL_REBROADCAST === $draft->getDraftType()
+                && null !== $groupKey
+            ) {
+                $emission = $draft->getEmission();
+
+                if ($emission instanceof Emission) {
+                    $pendingRebroadcastService->restoreToPoolIfEligible(
+                        $emission,
+                        $groupKey,
+                        $draftsToDelete
+                    );
+                }
+            }
+
+            /*
+         * Supprimer les Pending associés uniquement si
+         * le groupe manuel disparaît entièrement.
+         *
+         * Les groupes réguliers ne sont pas concernés.
+         */
+            if ($manualGroupCompletelyDeleted) {
+                foreach (
+                    $pendingRepository->findByAssignmentGroupKey($groupKey)
+                    as $pending
+                ) {
+                    if ($pending instanceof PendingRebroadcast) {
+                        $em->remove($pending);
+                    }
+                }
+            }
+
+            foreach ($draftsToDelete as $item) {
+                if ($item instanceof DiffusionDraft) {
+                    $em->remove($item);
+                }
+            }
+
+            /*
+         * Renuméroter les drafts restants.
+         */
+            if ($groupKey) {
+                if ($groupHasRegularDrafts) {
+                    $this->renumberRegularGroupManualRebroadcasts(
+                        $groupKey,
+                        $draftRepository,
+                        $draftsToDelete
+                    );
+                } elseif (
+                    !$manualGroupCompletelyDeleted
+                    && 'group' !== $deleteMode
+                ) {
+                    $remainingDrafts = $draftRepository->findBy(
+                        ['assignmentGroupKey' => $groupKey],
+                        ['horaireDiffusion' => 'ASC']
+                    );
+
+                    $rank = 1;
+
+                    foreach ($remainingDrafts as $remainingDraft) {
+                        if (\in_array($remainingDraft, $draftsToDelete, true)) {
+                            continue;
+                        }
+
+                        $remainingDraft->setNombreDiffusion($rank);
+
+                        // Synchroniser la diffusion déjà publiée, si elle existe.
+                        $publishedDiffusion = $remainingDraft->getPublishedDiffusion();
+
+                        if ($publishedDiffusion instanceof Diffusion) {
+                            $publishedDiffusion->setNombreDiffusion($rank);
+                        }
+
+                        ++$rank;
+                    }
+                }
+            }
+
+            $em->flush();
+
             return $this->json([
-                'success' => false,
-                'error' => 'Aucun draft à supprimer.',
-            ], 400);
+                'success' => true,
+                'draftId' => (int) $draftId,
+                'deleteMode' => $deleteMode,
+                'deletedCount' => \count($draftsToDelete),
+            ]);
+        };
+        if (!str_starts_with($owner['assignment_group_key'] ?? '', 'rule_')) {
+            return $groupMutation->run((int) $owner['emission_id'], $owner['assignment_group_key'], fn() => $operation(true));
         }
-
-        /*
-     * Déterminer si le groupe disparaît entièrement.
-     *
-     * On utilise les identifiants afin de comparer
-     * les drafts indépendamment de leur identité Doctrine.
-     */
-        $deletedIds = [];
-
-        foreach ($draftsToDelete as $item) {
-            if ($item instanceof DiffusionDraft && null !== $item->getId()) {
-                $deletedIds[] = $item->getId();
-            }
-        }
-
-        $remainingGroupDrafts = array_values(array_filter(
-            $groupDrafts,
-            static fn(DiffusionDraft $item): bool =>
-            !\in_array($item->getId(), $deletedIds, true)
-        ));
-
-        $manualGroupCompletelyDeleted = (
-            null !== $groupKey
-            && !$groupHasRegularDrafts
-            && [] === $remainingGroupDrafts
-        );
-
-        /*
-     * Une rediffusion supprimée individuellement retourne
-     * au parc lorsqu'elle est éligible.
-     *
-     * On conserve le fonctionnement existant.
-     */
-        if (
-            'single' === $deleteMode
-            && DiffusionDraft::TYPE_MANUAL_REBROADCAST === $draft->getDraftType()
-            && null !== $groupKey
-        ) {
-            $emission = $draft->getEmission();
-
-            if ($emission instanceof Emission) {
-                $pendingRebroadcastService->restoreToPoolIfEligible(
-                    $emission,
-                    $groupKey,
-                    $draftsToDelete
-                );
-            }
-        }
-
-        /*
-     * Supprimer les Pending associés uniquement si
-     * le groupe manuel disparaît entièrement.
-     *
-     * Les groupes réguliers ne sont pas concernés.
-     */
-        if ($manualGroupCompletelyDeleted) {
-            foreach (
-                $pendingRepository->findByAssignmentGroupKey($groupKey)
-                as $pending
-            ) {
-                if ($pending instanceof PendingRebroadcast) {
-                    $em->remove($pending);
-                }
-            }
-        }
-
-        foreach ($draftsToDelete as $item) {
-            if ($item instanceof DiffusionDraft) {
-                $em->remove($item);
-            }
-        }
-
-        /*
-     * Renuméroter les drafts restants.
-     */
-        if ($groupKey) {
-            if ($groupHasRegularDrafts) {
-                $this->renumberRegularGroupManualRebroadcasts(
-                    $groupKey,
-                    $draftRepository,
-                    $draftsToDelete
-                );
-            } elseif (
-                !$manualGroupCompletelyDeleted
-                && 'group' !== $deleteMode
-            ) {
-                $remainingDrafts = $draftRepository->findBy(
-                    ['assignmentGroupKey' => $groupKey],
-                    ['horaireDiffusion' => 'ASC']
-                );
-
-                $rank = 1;
-
-                foreach ($remainingDrafts as $remainingDraft) {
-                    if (\in_array($remainingDraft, $draftsToDelete, true)) {
-                        continue;
-                    }
-
-                    $remainingDraft->setNombreDiffusion($rank);
-
-                    // Synchroniser la diffusion déjà publiée, si elle existe.
-                    $publishedDiffusion = $remainingDraft->getPublishedDiffusion();
-
-                    if ($publishedDiffusion instanceof Diffusion) {
-                        $publishedDiffusion->setNombreDiffusion($rank);
-                    }
-
-                    ++$rank;
-                }
-            }
-        }
-
-        $em->flush();
-
-        return $this->json([
-            'success' => true,
-            'draftId' => (int) $draftId,
-            'deleteMode' => $deleteMode,
-            'deletedCount' => \count($draftsToDelete),
-        ]);
+        // Keep the existing regular-group path and its policies unchanged.
+        return $operation();
     }
 
     #[Route('/move', name: 'move', methods: ['POST'])]

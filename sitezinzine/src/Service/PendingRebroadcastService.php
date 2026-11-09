@@ -248,6 +248,24 @@ final class PendingRebroadcastService implements PendingRebroadcastPopulatorInte
         return $created;
     }
 
+    /** Called after consumption, with all placement writes in the caller's transaction. */
+    public function proposeNextForNonRegularGroup(Emission $emission, string $groupKey): ?PendingRebroadcast
+    {
+        if (str_starts_with($groupKey, 'rule_')) {
+            return null;
+        }
+        $schedule = NonRegularScheduledOccurrences::summarize(
+            $emission->getId(), $groupKey,
+            $this->draftRepository->findByAssignmentGroupKey($groupKey),
+            $this->diffusionRepository->findByAssignmentGroupKey($groupKey)
+        );
+        if ($schedule['count'] === 0 || $schedule['count'] >= self::MAX_DIFFUSIONS_FOR_POOL) {
+            return null;
+        }
+        // Reuse existing active proposals, including manual duplicates; dismissed wins.
+        return $this->restoreToPoolIfEligible($emission, $groupKey);
+    }
+
     public function restoreToPoolIfEligible(
         Emission $emission,
         string $assignmentGroupKey,

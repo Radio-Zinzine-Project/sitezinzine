@@ -184,7 +184,7 @@ final class RegularPendingVisibilityTest extends FunctionalTestCase
         self::assertSame([false, true], $this->visibility($group, ['2099-01-06', '2099-01-13']));
     }
 
-    public function testManualPendingAndNewNonRegularEmissionRemainIndependentOfDisplayedWeek(): void
+    public function testManualPendingIsDeferredWhileNewNonRegularEmissionRemainsIndependent(): void
     {
         $manualEmission = $this->createEmission($this->marker . ' manual');
         $manual = (new PendingRebroadcast())->setEmission($manualEmission)->setAssignmentGroupKey('manual_' . $this->marker);
@@ -197,14 +197,16 @@ final class RegularPendingVisibilityTest extends FunctionalTestCase
         $this->entityManager->flush();
         $before = $this->businessSnapshot();
         $selections = [];
-        foreach (['2000-01-04', '2099-01-06', '2099-02-03'] as $week) {
+        foreach (['2000-01-04' => false, '2099-01-06' => false, '2099-02-03' => true] as $week => $manualVisible) {
             $items = $this->pool($week)['items'];
             $selected = array_values(array_filter($items, static fn(array $item): bool =>
                 ($item['type'] === 'pending_rebroadcast' && $item['id'] === $manual->getId())
                 || ($item['type'] === 'non_regular_emission' && $item['emissionId'] === $fresh->getId())
             ));
-            self::assertCount(2, $selected);
-            $selections[] = $selected;
+            self::assertCount($manualVisible ? 2 : 1, $selected);
+            self::assertCount(1, array_filter($selected, static fn(array $item): bool => $item['type'] === 'non_regular_emission'));
+            self::assertSame($manualVisible, in_array($manual->getId(), $this->pendingIds(['items' => $selected]), true));
+            $selections[] = array_values(array_filter($selected, static fn(array $item): bool => $item['type'] === 'non_regular_emission'));
         }
         self::assertSame($selections[0], $selections[1]);
         self::assertSame($selections[0], $selections[2]);

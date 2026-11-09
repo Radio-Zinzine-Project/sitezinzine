@@ -13,6 +13,9 @@ use App\Repository\DiffusionDraftRepository;
 use App\Repository\EmissionRepository;
 use App\Service\RegularRebroadcastPlacementService;
 use App\Service\RegularPendingVisibility;
+use App\Service\NonRegularPendingVisibility;
+use App\Service\NonRegularGroupMutation;
+use App\Service\PendingRebroadcastService;
 use App\Service\RadioWeek;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,7 +37,8 @@ class PendingRebroadcastController extends AbstractController
         DiffusionDraftRepository $diffusionDraftRepository,
         EmissionRepository $emissionRepository,
         Request $request,
-        RegularPendingVisibility $visibility
+        RegularPendingVisibility $visibility,
+        NonRegularPendingVisibility $nonRegularVisibility
     ): JsonResponse {
         $weekStart = null;
         if ($request->query->has('weekStart')) {
@@ -62,6 +66,7 @@ class PendingRebroadcastController extends AbstractController
         }
         if ($weekStart !== null) {
             $pendingRebroadcasts = $visibility->filter($pendingRebroadcasts, $weekStart, $draftsByGroup, $diffusionsByGroup);
+            $pendingRebroadcasts = $nonRegularVisibility->filter($pendingRebroadcasts, $weekStart, $draftsByGroup, $diffusionsByGroup);
         }
 
         $items = [];
@@ -284,7 +289,10 @@ class PendingRebroadcastController extends AbstractController
     public function place(
         PendingRebroadcast $pendingRebroadcast,
         Request $request,
-        RegularRebroadcastPlacementService $placementService
+        RegularRebroadcastPlacementService $placementService,
+        PendingRebroadcastService $pendingService,
+        EntityManagerInterface $entityManager,
+        NonRegularGroupMutation $groupMutation
     ): JsonResponse {
 
         if (!$pendingRebroadcast->isPending()) {
@@ -321,10 +329,26 @@ class PendingRebroadcastController extends AbstractController
         }
 
         try {
-            $draft = $placementService->place(
-                $pendingRebroadcast,
-                $startsAt
-            );
+            if (str_starts_with($pendingRebroadcast->getAssignmentGroupKey(), 'rule_')) {
+                $draft = $placementService->place($pendingRebroadcast, $startsAt);
+            } else {
+                $emissionId = $pendingRebroadcast->getEmission()->getId();
+                $groupKey = $pendingRebroadcast->getAssignmentGroupKey();
+                $draft = $groupMutation->run($emissionId, $groupKey, function () use (
+                    $pendingRebroadcast, $startsAt, $placementService, $pendingService, $entityManager, $emissionId, $groupKey
+                ) {
+                    $connection = $entityManager->getConnection();
+                    $current = $connection->fetchAssociative('SELECT status, emission_id, assignment_group_key FROM pending_rebroadcast WHERE id = ? FOR UPDATE', [$pendingRebroadcast->getId()]);
+                    if ($current === false || $current['status'] !== PendingRebroadcast::STATUS_PENDING
+                        || (int) $current['emission_id'] !== $emissionId || $current['assignment_group_key'] !== $groupKey) {
+                        throw new \DomainException('Cette rediffusion n’est plus disponible dans le parc.');
+                    }
+                    $draft = $placementService->place($pendingRebroadcast, $startsAt);
+                    $pendingService->proposeNextForNonRegularGroup($draft->getEmission(), $draft->getAssignmentGroupKey());
+                    $entityManager->flush();
+                    return $draft;
+                });
+            }
         } catch (\DomainException $exception) {
             return $this->json([
                 'success' => false,
