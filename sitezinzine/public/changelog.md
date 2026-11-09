@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.133] - 2026-11-09
+### Corrections
+- Correction du merge précédent qui a échoué.
+
+
 ## [1.0.131] - 2026-11-09
 ### Ajout
 - Ajout de la visibilité différée des PendingRebroadcast pour les émissions non régulières dans le parc « Émissions à diffuser ».
