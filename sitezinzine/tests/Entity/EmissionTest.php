@@ -121,6 +121,66 @@ class EmissionTest extends TestCase
         $this->assertNull($emission->getThumbnailMp3());
     }
 
+    public function testSetUrlWithNullClearsAudioUrl(): void
+    {
+        $emission = new Emission();
+        $emission->setUrl('https://example.com/audio.mp3');
+
+        $emission->setUrl(null);
+
+        $this->assertNull($emission->getUrl());
+    }
+
+    public function testSetUrlWithEmptyStringClearsAudioUrl(): void
+    {
+        $emission = new Emission();
+        $emission->setUrl('https://example.com/audio.mp3');
+
+        $emission->setUrl('');
+
+        $this->assertNull($emission->getUrl());
+    }
+
+    public function testSetUrlWithSpacesOnlyClearsAudioUrl(): void
+    {
+        $emission = new Emission();
+        $emission->setUrl('https://example.com/audio.mp3');
+
+        $emission->setUrl('   ');
+
+        $this->assertNull($emission->getUrl());
+    }
+
+    public function testSetUrlWithTabOnlyClearsAudioUrl(): void
+    {
+        $emission = new Emission();
+        $emission->setUrl('https://example.com/audio.mp3');
+
+        $emission->setUrl("\t");
+
+        $this->assertNull($emission->getUrl());
+    }
+
+    public function testSetUrlPreservesNonEmptyUrlExactly(): void
+    {
+        $url = 'HTTPS://Example.test/Émission.MP3?Token=AbC&nom=Café%20du%20soir';
+        $emission = new Emission();
+
+        $emission->setUrl($url);
+
+        $this->assertSame($url, $emission->getUrl());
+    }
+
+    public function testSetUrlPreservesSpacesInNonEmptyUrlExactly(): void
+    {
+        $url = '  https://Example.test/Émission du soir.MP3?Token=AbC&nom=Café au lait  ';
+        $emission = new Emission();
+
+        $emission->setUrl($url);
+
+        $this->assertSame($url, $emission->getUrl());
+    }
+
     public function testThumbnailIsTrimmed(): void
     {
         $emission = new Emission();

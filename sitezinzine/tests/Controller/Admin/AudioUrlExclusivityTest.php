@@ -99,6 +99,35 @@ final class AudioUrlExclusivityTest extends FunctionalTestCase
             'Neither the original owner nor the edited emission may lose its association.');
     }
 
+    public function testModificationRejectsAnotherEmissionsUrlWithDifferentCase(): void
+    {
+        $before = [$this->state($this->first), $this->state($this->second)];
+        $url = strtoupper($before[0]['url']);
+        self::assertNotSame($before[0]['url'], $url);
+
+        $this->client->submit($this->editForm($this->second, $url));
+
+        $this->assertAudioUrlValidationError();
+        self::assertSame($before, [$this->state($this->first), $this->state($this->second)],
+            'A case-only conflict must preserve both persisted audio associations.');
+    }
+
+    public function testModificationRejectsSoftDeletedEmissionsUrl(): void
+    {
+        $this->first->softDelete();
+        $this->entityManager->flush();
+        self::assertNotNull($this->entityManager->getConnection()->fetchOne(
+            'SELECT deleted_at FROM emission WHERE id = ?', [$this->first->getId()]
+        ));
+        $before = [$this->state($this->first), $this->state($this->second)];
+
+        $this->client->submit($this->editForm($this->second, $before[0]['url']));
+
+        $this->assertAudioUrlValidationError();
+        self::assertSame($before, [$this->state($this->first), $this->state($this->second)],
+            'A soft-deleted owner must keep its URL and the edited association must remain unchanged.');
+    }
+
     /** @dataProvider audioKinds */
     public function testModificationMayKeepItsOwnUrl(bool $local): void
     {
@@ -166,6 +195,19 @@ final class AudioUrlExclusivityTest extends FunctionalTestCase
         self::assertFalse($this->client->getResponse()->isRedirect(), 'A conflicting URL must be refused.');
         self::assertContains($this->client->getResponse()->getStatusCode(), [200, 422]);
         self::assertSelectorExists('form .invalid-feedback, form .form-error-message', 'The refusal must display a validation error.');
+    }
+
+    private function assertAudioUrlValidationError(): void
+    {
+        $this->assertRejectedForm();
+        // Require the UniqueEntity message in the URL field's rendered error container.
+        $errors = $this->client->getCrawler()->filter('#emission_url')->ancestors()->first()
+            ->filter('.invalid-feedback, .form-error-message');
+        self::assertGreaterThan(0, $errors->count());
+        self::assertStringContainsString(
+            'Cette URL audio est déjà associée à une autre émission.',
+            $errors->text(),
+        );
     }
 
     private function state(Emission $emission): array

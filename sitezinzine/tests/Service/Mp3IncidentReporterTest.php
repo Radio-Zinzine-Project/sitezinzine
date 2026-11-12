@@ -7,11 +7,14 @@ namespace App\Tests\Service;
 use App\Enum\Mp3FailureStage;
 use App\Exception\Mp3OperationFailure;
 use App\Service\Mp3IncidentReporter;
+use App\Tests\Support\CapturesMp3FallbackLog;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
 final class Mp3IncidentReporterTest extends TestCase
 {
+    use CapturesMp3FallbackLog;
+
     /** @dataProvider stages */
     public function testPublicCategoryComesFromTheStageNotExceptionText(Mp3FailureStage $stage, string $word): void
     {
@@ -75,8 +78,14 @@ final class Mp3IncidentReporterTest extends TestCase
     {
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects(self::once())->method('error')->willThrowException(new \RuntimeException('LOGGER_SINK_SECRET'));
-        $incident = (new Mp3IncidentReporter($logger))->report(new Mp3OperationFailure(Mp3FailureStage::METADATA,
-            new \RuntimeException('metadata details'), true, true), 42, 'replacement');
+        [$incident, $incidentId] = $this->captureMp3FallbackLog(
+            static fn () => (new Mp3IncidentReporter($logger))->report(new Mp3OperationFailure(Mp3FailureStage::METADATA,
+                new \RuntimeException('metadata details'), true, true), 42, 'replacement'),
+            42,
+            'replacement',
+        );
+        self::assertSame($incidentId, $incident->id);
+        self::assertStringContainsString($incidentId, $incident->message);
         self::assertStringContainsString('métadonnées', $incident->message);
         self::assertStringNotContainsString('LOGGER_SINK_SECRET', $incident->message);
         self::assertFalse($incident->retryBlocked);

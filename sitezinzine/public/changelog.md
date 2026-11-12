@@ -1,9 +1,13 @@
 # Changelog
 
 ## [1.0.133] - 2026-11-12
-### Ajout
+### Ajouts
 - Renforcement de la fiabilité des tests PHPUnit et de la gestion des ressources utilisées par les fixtures.
-- Validation complète des suites de tests PHP et JavaScript : 2 241 tests réussis (2 048 PHPUnit et 193 Vitest).
+- Ajout d'une contrainte d'unicité en base de données sur les URL audio des émissions, y compris celles supprimées logiquement.
+- Mise en place d'une comparaison insensible à la casse pour l'unicité des URL audio, avec conservation des URL d'origine.
+- Ajout d'une migration Doctrine pour appliquer cette contrainte d'unicité.
+- Ajout d'un helper de test partagé `CapturesMp3FallbackLog` permettant de capturer et de vérifier les diagnostics produits lorsque le logger principal est indisponible.
+- Renforcement des assertions relatives aux incidents MP3 : identifiant d'incident, émission concernée, opération, étape et exceptions rencontrées.
 ### Corrections
 - Correction des rétentions mémoire dans les classes de support et les tests fonctionnels PHPUnit.
 - Amélioration du nettoyage des références aux EntityManager, contrôleurs, services, mocks et entités après les tests.
@@ -11,9 +15,26 @@
 - Correction du nettoyage des ressources temporaires dans les tests TinyMCE.
 - Régénération du conteneur Symfony de test non-debug afin de résoudre les erreurs d'injection de dépendances dans `GridDraftController::delete()`.
 - Correction des collisions d'URL audio dans les fixtures d'`EmissionControllerTest` grâce à la génération d'URL uniques.
+- Correction des fixtures partagées de `FunctionalTestCase` et `PendingRebroadcastServiceIntegrationTest` afin de respecter la nouvelle contrainte d'unicité des URL audio.
+- Adaptation de la création des émissions de test pour générer des URL uniques à partir de leurs identifiants, lorsque nécessaire.
+- Normalisation des URL audio vides ou composées uniquement d'espaces vers `NULL`, sans modification des autres valeurs.
 - Préservation des règles métier d'unicité des URL audio et des comportements de suppression, republication et restauration des rediffusions.
 - Résolution des 16 échecs PHPUnit précédemment identifiés.
-- Résolution de l'épuisement mémoire lors de l'exécution complète de PHPUnit avec une limite de 2 Go : consommation finale rapportée de 791 Mio.
+- Résolution des 123 erreurs PHPUnit supplémentaires provoquées par les collisions d'URL dans les fixtures historiques.
+- Correction de la capture des diagnostics de secours MP3 pour éviter leur affichage dans la sortie PHPUnit lorsque les scénarios de panne du logger réussissent.
+- Garantie de restauration de la configuration PHP `error_log` et du nettoyage des fichiers temporaires après les tests concernés.
+- Suppression des affichages systématiques `CONCURRENCY` dans les tests fonctionnels de concurrence, tout en conservant les diagnostics en cas d'échec.
+- Conservation des assertions, des mécanismes de verrouillage, des transactions et du comportement des workers de concurrence.
+- Correction du double chargement de Xdebug dans l'environnement Docker de développement.
+- Résolution de l'épuisement mémoire lors de l'exécution complète de PHPUnit avec une limite de 2 Go.
+### Tests et validation
+- Validation précédente des suites PHP et JavaScript : 2 241 tests réussis (2 048 PHPUnit et 193 Vitest).
+- Validation des tests fonctionnels concernés par les collisions d'URL : 146 tests et 2 193 assertions réussis.
+- Validation des tests d'intégration `PendingRebroadcastServiceIntegrationTest` : 4 tests et 21 assertions réussis.
+- Validation des tests ciblés de gestion des incidents MP3 et des tests de concurrence après correction.
+- **Validation finale de la suite PHPUnit complète : 2 063 tests et 15 301 assertions réussis, sans erreur ni échec.**
+- Durée de la dernière exécution complète : 19 min 04,925 s.
+- Mémoire rapportée lors de cette exécution : 915 Mo.
 
 
 ## [1.0.132] - 2026-11-09

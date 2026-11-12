@@ -333,7 +333,7 @@ final class PendingRebroadcastServiceIntegrationTest extends KernelTestCase
             ->setDatepub(new \DateTime('2026-09-01'))
             ->setRef('INT-' . bin2hex(random_bytes(6)))
             ->setDuree(60)
-            ->setUrl('https://example.test/integration.mp3')
+            ->setUrl(null)
             ->setDescriptif('Emission de test integration')
             ->setCategorie($category)
             ->setUpdatedAt(new \DateTime())
