@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller\Admin;
 
+use App\Tests\Support\CapturesMp3FallbackLog;
+
 use App\Repository\CategorieTagImageRepository;
 use App\Service\Mp3Processor;
 use App\Tests\Support\Mp3FailureTestCase;
@@ -11,6 +13,8 @@ use Doctrine\ORM\EntityManagerInterface;
 
 final class Mp3ErrorRecoveryTest extends Mp3FailureTestCase
 {
+    use CapturesMp3FallbackLog;
+
     public function testRetryAfterTheFailedOperationClosedDoctrine(): void
     {
         $form = $this->prepare('replacement');
@@ -51,7 +55,10 @@ final class Mp3ErrorRecoveryTest extends Mp3FailureTestCase
         $form = $this->prepare('editorial');
         $this->arm('metadata');
         $this->probe->failLogging = true;
-        $this->send($form);
+        [, $incidentId] = $this->captureMp3FallbackLog(
+            fn () => $this->send($form), $this->subject->getId(), 'editorial_reprocessing',
+        );
+        self::assertStringContainsString($incidentId, $this->responseText());
         self::assertTrue($this->probe->loggingFailed);
         self::assertTrue($this->controlledResponse());
         self::assertSame($this->input, $this->formState());

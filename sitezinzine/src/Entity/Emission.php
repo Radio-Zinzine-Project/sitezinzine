@@ -6,6 +6,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Symfony\Component\Validator\Constraints as Assert;
 use App\Repository\EmissionRepository;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints\Positive;
@@ -17,11 +18,17 @@ use App\Entity\ProgrammationRuleSlot;
 
 #[ORM\Entity(repositoryClass: EmissionRepository::class)]
 #[ORM\Table(name: 'emission')]
-#[ORM\Index(name: 'idx_emission_url', columns: ['url'])]
+#[ORM\UniqueConstraint(name: 'uniq_emission_url', columns: ['url'])]
 #[ORM\Index(name: 'idx_emission_titre', columns: ['titre'])]
 #[ORM\Index(name: 'idx_emission_theme', columns: ['theme_id'])]
 #[ORM\Index(name: 'idx_emission_categorie', columns: ['categorie_id'])]
 #[Vich\Uploadable()]
+#[UniqueEntity(
+    fields: ['url'],
+    repositoryMethod: 'findByAudioUrl',
+    errorPath: 'url',
+    message: 'Cette URL audio est déjà associée à une autre émission.'
+)]
 class Emission
 {
     /**
@@ -95,7 +102,10 @@ class Emission
      * It is optional and has a maximum length of 250 characters.
      * It can be used to listen to the show on the website.
      */
-    #[ORM\Column(length: 250, nullable: true)]
+    #[ORM\Column(length: 250, nullable: true, options: [
+        'charset' => 'utf8mb4',
+        'collation' => 'utf8mb4_0900_as_ci',
+    ])]
     #[Groups(['emissions.index', 'emissions.create', 'emissions.lastemissions'])]
     private ?string $url = null;
 
@@ -443,7 +453,7 @@ class Emission
      */
     public function setUrl(?string $url): static
     {
-        $this->url = $url;
+        $this->url = null === $url || '' === trim($url, " \t") ? null : $url;
 
         return $this;
     }

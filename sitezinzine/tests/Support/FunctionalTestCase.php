@@ -38,7 +38,11 @@ abstract class FunctionalTestCase extends WebTestCase
         try {
             $this->closeEntityManager();
         } finally {
-            parent::tearDown();
+            try {
+                parent::tearDown();
+            } finally {
+                unset($this->client, $this->entityManager);
+            }
         }
     }
 
@@ -94,7 +98,7 @@ abstract class FunctionalTestCase extends WebTestCase
     protected function createEmission(string $title, ?User $owner = null, ?Categories $category = null, ?Theme $theme = null): Emission
     {
         $emission = (new Emission())->setTitre($title)->setDescriptif('Description du parcours public')
-            ->setDuree(60)->setUrl('https://example.test/audio.mp3')
+            ->setDuree(60)->setUrl(null)
             ->setDatepub(new \DateTime())->setUpdatedat(new \DateTime())
             ->setKeyword('parcours')->setRef('WF' . bin2hex(random_bytes(6)))
             ->setCategorie($category ?? $this->createCategory())->setTheme($theme ?? $this->createTheme());
@@ -103,6 +107,10 @@ abstract class FunctionalTestCase extends WebTestCase
             $emission->addUser($owner);
         }
         $this->entityManager->persist($emission);
+        $this->entityManager->flush();
+
+        // Derive the audio URL from the real ID within the existing fixture transaction.
+        $emission->setUrl('https://example.test/fixtures/emission/' . $emission->getId() . '.mp3');
         $this->entityManager->flush();
 
         return $emission;

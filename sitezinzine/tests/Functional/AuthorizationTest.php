@@ -15,6 +15,15 @@ final class AuthorizationTest extends FunctionalTestCase
     private Emission $own;
     private Emission $other;
 
+    protected function tearDown(): void
+    {
+        try {
+            parent::tearDown();
+        } finally {
+            unset($this->users, $this->own, $this->other);
+        }
+    }
+
     public static function roles(): iterable
     {
         yield 'user' => ['ROLE_USER'];

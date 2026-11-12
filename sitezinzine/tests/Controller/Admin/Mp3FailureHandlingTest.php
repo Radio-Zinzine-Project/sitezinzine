@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller\Admin;
 
+use App\Tests\Support\CapturesMp3FallbackLog;
+
 use App\Tests\Support\{Mp3FailureProbe, Mp3FailureTestCase};
 
 final class Mp3FailureHandlingTest extends Mp3FailureTestCase
 {
+    use CapturesMp3FallbackLog;
+
     /** @dataProvider rollbackCases */
     public function testFailureRollsBackAllEditorialChangesAndMp3References(string $operation, string $stage): void
     {
@@ -143,7 +147,11 @@ final class Mp3FailureHandlingTest extends Mp3FailureTestCase
         $form = $this->prepare($operation);
         $this->arm('metadata');
         $this->probe->failLogging = true;
-        $this->send($form);
+        [, $incidentId] = $this->captureMp3FallbackLog(
+            fn () => $this->send($form), $this->subject->getId(),
+            $operation === 'editorial' ? 'editorial_reprocessing' : 'replacement',
+        );
+        self::assertStringContainsString($incidentId, $this->responseText());
         $this->assertWitness();
         self::assertSame([
             'processing fault reached' => true, 'logger failure reached' => true,

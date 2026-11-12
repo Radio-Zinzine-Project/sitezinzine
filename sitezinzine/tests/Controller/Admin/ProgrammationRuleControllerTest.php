@@ -58,6 +58,16 @@ class ProgrammationRuleControllerTest extends ControllerActionTestCase
         );
     }
 
+    protected function tearDown(): void
+    {
+        try {
+            parent::tearDown();
+        } finally {
+            unset($this->controller, $this->slotRepository, $this->conflictChecker, $this->mutationService);
+            $this->structuralCandidates = [];
+        }
+    }
+
     public function testIndexUsesNonDeletedRules(): void
     {
         $activeRule = new ProgrammationRule();

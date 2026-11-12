@@ -454,6 +454,218 @@ final class NonRegularPendingWorkflowTest extends FunctionalTestCase
         self::assertCount(0, $this->entityManager->getRepository(PendingRebroadcast::class)->findBy(['emission' => $emission]));
     }
 
+    public function testAutomaticDeleteSingleRepublishesSurvivorsAndPreservesDraftWeek(): void
+    {
+        $group = $this->manualGroup();
+        $target = $this->place($this->onlyPending($group)->getId(), self::S1 . ' 12:00:00');
+        $draftWeek = $this->place($this->onlyPending($group)->getId(), self::S2 . ' 10:00:00');
+        $this->publish(self::S1);
+        $targetId = $target->getId();
+        $historyId = $this->entityManager->find(DiffusionDraft::class, $targetId)->getPublishedDiffusion()->getId();
+        $survivorId = $this->entityManager->find(DiffusionDraft::class, $group['first']->getId())->getPublishedDiffusion()->getId();
+
+        $this->jsonPost('/admin/grid-drafts/delete', ['draftId' => $targetId, 'deleteMode' => 'single']);
+        $this->entityManager->clear();
+        self::assertNull($this->entityManager->find(DiffusionDraft::class, $targetId));
+        self::assertTrue($this->entityManager->find(Diffusion::class, $historyId)->isUnpublished(), 'Removed published passage must become historical.');
+        $first = $this->entityManager->find(DiffusionDraft::class, $group['first']->getId());
+        self::assertSame($survivorId, $first->getPublishedDiffusion()->getId());
+        self::assertTrue($first->getPublishedDiffusion()->isPublished());
+        self::assertSame(DiffusionDraft::STATUS_PUBLISHED, $first->getPublicationStatus());
+        $unpublished = $this->entityManager->find(DiffusionDraft::class, $draftWeek->getId());
+        self::assertSame(DiffusionDraft::STATUS_DRAFT, $unpublished->getPublicationStatus());
+        self::assertNull($unpublished->getPublishedDiffusion());
+        self::assertCount(2, $this->drafts($group));
+        $this->onlyPending($group);
+    }
+
+    public function testAutomaticDeleteRebroadcastsRepublishesOtherGroupAndPreservesDraftWeek(): void
+    {
+        $group = $this->manualGroup();
+        $editable = $this->place($this->onlyPending($group)->getId(), self::S1 . ' 12:00:00');
+        $locked = $this->place($this->onlyPending($group)->getId(), self::S2 . ' 10:00:00');
+        $other = $this->manualGroup(self::S2 . ' 12:00:00');
+        $this->publish(self::S1);
+        $this->publish(self::S2);
+        static::getContainer()->get(GridUnpublicationService::class)->unpublishWeek(new \DateTimeImmutable(self::S1));
+        $historyId = $this->entityManager->find(DiffusionDraft::class, $locked->getId())->getPublishedDiffusion()->getId();
+        $otherId = $this->entityManager->find(DiffusionDraft::class, $other['first']->getId())->getPublishedDiffusion()->getId();
+        $otherPendingId = $this->onlyPending($other)->getId();
+
+        $this->jsonPost('/admin/grid-drafts/delete', [
+            'draftId' => $group['first']->getId(), 'deleteMode' => 'rebroadcasts',
+        ]);
+        $this->entityManager->clear();
+        self::assertNull($this->entityManager->find(DiffusionDraft::class, $editable->getId()));
+        self::assertNull($this->entityManager->find(DiffusionDraft::class, $locked->getId()));
+        self::assertTrue($this->entityManager->find(Diffusion::class, $historyId)->isUnpublished());
+        $first = $this->entityManager->find(DiffusionDraft::class, $group['first']->getId());
+        self::assertSame(DiffusionDraft::STATUS_DRAFT, $first->getPublicationStatus());
+        self::assertTrue($first->getPublishedDiffusion()->isUnpublished());
+        $control = $this->entityManager->find(DiffusionDraft::class, $other['first']->getId());
+        self::assertSame($otherId, $control->getPublishedDiffusion()->getId());
+        self::assertSame(DiffusionDraft::STATUS_PUBLISHED, $control->getPublicationStatus());
+        self::assertTrue($control->getPublishedDiffusion()->isPublished());
+        self::assertSame($otherPendingId, $this->onlyPending($other)->getId());
+        self::assertCount(1, $this->drafts($group));
+        $this->onlyPending($group);
+    }
+
+    public function testDeleteSingleAfterNormalUnpublicationAllowsRemovalAndRestoresPending(): void
+    {
+        $group = $this->manualGroup();
+        $this->place($this->onlyPending($group)->getId(), self::S1 . ' 12:00:00');
+        $target = $this->place($this->onlyPending($group)->getId(), self::S2 . ' 10:00:00');
+        self::assertCount(0, $this->activePending($group));
+        $this->publish(self::S2);
+        $publishedId = $target->getPublishedDiffusion()->getId();
+        self::assertTrue($target->getPublishedDiffusion()->isPublished());
+        static::getContainer()->get(GridUnpublicationService::class)->unpublishWeek(new \DateTimeImmutable(self::S2));
+        self::assertTrue($target->getPublishedDiffusion()->isUnpublished());
+        $targetId = $target->getId();
+        $historyBefore = $this->entityManager->getConnection()->fetchAssociative(
+            'SELECT * FROM diffusion WHERE id = ?', [$publishedId]
+        );
+
+        $this->jsonPost('/admin/grid-drafts/delete', ['draftId' => $targetId, 'deleteMode' => 'single']);
+        $this->entityManager->clear();
+
+        self::assertNull($this->entityManager->find(DiffusionDraft::class, $targetId));
+        self::assertCount(2, $this->drafts($group));
+        self::assertSame($group['key'], $this->onlyPending($group)->getAssignmentGroupKey());
+        self::assertSame($historyBefore, $this->entityManager->getConnection()->fetchAssociative(
+            'SELECT * FROM diffusion WHERE id = ?', [$publishedId]
+        ), 'Normal unpublication history must survive the later draft deletion unchanged.');
+    }
+
+    public function testAutomaticDeleteGroupAcrossWeeksKeepsEmptyWeekUnpublished(): void
+    {
+        $group = $this->manualGroup();
+        $second = $this->place($this->onlyPending($group)->getId(), self::S2 . ' 10:00:00');
+        $this->place($this->onlyPending($group)->getId(), self::S3 . ' 10:00:00');
+        $other = $this->manualGroup(self::S1 . ' 12:00:00');
+        $draftControl = $this->manualGroup(self::S3 . ' 12:00:00');
+        $this->publish(self::S1);
+        $this->publish(self::S2);
+        $historyIds = array_map(fn(int $id): int => $this->entityManager->find(DiffusionDraft::class, $id)->getPublishedDiffusion()->getId(),
+            [$group['first']->getId(), $second->getId()]);
+        $otherId = $this->entityManager->find(DiffusionDraft::class, $other['first']->getId())->getPublishedDiffusion()->getId();
+        $otherPending = $this->onlyPending($other)->getId();
+        $draftPending = $this->onlyPending($draftControl)->getId();
+
+        $this->jsonPost('/admin/grid-drafts/delete', ['draftId' => $group['first']->getId(), 'deleteMode' => 'group']);
+        $this->entityManager->clear();
+        self::assertCount(0, $this->drafts($group));
+        self::assertCount(0, $this->entityManager->getRepository(PendingRebroadcast::class)->findBy(['assignmentGroupKey' => $group['key']]));
+        foreach ($historyIds as $id) {
+            $historical = $this->entityManager->find(Diffusion::class, $id);
+            self::assertInstanceOf(Diffusion::class, $historical);
+            self::assertTrue($historical->isUnpublished());
+            self::assertSame($group['emission']->getId(), $historical->getEmission()->getId());
+        }
+        self::assertSame(0, (int) $this->entityManager->getConnection()->fetchOne(
+            'SELECT COUNT(*) FROM diffusion WHERE publication_status = ? AND horaire_diffusion >= ? AND horaire_diffusion < ?',
+            [Diffusion::STATUS_PUBLISHED, self::S2, self::S3]
+        ), 'The initially published week emptied by group deletion stays unpublished.');
+        $survivor = $this->entityManager->find(DiffusionDraft::class, $other['first']->getId());
+        self::assertSame($otherId, $survivor->getPublishedDiffusion()->getId());
+        self::assertTrue($survivor->getPublishedDiffusion()->isPublished());
+        self::assertSame($otherPending, $this->onlyPending($other)->getId());
+        $untouched = $this->entityManager->find(DiffusionDraft::class, $draftControl['first']->getId());
+        self::assertSame(DiffusionDraft::STATUS_DRAFT, $untouched->getPublicationStatus());
+        self::assertNull($untouched->getPublishedDiffusion());
+        self::assertSame($draftPending, $this->onlyPending($draftControl)->getId());
+    }
+
+    public function testAutomaticDeleteRejectsWeekWithoutLinkedDraftAndPreservesSqlState(): void
+    {
+        $group = $this->manualGroup();
+        $this->publish(self::S1);
+        $orphan = (new Diffusion())->setEmission($group['emission'])->setAssignmentGroupKey($group['key'])
+            ->setNombreDiffusion(2)->setSchedule(new \DateTime(self::S1 . ' 14:00:00'), 60);
+        $this->entityManager->persist($orphan);
+        $this->entityManager->flush();
+        self::assertFalse(static::getContainer()->get(GridUnpublicationService::class)->previewWeek(new \DateTimeImmutable(self::S1))['canUnpublish']);
+        $before = $this->snapshot();
+
+        $this->client->jsonRequest('POST', '/admin/grid-drafts/delete', ['draftId' => $group['first']->getId(), 'deleteMode' => 'group']);
+        self::assertSame(['status' => 409, 'unchanged' => true], [
+            'status' => $this->client->getResponse()->getStatusCode(), 'unchanged' => $before === $this->snapshot(),
+        ], 'An automatically unpublishable week must reject the operation without SQL changes.');
+    }
+
+    public function testAutomaticDeleteRollsBackWhenRepublicationFails(): void
+    {
+        $group = $this->manualGroup();
+        $target = $this->place($this->onlyPending($group)->getId(), self::S1 . ' 12:00:00');
+        $this->publish(self::S1);
+        $before = $this->snapshot();
+        // Fail during the real republication flush, after deletion writes have occurred.
+        $listener = new class {
+            public bool $triggered = false;
+            public function onFlush(\Doctrine\ORM\Event\OnFlushEventArgs $event): void
+            {
+                $unit = $event->getObjectManager()->getUnitOfWork();
+                foreach ($unit->getScheduledEntityUpdates() as $entity) {
+                    $change = $unit->getEntityChangeSet($entity)['publicationStatus'] ?? null;
+                    if ($entity instanceof Diffusion && $change === [Diffusion::STATUS_UNPUBLISHED, Diffusion::STATUS_PUBLISHED]) {
+                        $this->triggered = true;
+                        throw new \RuntimeException('PHPUNIT: automatic deletion republication failure');
+                    }
+                }
+            }
+        };
+        $events = $this->entityManager->getEventManager();
+        $events->addEventListener([\Doctrine\ORM\Events::onFlush], $listener);
+        $this->client->catchExceptions(false);
+        $caught = false;
+        try {
+            $this->client->jsonRequest('POST', '/admin/grid-drafts/delete', ['draftId' => $target->getId(), 'deleteMode' => 'single']);
+        } catch (\RuntimeException $exception) {
+            self::assertSame('PHPUNIT: automatic deletion republication failure', $exception->getMessage());
+            $caught = true;
+        } finally {
+            $events->removeEventListener([\Doctrine\ORM\Events::onFlush], $listener);
+        }
+        self::assertSame(['republicationReached' => true, 'exception' => true, 'unchanged' => true], [
+            'republicationReached' => $listener->triggered, 'exception' => $caught, 'unchanged' => $before === $this->snapshot(),
+        ], 'Republication failure must roll back drafts, historical links, diffusions and pending rows.');
+    }
+
+    /** @dataProvider automaticDeletionPendingStates */
+    public function testAutomaticDeleteRebroadcastsPreservesPendingPolicyAfterRepublication(bool $dismissed): void
+    {
+        $group = $this->manualGroup();
+        $pendingId = $this->onlyPending($group)->getId();
+        // Keep the existing proposal to verify reuse rather than replacement.
+        $extra = $this->extraDraft($group, self::S1 . ' 12:00:00', 2);
+        if ($dismissed) {
+            $this->entityManager->find(PendingRebroadcast::class, $pendingId)->dismiss();
+            $this->entityManager->flush();
+        }
+        $this->publish(self::S1);
+        $historyId = $this->entityManager->find(DiffusionDraft::class, $extra->getId())->getPublishedDiffusion()->getId();
+        $firstDiffusionId = $this->entityManager->find(DiffusionDraft::class, $group['first']->getId())->getPublishedDiffusion()->getId();
+
+        $this->jsonPost('/admin/grid-drafts/delete', ['draftId' => $group['first']->getId(), 'deleteMode' => 'rebroadcasts']);
+        $this->entityManager->clear();
+        $rows = $this->entityManager->getRepository(PendingRebroadcast::class)->findBy(['emission' => $group['emission'], 'assignmentGroupKey' => $group['key']]);
+        self::assertCount(1, $rows);
+        self::assertSame($pendingId, $rows[0]->getId());
+        self::assertSame($dismissed ? PendingRebroadcast::STATUS_DISMISSED : PendingRebroadcast::STATUS_PENDING, $rows[0]->getStatus());
+        self::assertCount($dismissed ? 0 : 1, $this->activePending($group));
+        self::assertTrue($this->entityManager->find(Diffusion::class, $historyId)->isUnpublished());
+        $first = $this->entityManager->find(DiffusionDraft::class, $group['first']->getId());
+        self::assertSame($firstDiffusionId, $first->getPublishedDiffusion()->getId());
+        self::assertTrue($first->getPublishedDiffusion()->isPublished());
+    }
+
+    public static function automaticDeletionPendingStates(): iterable
+    {
+        yield 'existing active proposal' => [false];
+        yield 'voluntary dismissal' => [true];
+    }
+
     private function manualGroup(string $startsAt = self::S1 . ' 10:00:00', ?Emission $emission = null): array
     {
         $emission ??= $this->createEmission($this->marker . ' manual');

@@ -277,7 +277,11 @@ abstract class Mp3FailureTestCase extends FunctionalTestCase
                 self::assertSame($this->fixtureHash, hash_file('sha256', $this->fixture()));
             }
         } finally {
-            parent::tearDown();
+            try {
+                parent::tearDown();
+            } finally {
+                unset($this->subject, $this->witness, $this->probe);
+            }
         }
     }
 }

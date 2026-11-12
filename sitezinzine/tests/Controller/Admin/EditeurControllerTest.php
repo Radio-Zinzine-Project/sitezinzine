@@ -29,14 +29,20 @@ class EditeurControllerTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        if (
-            isset($this->entityManager)
-            && $this->entityManager->getConnection()->isTransactionActive()
-        ) {
-            $this->entityManager->rollback();
+        try {
+            if (
+                isset($this->entityManager)
+                && $this->entityManager->getConnection()->isTransactionActive()
+            ) {
+                $this->entityManager->rollback();
+            }
+        } finally {
+            try {
+                parent::tearDown();
+            } finally {
+                unset($this->client, $this->entityManager);
+            }
         }
-
-        parent::tearDown();
     }
 
     public function testIndexRequiresAuthentication(): void

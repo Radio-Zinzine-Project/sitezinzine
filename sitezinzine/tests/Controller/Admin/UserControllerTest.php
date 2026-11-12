@@ -26,6 +26,15 @@ class UserControllerTest extends ControllerActionTestCase
         $this->wire($this->controller);
     }
 
+    protected function tearDown(): void
+    {
+        try {
+            parent::tearDown();
+        } finally {
+            unset($this->controller);
+        }
+    }
+
     /** @dataProvider sorts */
     public function testIndexRestrictsAndNormalizesSorting(array $query, string $sort, string $direction): void
     {

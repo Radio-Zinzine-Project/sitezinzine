@@ -18,6 +18,9 @@ use App\Service\GridPlacementConflictService;
 use App\Service\PendingRebroadcastService;
 use App\Service\GridGroupConsultation;
 use App\Service\NonRegularGroupMutation;
+use App\Service\GridUnpublicationService;
+use App\Service\GridPublicationService;
+use App\Service\RadioWeek;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -414,7 +417,9 @@ class GridDraftController extends AbstractController
         PendingRebroadcastRepository $pendingRepository,
         PendingRebroadcastService $pendingRebroadcastService,
         EntityManagerInterface $em,
-        NonRegularGroupMutation $groupMutation
+        NonRegularGroupMutation $groupMutation,
+        GridUnpublicationService $unpublicationService,
+        GridPublicationService $publicationService
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
@@ -454,7 +459,8 @@ class GridDraftController extends AbstractController
             return $this->json(['success' => false, 'error' => 'Draft introuvable'], 404);
         }
         $operation = function (bool $locked = false) use (
-            $draftId, $deleteMode, $draftRepository, $pendingRepository, $pendingRebroadcastService, $em, $owner
+            $draftId, $deleteMode, $draftRepository, $pendingRepository, $pendingRebroadcastService, $em, $owner,
+            $unpublicationService, $publicationService
         ): JsonResponse {
             if ($locked) {
                 // A binding/routing lookup before the transaction is not authoritative.
@@ -588,16 +594,46 @@ class GridDraftController extends AbstractController
                 && [] === $remainingGroupDrafts
             );
 
+            $publishedWeeks = [];
+            if ($locked && !$groupHasRegularDrafts) {
+                $affectedWeeks = [];
+                // Include surviving group members: renumbering can update their linked diffusions.
+                foreach (array_merge($draftsToDelete, $groupDrafts) as $member) {
+                    foreach ([$member->getHoraireDiffusion(), $member->getPublishedDiffusion()?->getHoraireDiffusion()] as $startsAt) {
+                        if ($startsAt instanceof \DateTimeInterface) {
+                            $week = RadioWeek::start(\DateTimeImmutable::createFromInterface($startsAt));
+                            $affectedWeeks[$week->format('Y-m-d')] = $week;
+                        }
+                    }
+                }
+                ksort($affectedWeeks);
+                foreach ($affectedWeeks as $week) {
+                    $preview = $unpublicationService->previewWeek($week);
+                    if (0 === $preview['publishedDiffusionCount']) {
+                        continue;
+                    }
+                    if (!$preview['canUnpublish']) {
+                        throw new \DomainException(sprintf(
+                            'Impossible de supprimer la programmation : la semaine du %s ne peut pas être dévalidée automatiquement.',
+                            $week->format('d/m/Y')
+                        ));
+                    }
+                    $publishedWeeks[] = $week;
+                }
+                foreach ($publishedWeeks as $week) {
+                    $unpublicationService->applyWeekUnpublication($week);
+                }
+            }
+
             /*
-         * Une rediffusion supprimée individuellement retourne
-         * au parc lorsqu'elle est éligible.
-         *
-         * On conserve le fonctionnement existant.
+         * Conserver le parcours de restauration des groupes réguliers.
+         * Les non régulières sont synchronisées après suppression et flush.
          */
             if (
                 'single' === $deleteMode
                 && DiffusionDraft::TYPE_MANUAL_REBROADCAST === $draft->getDraftType()
                 && null !== $groupKey
+                && ($groupHasRegularDrafts || str_starts_with($groupKey, 'rule_'))
             ) {
                 $emission = $draft->getEmission();
 
@@ -675,6 +711,35 @@ class GridDraftController extends AbstractController
 
             $em->flush();
 
+            if (
+                ('rebroadcasts' === $deleteMode || (
+                    'single' === $deleteMode
+                    && DiffusionDraft::TYPE_MANUAL_REBROADCAST === $draft->getDraftType()
+                ))
+                && !$manualGroupCompletelyDeleted
+                && !$groupHasRegularDrafts
+                && null !== $groupKey
+                && !str_starts_with($groupKey, 'rule_')
+                && $draft->getEmission() instanceof Emission
+            ) {
+                // Count the surviving passages after deletion, within the existing transaction.
+                $pendingRebroadcastService->proposeNextForNonRegularGroup($draft->getEmission(), $groupKey);
+                $em->flush();
+            }
+
+            foreach ($publishedWeeks as $week) {
+                $preview = $publicationService->previewWeekPublication($week);
+                if ($preview['hasBlockingConflicts']) {
+                    throw new \DomainException(sprintf(
+                        'Impossible de republier la semaine du %s : des conflits bloquants subsistent.',
+                        $week->format('d/m/Y')
+                    ));
+                }
+                if ($preview['canPublish']) {
+                    $publicationService->applyWeekPublication($week);
+                }
+            }
+
             return $this->json([
                 'success' => true,
                 'draftId' => (int) $draftId,
@@ -683,7 +748,11 @@ class GridDraftController extends AbstractController
             ]);
         };
         if (!str_starts_with($owner['assignment_group_key'] ?? '', 'rule_')) {
-            return $groupMutation->run((int) $owner['emission_id'], $owner['assignment_group_key'], fn() => $operation(true));
+            try {
+                return $groupMutation->run((int) $owner['emission_id'], $owner['assignment_group_key'], fn() => $operation(true));
+            } catch (\DomainException $exception) {
+                return $this->json(['success' => false, 'error' => $exception->getMessage()], 409);
+            }
         }
         // Keep the existing regular-group path and its policies unchanged.
         return $operation();
@@ -1167,7 +1236,8 @@ class GridDraftController extends AbstractController
         Request $request,
         DiffusionDraftRepository $draftRepository,
         EntityManagerInterface $em,
-        GridPlacementConflictService $placementConflictService
+        GridPlacementConflictService $placementConflictService,
+        PendingRebroadcastService $pendingRebroadcastService
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
@@ -1309,14 +1379,19 @@ class GridDraftController extends AbstractController
             ], 400);
         }
 
-        $em->flush();
+        $save = function () use ($em, $groupKey, $draftRepository, $pendingRebroadcastService, $emission): void {
+            $em->flush();
+            $this->renumberDraftGroupChronologically($groupKey, $draftRepository);
+            $pendingRebroadcastService->removeRedundantForNonRegularGroup($emission, $groupKey);
+            $em->flush();
+        };
 
-        $this->renumberDraftGroupChronologically(
-            $groupKey,
-            $draftRepository
-        );
-
-        $em->flush();
+        if (str_starts_with($groupKey, 'rule_')) {
+            $save();
+        } else {
+            // Save the new passages and remove the obsolete proposal atomically.
+            $em->wrapInTransaction($save);
+        }
 
         return $this->json([
             'success' => true,

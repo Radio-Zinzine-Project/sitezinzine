@@ -266,6 +266,30 @@ final class PendingRebroadcastService implements PendingRebroadcastPopulatorInte
         return $this->restoreToPoolIfEligible($emission, $groupKey);
     }
 
+    /** Call after flushing new passages; the caller owns the transaction and final flush. */
+    public function removeRedundantForNonRegularGroup(Emission $emission, string $groupKey): void
+    {
+        if (str_starts_with($groupKey, 'rule_')) {
+            return;
+        }
+
+        $schedule = NonRegularScheduledOccurrences::summarize(
+            $emission->getId(), $groupKey,
+            $this->draftRepository->findByAssignmentGroupKey($groupKey),
+            $this->diffusionRepository->findByAssignmentGroupKey($groupKey)
+        );
+        if ($schedule['count'] < self::MAX_DIFFUSIONS_FOR_POOL) {
+            return;
+        }
+
+        foreach ($this->pendingRebroadcastRepository->findByAssignmentGroupKey($groupKey) as $pending) {
+            if ($pending->isPending() && $pending->getEmission()?->getId() === $emission->getId()) {
+                // Technical removal must not record a voluntary dismissal.
+                $this->entityManager->remove($pending);
+            }
+        }
+    }
+
     public function restoreToPoolIfEligible(
         Emission $emission,
         string $assignmentGroupKey,

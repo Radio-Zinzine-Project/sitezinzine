@@ -45,14 +45,18 @@ trait DoctrineTestTrait
             return;
         }
 
-        $connection = $this->entityManager->getConnection();
+        try {
+            $connection = $this->entityManager->getConnection();
 
-        if ($connection->isTransactionActive()) {
-            $connection->rollBack();
-        }
+            if ($connection->isTransactionActive()) {
+                $connection->rollBack();
+            }
 
-        if ($this->entityManager->isOpen()) {
-            $this->entityManager->close();
+            if ($this->entityManager->isOpen()) {
+                $this->entityManager->close();
+            }
+        } finally {
+            unset($this->entityManager);
         }
     }
 }

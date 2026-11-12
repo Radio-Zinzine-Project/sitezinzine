@@ -24,6 +24,15 @@ class PageControllerTest extends ControllerActionTestCase
         $this->wire($this->controller);
     }
 
+    protected function tearDown(): void
+    {
+        try {
+            parent::tearDown();
+        } finally {
+            unset($this->controller);
+        }
+    }
+
     /** @dataProvider pageLists */
     public function testIndexDisplaysRepositoryResults(array $pages): void
     {

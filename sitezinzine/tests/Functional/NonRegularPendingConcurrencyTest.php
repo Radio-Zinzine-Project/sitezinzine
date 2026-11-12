@@ -79,11 +79,22 @@ final class NonRegularPendingConcurrencyTest extends FunctionalTestCase
                 $this->entityManager->remove($user);
                 $this->entityManager->flush();
             }
-            if ($this->evidence !== []) {
-                fwrite(STDOUT, "\nCONCURRENCY " . json_encode($this->evidence, JSON_THROW_ON_ERROR) . "\n");
-            }
         } finally {
             parent::tearDown();
+        }
+    }
+
+    protected function onNotSuccessfulTest(\Throwable $t): void
+    {
+        try {
+            if ($this->hasFailed() && $this->evidence !== []) {
+                $diagnostic = json_encode($this->evidence, JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
+                fwrite(STDOUT, "\nCONCURRENCY " . ($diagnostic === false ? '[diagnostic unavailable]' : $diagnostic) . "\n");
+            }
+        } catch (\Throwable) {
+            // Diagnostic encoding or output must never replace the original failure.
+        } finally {
+            parent::onNotSuccessfulTest($t);
         }
     }
 

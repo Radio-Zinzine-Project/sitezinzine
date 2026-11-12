@@ -188,6 +188,7 @@ class EmissionControllerTest extends WebTestCase
         $categorie = $this->createCategorie($admin);
 
         $titre = 'Test Émission ' . uniqid();
+        $audioUrl = 'https://test.com/emission-' . bin2hex(random_bytes(16));
 
         $this->client->loginUser($admin);
 
@@ -210,7 +211,7 @@ class EmissionControllerTest extends WebTestCase
                     'titre' => $titre,
                     'descriptif' => 'Description test',
                     'duree' => '60',
-                    'url' => 'https://test.com/emission',
+                    'url' => $audioUrl,
                     'keyword' => 'test-keyword',
                     'theme' => (string) $theme->getId(),
                     'categorie' => (string) $categorie->getId(),
@@ -236,7 +237,7 @@ class EmissionControllerTest extends WebTestCase
         $this->assertSame(60, $emission->getDuree());
 
         $this->assertSame(
-            'https://test.com/emission',
+            $audioUrl,
             $emission->getUrl()
         );
 
@@ -638,6 +639,8 @@ class EmissionControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
 
+        $newAudioUrl = 'https://test.com/updated-' . bin2hex(random_bytes(16));
+
         $form = $crawler->selectButton('Sauvegarder')->form([
             'emission[titre]' => 'Titre modifié',
             'emission[keyword]' => 'test-keyword-modified',
@@ -645,7 +648,7 @@ class EmissionControllerTest extends WebTestCase
             'emission[categorie]' => (string) $categorie->getId(),
             'emission[duree]' => 60,
             'emission[descriptif]' => 'Description initiale',
-            'emission[url]' => 'https://test.com/old',
+            'emission[url]' => $newAudioUrl,
             'emission[users]' => [(string) $admin->getId()],
         ]);
 
@@ -704,7 +707,7 @@ class EmissionControllerTest extends WebTestCase
             'emission[categorie]' => (string) $categorie->getId(),
             'emission[duree]' => 60,
             'emission[descriptif]' => 'Description initiale',
-            'emission[url]' => 'https://test.com/emission',
+            'emission[url]' => $emission->getUrl(),
             'emission[users]' => [(string) $admin->getId()],
             'emission[markAsCompleted]' => '1',
         ]);
@@ -831,7 +834,7 @@ class EmissionControllerTest extends WebTestCase
                 'emission[categorie]' => (string) $categorie->getId(),
                 'emission[duree]' => 60,
                 'emission[descriptif]' => 'Description initiale',
-                'emission[url]' => 'https://test.com/emission',
+                'emission[url]' => $emission->getUrl(),
                 'emission[users]' => [(string) $admin->getId()],
                 'delete_thumbnail' => '1',
             ]);
@@ -1201,7 +1204,7 @@ class EmissionControllerTest extends WebTestCase
             ->setTitre($titre)
             ->setDescriptif('Description initiale')
             ->setDuree(60)
-            ->setUrl('https://test.com/emission')
+            ->setUrl('https://test.com/emission-' . bin2hex(random_bytes(16)))
             ->setDatepub(new \DateTime())
             ->setUpdatedat(new \DateTime())
             ->setKeyword('test-keyword')

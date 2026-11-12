@@ -2327,6 +2327,108 @@ class GridDraftControllerTest extends WebTestCase
         );
     }
 
+    public function testCreateRebroadcastsRemovesActiveProposalWhenGroupReachesThreeScheduledPassages(): void
+    {
+        $admin = $this->createUser(['ROLE_ADMIN']);
+        $emission = $this->createEmission();
+        $otherEmission = $this->createEmission();
+        $parent = $this->createDraft(
+            $emission, DiffusionDraft::TYPE_MANUAL_SPECIAL,
+            new \DateTimeImmutable('2099-01-06 10:00:00'), 60, 1
+        );
+        $groupKey = 'manual_' . $parent->getId();
+        $parent->setAssignmentGroupKey($groupKey);
+        $published = (new \App\Entity\Diffusion())
+            ->setEmission($emission)
+            ->setAssignmentGroupKey($groupKey)
+            ->setNombreDiffusion(1)
+            ->setSchedule(new \DateTime('2099-01-06 10:00:00'), 60);
+        $this->entityManager->persist($published);
+        $parent->setPublishedDiffusion($published);
+        $this->createDraft(
+            $emission, DiffusionDraft::TYPE_MANUAL_REBROADCAST,
+            new \DateTimeImmutable('2099-01-13 10:00:00'), 60, 2, $groupKey
+        );
+
+        // Protect both another group of the same emission and another emission.
+        $otherGroupKeys = [];
+        foreach ([$emission, $otherEmission] as $controlEmission) {
+            $control = $this->createDraft(
+                $controlEmission, DiffusionDraft::TYPE_MANUAL_SPECIAL,
+                new \DateTimeImmutable('2099-01-07 12:00:00'), 60, 1
+            );
+            $controlKey = 'manual_' . $control->getId();
+            $control->setAssignmentGroupKey($controlKey);
+            $otherGroupKeys[] = $controlKey;
+            $this->entityManager->persist((new PendingRebroadcast())
+                ->setEmission($controlEmission)->setAssignmentGroupKey($controlKey));
+        }
+        $this->entityManager->persist((new PendingRebroadcast())
+            ->setEmission($emission)->setAssignmentGroupKey($groupKey));
+        $this->entityManager->flush();
+
+        $parentId = $parent->getId();
+        $emissionId = $emission->getId();
+        $connection = $this->entityManager->getConnection();
+        $emissionIds = [$emissionId, $otherEmission->getId()];
+        $emissionsBefore = $connection->fetchAllAssociative(
+            'SELECT * FROM emission WHERE id IN (?, ?) ORDER BY id', $emissionIds
+        );
+        $diffusionsBefore = $connection->fetchAllAssociative(
+            // Renumbering touches updated_at even when the published rank is unchanged.
+            'SELECT id, emission_id, horaire_diffusion, duration_minutes, ends_at, nombre_diffusion, assignment_group_key, publication_status, created_at FROM diffusion WHERE emission_id IN (?, ?) ORDER BY id', $emissionIds
+        );
+        $controlDraftsBefore = $connection->fetchAllAssociative(
+            'SELECT * FROM diffusion_draft WHERE assignment_group_key IN (?, ?) ORDER BY id', $otherGroupKeys
+        );
+        $controlPendingsBefore = $connection->fetchAllAssociative(
+            'SELECT * FROM pending_rebroadcast WHERE assignment_group_key IN (?, ?) ORDER BY id', $otherGroupKeys
+        );
+        $draftRepository = $this->entityManager->getRepository(DiffusionDraft::class);
+        $pendingRepository = $this->entityManager->getRepository(PendingRebroadcast::class);
+        self::assertCount(2, $draftRepository->findBy(['emission' => $emissionId, 'assignmentGroupKey' => $groupKey]));
+        self::assertCount(1, $pendingRepository->findBy([
+            'emission' => $emissionId, 'assignmentGroupKey' => $groupKey, 'status' => PendingRebroadcast::STATUS_PENDING,
+        ]));
+
+        $this->client->loginUser($admin);
+        $this->requestJson('/admin/grid-drafts/rebroadcasts', [
+            'draftId' => $parentId,
+            'rebroadcasts' => ['2099-01-20 10:00:00'],
+        ]);
+        $this->assertResponseIsSuccessful();
+        $data = $this->getJsonResponse();
+        self::assertTrue($data['success']);
+        self::assertSame(1, $data['createdCount']);
+        self::assertSame($groupKey, $data['assignmentGroupKey']);
+        $this->entityManager->clear();
+
+        $groupDrafts = $draftRepository->findBy(
+            ['emission' => $emissionId, 'assignmentGroupKey' => $groupKey, 'deletedAt' => null],
+            ['horaireDiffusion' => 'ASC']
+        );
+        self::assertCount(3, $groupDrafts, 'The linked published diffusion represents the first draft, not a fourth passage.');
+        self::assertSame([1, 2, 3], array_map(static fn(DiffusionDraft $draft): int => $draft->getNombreDiffusion(), $groupDrafts));
+        foreach ($groupDrafts as $draft) {
+            self::assertNotSame(DiffusionDraft::STATUS_CANCELLED, $draft->getPublicationStatus());
+        }
+        self::assertSame($emissionsBefore, $connection->fetchAllAssociative(
+            'SELECT * FROM emission WHERE id IN (?, ?) ORDER BY id', $emissionIds
+        ));
+        self::assertSame($diffusionsBefore, $connection->fetchAllAssociative(
+            'SELECT id, emission_id, horaire_diffusion, duration_minutes, ends_at, nombre_diffusion, assignment_group_key, publication_status, created_at FROM diffusion WHERE emission_id IN (?, ?) ORDER BY id', $emissionIds
+        ));
+        self::assertSame($controlDraftsBefore, $connection->fetchAllAssociative(
+            'SELECT * FROM diffusion_draft WHERE assignment_group_key IN (?, ?) ORDER BY id', $otherGroupKeys
+        ));
+        self::assertSame($controlPendingsBefore, $connection->fetchAllAssociative(
+            'SELECT * FROM pending_rebroadcast WHERE assignment_group_key IN (?, ?) ORDER BY id', $otherGroupKeys
+        ));
+        self::assertCount(0, $pendingRepository->findBy([
+            'emission' => $emissionId, 'assignmentGroupKey' => $groupKey, 'status' => PendingRebroadcast::STATUS_PENDING,
+        ]), 'Three scheduled passages must leave no active automatic proposal for this emission/group.');
+    }
+
     public function testCreateRebroadcastsCreatesAndRenumbersGroup(): void
     {
         $admin = $this->createUser(['ROLE_ADMIN']);
@@ -3956,6 +4058,93 @@ class GridDraftControllerTest extends WebTestCase
         );
     }
 
+    public function testDeleteRebroadcastsRestoresPendingWhenNonRegularGroupHasOneScheduledPassageLeft(): void
+    {
+        $admin = $this->createUser(['ROLE_ADMIN']);
+        $emission = $this->createEmission();
+        $parent = $this->createDraft(
+            $emission, DiffusionDraft::TYPE_MANUAL_SPECIAL,
+            new \DateTimeImmutable('2099-01-06 10:00:00'), 60, 1
+        );
+        $groupKey = 'manual_' . $parent->getId();
+        $parent->setAssignmentGroupKey($groupKey);
+        $rebroadcastIds = [];
+        foreach (['2099-01-13 10:00:00', '2099-01-20 10:00:00'] as $index => $startsAt) {
+            $rebroadcastIds[] = $this->createDraft(
+                $emission, DiffusionDraft::TYPE_MANUAL_REBROADCAST,
+                new \DateTimeImmutable($startsAt), 60, $index + 2, $groupKey
+            )->getId();
+        }
+        // The linked published passage must survive and still count only once.
+        $published = (new \App\Entity\Diffusion())
+            ->setEmission($emission)->setAssignmentGroupKey($groupKey)->setNombreDiffusion(1)
+            ->setSchedule(new \DateTime('2099-01-06 10:00:00'), 60);
+        $this->entityManager->persist($published);
+        $parent->markAsPublished($published, new \DateTimeImmutable('2099-01-01'));
+
+        // Keep the control group in a week unaffected by deletion and republication.
+        $control = $this->createDraft(
+            $emission, DiffusionDraft::TYPE_MANUAL_SPECIAL,
+            new \DateTimeImmutable('2099-01-28 12:00:00'), 60, 1
+        );
+        $controlKey = 'manual_' . $control->getId();
+        $control->setAssignmentGroupKey($controlKey);
+        $this->entityManager->persist((new PendingRebroadcast())
+            ->setEmission($emission)->setAssignmentGroupKey($controlKey));
+        $this->entityManager->flush();
+
+        $parentId = $parent->getId();
+        $publishedId = $published->getId();
+        $emissionId = $emission->getId();
+        $connection = $this->entityManager->getConnection();
+        $emissionBefore = $connection->fetchAssociative('SELECT * FROM emission WHERE id = ?', [$emissionId]);
+        // Existing renumbering can touch updated_at without changing broadcast data.
+        $diffusionSql = 'SELECT id, emission_id, horaire_diffusion, duration_minutes, ends_at, nombre_diffusion, assignment_group_key, publication_status, created_at FROM diffusion WHERE id = ?';
+        $diffusionBefore = $connection->fetchAssociative($diffusionSql, [$publishedId]);
+        $controlDraftsBefore = $connection->fetchAllAssociative(
+            'SELECT * FROM diffusion_draft WHERE assignment_group_key = ? ORDER BY id', [$controlKey]
+        );
+        $controlPendingsBefore = $connection->fetchAllAssociative(
+            'SELECT * FROM pending_rebroadcast WHERE assignment_group_key = ? ORDER BY id', [$controlKey]
+        );
+        $draftRepository = $this->entityManager->getRepository(DiffusionDraft::class);
+        $pendingRepository = $this->entityManager->getRepository(PendingRebroadcast::class);
+        $pair = ['emission' => $emissionId, 'assignmentGroupKey' => $groupKey];
+        self::assertCount(3, $draftRepository->findBy($pair));
+        self::assertCount(0, $pendingRepository->findBy($pair + ['status' => PendingRebroadcast::STATUS_PENDING]));
+
+        $this->client->loginUser($admin);
+        $this->requestJson('/admin/grid-drafts/delete', [
+            'draftId' => $parentId,
+            'deleteMode' => 'rebroadcasts',
+        ]);
+        $this->assertResponseIsSuccessful();
+        $data = $this->getJsonResponse();
+        self::assertTrue($data['success']);
+        self::assertSame('rebroadcasts', $data['deleteMode']);
+        self::assertSame(2, $data['deletedCount']);
+        $this->entityManager->clear();
+
+        $remaining = $draftRepository->findBy($pair + ['deletedAt' => null]);
+        self::assertCount(1, $remaining);
+        self::assertSame($parentId, $remaining[0]->getId());
+        self::assertNotSame(DiffusionDraft::STATUS_CANCELLED, $remaining[0]->getPublicationStatus());
+        self::assertSame($publishedId, $remaining[0]->getPublishedDiffusion()?->getId());
+        foreach ($rebroadcastIds as $id) {
+            self::assertNull($draftRepository->find($id));
+        }
+        self::assertSame($emissionBefore, $connection->fetchAssociative('SELECT * FROM emission WHERE id = ?', [$emissionId]));
+        self::assertSame($diffusionBefore, $connection->fetchAssociative($diffusionSql, [$publishedId]));
+        self::assertSame($controlDraftsBefore, $connection->fetchAllAssociative(
+            'SELECT * FROM diffusion_draft WHERE assignment_group_key = ? ORDER BY id', [$controlKey]
+        ));
+        self::assertSame($controlPendingsBefore, $connection->fetchAllAssociative(
+            'SELECT * FROM pending_rebroadcast WHERE assignment_group_key = ? ORDER BY id', [$controlKey]
+        ));
+        self::assertCount(1, $pendingRepository->findBy($pair + ['status' => PendingRebroadcast::STATUS_PENDING]),
+            'Removing all rebroadcast drafts must restore one active proposal for the remaining emission/group.');
+    }
+
     public function testDeleteRebroadcastsReturns400WhenGroupContainsNoRebroadcast(): void
     {
         $admin = $this->createUser(['ROLE_ADMIN']);
@@ -5239,6 +5428,60 @@ class GridDraftControllerTest extends WebTestCase
     public static function regularReturnOptions(): array
     {
         return ['option_disabled' => [false], 'option_enabled' => [true]];
+    }
+
+    public function testDeleteSingleDoesNotCreatePendingWhenThreeScheduledPassagesRemain(): void
+    {
+        $admin = $this->createUser(['ROLE_ADMIN']);
+        $emission = $this->createEmission();
+        $parent = $this->createDraft(
+            $emission, DiffusionDraft::TYPE_MANUAL_SPECIAL,
+            new \DateTimeImmutable('2099-01-06 10:00:00'), 60, 1
+        );
+        $groupKey = 'manual_' . $parent->getId();
+        $parent->setAssignmentGroupKey($groupKey);
+        $draftIds = [$parent->getId()];
+        foreach (['2099-01-13 10:00:00', '2099-01-20 10:00:00', '2099-01-27 10:00:00'] as $index => $startsAt) {
+            $draftIds[] = $this->createDraft(
+                $emission, DiffusionDraft::TYPE_MANUAL_REBROADCAST,
+                new \DateTimeImmutable($startsAt), 60, $index + 2, $groupKey
+            )->getId();
+        }
+        $pair = ['emission' => $emission->getId(), 'assignmentGroupKey' => $groupKey];
+        $draftRepository = $this->entityManager->getRepository(DiffusionDraft::class);
+        $pendingRepository = $this->entityManager->getRepository(PendingRebroadcast::class);
+        $before = $draftRepository->findBy($pair);
+        self::assertCount(4, $before);
+        foreach ($before as $draft) {
+            self::assertSame(DiffusionDraft::STATUS_DRAFT, $draft->getPublicationStatus());
+            self::assertFalse($draft->isDeleted());
+            self::assertNull($draft->getPublishedDiffusion());
+        }
+        self::assertCount(0, $pendingRepository->findBy($pair));
+
+        $targetId = $draftIds[2];
+        $this->client->loginUser($admin);
+        $this->requestJson('/admin/grid-drafts/delete', [
+            'draftId' => $targetId, 'deleteMode' => 'single',
+        ]);
+        $this->assertResponseIsSuccessful();
+        $data = $this->getJsonResponse();
+        self::assertTrue($data['success']);
+        self::assertSame(1, $data['deletedCount']);
+        $this->entityManager->clear();
+
+        self::assertNull($draftRepository->find($targetId));
+        $remaining = $draftRepository->findBy($pair, ['horaireDiffusion' => 'ASC']);
+        self::assertCount(3, $remaining);
+        self::assertSame([$draftIds[0], $draftIds[1], $draftIds[3]], array_map(
+            static fn(DiffusionDraft $draft): int => $draft->getId(), $remaining
+        ));
+        foreach ($remaining as $draft) {
+            self::assertSame(DiffusionDraft::STATUS_DRAFT, $draft->getPublicationStatus());
+            self::assertFalse($draft->isDeleted());
+        }
+        self::assertCount(0, $pendingRepository->findBy($pair + ['status' => PendingRebroadcast::STATUS_PENDING]),
+            'Deleting one of four scheduled passages must not create an active pending when three remain.');
     }
 
     public function testDeleteSingleManualRebroadcastFromManualGroupReturnsItToPendingPool(): void

@@ -56,6 +56,15 @@ class ProfileControllerTest extends ControllerActionTestCase
         $this->container->set('security.token_storage', $storage);
     }
 
+    protected function tearDown(): void
+    {
+        try {
+            parent::tearDown();
+        } finally {
+            unset($this->controller, $this->verifier, $this->user);
+        }
+    }
+
     /**
      * @dataProvider unchangedEmails
      */
