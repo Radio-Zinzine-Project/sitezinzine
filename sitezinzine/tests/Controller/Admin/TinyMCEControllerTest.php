@@ -30,20 +30,29 @@ class TinyMCEControllerTest extends ControllerActionTestCase
 
     protected function tearDown(): void
     {
-        // Seulement les fichiers du répertoire temporaire unique créé par ce test.
-        foreach ([$this->directory . '/public/uploads/tinymce', $this->directory] as $path) {
-            foreach (glob($path . '/*') ?: [] as $file) {
-                if (is_file($file)) {
-                    unlink($file);
+        try {
+            if (isset($this->directory)) {
+                // Seulement les fichiers du répertoire temporaire unique créé par ce test.
+                foreach ([$this->directory . '/public/uploads/tinymce', $this->directory] as $path) {
+                    foreach (glob($path . '/*') ?: [] as $file) {
+                        if (is_file($file)) {
+                            unlink($file);
+                        }
+                    }
+                }
+                foreach (['/public/uploads/tinymce', '/public/uploads', '/public', ''] as $suffix) {
+                    if (is_dir($this->directory . $suffix)) {
+                        rmdir($this->directory . $suffix);
+                    }
                 }
             }
-        }
-        foreach (['/public/uploads/tinymce', '/public/uploads', '/public', ''] as $suffix) {
-            if (is_dir($this->directory . $suffix)) {
-                rmdir($this->directory . $suffix);
+        } finally {
+            try {
+                parent::tearDown();
+            } finally {
+                unset($this->controller);
             }
         }
-        parent::tearDown();
     }
 
     public function testMissingFileReturns400(): void

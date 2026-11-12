@@ -31,15 +31,25 @@ abstract class FormIntegrationTestCase extends KernelTestCase
 
     protected function tearDown(): void
     {
-        if (isset($this->em) && $this->em->getConnection()->isTransactionActive()) {
-            $this->em->getConnection()->rollBack();
-        }
-        foreach ($this->temporaryFiles as $file) {
-            if (is_file($file)) {
-                unlink($file);
+        try {
+            if (isset($this->em) && $this->em->getConnection()->isTransactionActive()) {
+                $this->em->getConnection()->rollBack();
+            }
+        } finally {
+            try {
+                foreach ($this->temporaryFiles as $file) {
+                    if (is_file($file)) {
+                        unlink($file);
+                    }
+                }
+            } finally {
+                try {
+                    parent::tearDown();
+                } finally {
+                    unset($this->em, $this->factory);
+                }
             }
         }
-        parent::tearDown();
     }
 
     protected function form(string $type, mixed $data = null, array $options = []): FormInterface

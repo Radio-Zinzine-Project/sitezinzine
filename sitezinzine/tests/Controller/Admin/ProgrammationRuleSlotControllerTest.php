@@ -49,6 +49,15 @@ class ProgrammationRuleSlotControllerTest extends ControllerActionTestCase
         );
     }
 
+    protected function tearDown(): void
+    {
+        try {
+            parent::tearDown();
+        } finally {
+            unset($this->controller, $this->rule, $this->repository, $this->conflictChecker, $this->mutationService);
+        }
+    }
+
     public function testIndexDisplaysSlotsForRequestedRule(): void
     {
         $this->repository

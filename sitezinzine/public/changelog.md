@@ -1,6 +1,22 @@
 # Changelog
 
-## [1.0.133] - 2026-11-09
+## [1.0.133] - 2026-11-12
+### Ajout
+- Renforcement de la fiabilité des tests PHPUnit et de la gestion des ressources utilisées par les fixtures.
+- Validation complète des suites de tests PHP et JavaScript : 2 241 tests réussis (2 048 PHPUnit et 193 Vitest).
+### Corrections
+- Correction des rétentions mémoire dans les classes de support et les tests fonctionnels PHPUnit.
+- Amélioration du nettoyage des références aux EntityManager, contrôleurs, services, mocks et entités après les tests.
+- Sécurisation des méthodes `tearDown()` avec des blocs `finally` pour garantir la libération des ressources, y compris en cas d'exception.
+- Correction du nettoyage des ressources temporaires dans les tests TinyMCE.
+- Régénération du conteneur Symfony de test non-debug afin de résoudre les erreurs d'injection de dépendances dans `GridDraftController::delete()`.
+- Correction des collisions d'URL audio dans les fixtures d'`EmissionControllerTest` grâce à la génération d'URL uniques.
+- Préservation des règles métier d'unicité des URL audio et des comportements de suppression, republication et restauration des rediffusions.
+- Résolution des 16 échecs PHPUnit précédemment identifiés.
+- Résolution de l'épuisement mémoire lors de l'exécution complète de PHPUnit avec une limite de 2 Go : consommation finale rapportée de 791 Mio.
+
+
+## [1.0.132] - 2026-11-09
 ### Corrections
 - Correction du merge précédent qui a échoué.
 

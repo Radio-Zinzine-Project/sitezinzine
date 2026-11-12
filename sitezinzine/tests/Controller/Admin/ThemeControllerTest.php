@@ -24,6 +24,15 @@ class ThemeControllerTest extends ControllerActionTestCase
         $this->wire($this->controller);
     }
 
+    protected function tearDown(): void
+    {
+        try {
+            parent::tearDown();
+        } finally {
+            unset($this->controller);
+        }
+    }
+
     public function testIndexDisplaysThemes(): void
     {
         $themes = [(new Theme())->setName('Musique')];

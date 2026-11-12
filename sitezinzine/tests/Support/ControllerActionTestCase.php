@@ -58,6 +58,19 @@ abstract class ControllerActionTestCase extends TestCase
         $this->container->set('router', $router);
     }
 
+    protected function tearDown(): void
+    {
+        try {
+            parent::tearDown();
+        } finally {
+            unset($this->container, $this->session, $this->csrf);
+            $this->formData = null;
+            $this->parameters = [];
+            $this->redirect = [];
+            $this->formErrors = [];
+        }
+    }
+
     protected function wire(AbstractController $controller): void
     {
         $controller->setContainer($this->container);

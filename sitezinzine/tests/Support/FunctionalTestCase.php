@@ -38,7 +38,11 @@ abstract class FunctionalTestCase extends WebTestCase
         try {
             $this->closeEntityManager();
         } finally {
-            parent::tearDown();
+            try {
+                parent::tearDown();
+            } finally {
+                unset($this->client, $this->entityManager);
+            }
         }
     }
 

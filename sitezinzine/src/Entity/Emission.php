@@ -6,6 +6,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Symfony\Component\Validator\Constraints as Assert;
 use App\Repository\EmissionRepository;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints\Positive;
@@ -22,6 +23,12 @@ use App\Entity\ProgrammationRuleSlot;
 #[ORM\Index(name: 'idx_emission_theme', columns: ['theme_id'])]
 #[ORM\Index(name: 'idx_emission_categorie', columns: ['categorie_id'])]
 #[Vich\Uploadable()]
+#[UniqueEntity(
+    fields: ['url'],
+    repositoryMethod: 'findByAudioUrl',
+    errorPath: 'url',
+    message: 'Cette URL audio est déjà associée à une autre émission.'
+)]
 class Emission
 {
     /**

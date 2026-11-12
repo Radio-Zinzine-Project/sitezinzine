@@ -31,6 +31,21 @@ class EmissionRepository extends ServiceEntityRepository
         parent::__construct($registry, Emission::class);
     }
 
+    /**
+     * Lookup used by UniqueEntity; an empty URL means no audio association.
+     *
+     * @param array{url: string} $criteria
+     * @return list<Emission>
+     */
+    public function findByAudioUrl(array $criteria): array
+    {
+        if (trim($criteria['url']) === '') {
+            return [];
+        }
+
+        return $this->findBy($criteria, null, 2);
+    }
+
     public function paginateEmissionsAdmin(
         int $page,
         ?User $user,

@@ -221,18 +221,24 @@ class AnnonceAdminControllerTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        if (isset($this->entityManager)) {
-            $this->entityManager
-                ->createQuery('DELETE FROM App\Entity\Annonce')
-                ->execute();
+        try {
+            if (isset($this->entityManager)) {
+                $this->entityManager
+                    ->createQuery('DELETE FROM App\Entity\Annonce')
+                    ->execute();
 
-            $this->entityManager
-                ->createQuery('DELETE FROM App\Entity\User')
-                ->execute();
+                $this->entityManager
+                    ->createQuery('DELETE FROM App\Entity\User')
+                    ->execute();
 
-            $this->entityManager->close();
+                $this->entityManager->close();
+            }
+        } finally {
+            try {
+                parent::tearDown();
+            } finally {
+                unset($this->client, $this->entityManager);
+            }
         }
-
-        parent::tearDown();
     }
 }
