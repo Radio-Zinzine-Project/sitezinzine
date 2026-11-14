@@ -19,8 +19,9 @@ final class NonRegularPendingVisibility
             $schedule = NonRegularScheduledOccurrences::summarize(
                 $pending->getEmission()->getId(), $key, $draftsByGroup[$key] ?? [], $diffusionsByGroup[$key] ?? []
             );
-            // No reliable active trigger: retain legacy visibility without writing anything.
-            return !$schedule['complete'] || $schedule['last'] === null
+            // Orphaned unpublished history cannot invalidate known active scheduling dates.
+            // Retain legacy visibility only when the active trigger itself is indeterminate.
+            return !$schedule['datesComplete'] || $schedule['last'] === null
                 || $weekStart >= RadioWeek::start($schedule['last'])->modify('+7 days');
         }));
     }

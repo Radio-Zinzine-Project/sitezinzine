@@ -13,12 +13,13 @@ final class NonRegularScheduledOccurrences
     /**
      * @param DiffusionDraft[] $drafts
      * @param Diffusion[] $diffusions
-     * @return array{count:int, last:?\DateTimeImmutable, complete:bool}
+     * @return array{count:int, last:?\DateTimeImmutable, complete:bool, datesComplete:bool}
      */
     public static function summarize(int $emissionId, string $groupKey, array $drafts, array $diffusions): array
     {
         $published = [];
         $complete = true;
+        $datesComplete = true;
         foreach ($diffusions as $diffusion) {
             if ($diffusion->getEmission()?->getId() !== $emissionId || $diffusion->getAssignmentGroupKey() !== $groupKey) {
                 continue;
@@ -48,6 +49,7 @@ final class NonRegularScheduledOccurrences
             $date = $linked?->getHoraireDiffusion() ?? $draft->getHoraireDiffusion();
             if ($date === null) {
                 $complete = false;
+                $datesComplete = false;
             }
             // The explicit identity survives unpublication; only the displayed time
             // depends on whether the linked Diffusion is currently published.
@@ -81,6 +83,7 @@ final class NonRegularScheduledOccurrences
         foreach ($dates as $date) {
             if ($date === null) {
                 $complete = false;
+                $datesComplete = false;
                 continue;
             }
             // SQL scheduling values are local wall-clock dates, as in RegularPendingVisibility.
@@ -89,6 +92,6 @@ final class NonRegularScheduledOccurrences
                 $last = $local;
             }
         }
-        return ['count' => count($dates), 'last' => $last, 'complete' => $complete];
+        return ['count' => count($dates), 'last' => $last, 'complete' => $complete, 'datesComplete' => $datesComplete];
     }
 }

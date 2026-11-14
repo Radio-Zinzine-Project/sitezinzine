@@ -431,15 +431,56 @@ final class NonRegularPendingWorkflowTest extends FunctionalTestCase
         self::assertSame($before, $this->snapshot(), 'A failed successor must leave no placement and preserve the consumed Pending in SQL.');
     }
 
-    public function testPartiallyUnidentifiableHistoryRetainsLegacyVisibility(): void
+    public function testOrphanedHistoryDoesNotOverrideKnownActiveVisibility(): void
     {
         $group = $this->manualGroup();
         $old = (new Diffusion())->setEmission($group['emission'])->setAssignmentGroupKey($group['key'])
             ->setNombreDiffusion(37)->setSchedule(new \DateTime('2020-01-07 10:00:00'), 60)->markAsUnpublished();
         $this->entityManager->persist($old);
         $this->entityManager->flush();
-        self::assertSame([true, true], $this->visibility($this->onlyPending($group)->getId(), [self::S1, self::S2]),
-            'The explicit fallback preserves legacy visibility instead of assigning an uncertain historical trigger.');
+        self::assertSame([false, true], $this->visibility($this->onlyPending($group)->getId(), [self::S1, self::S2]),
+            'Known active scheduling dates determine visibility despite unrelated unpublished history.');
+    }
+
+    public function testReplacedRebroadcastVisibilityDoesNotDependOnPublicationDespiteOrphanedHistory(): void
+    {
+        $group = $this->manualGroup('2026-11-07 09:30:00');
+        $this->publish('2026-11-03');
+        $target = $this->place($this->onlyPending($group)->getId(), '2026-11-14 17:00:00');
+        $this->publish('2026-11-10');
+        $historyId = $target->getPublishedDiffusion()->getId();
+        $targetId = $target->getId();
+
+        static::getContainer()->get(GridUnpublicationService::class)->unpublishWeek(new \DateTimeImmutable('2026-11-10'));
+        $this->jsonPost('/admin/grid-drafts/delete', ['draftId' => $targetId, 'deleteMode' => 'single']);
+        $this->entityManager->clear();
+        self::assertNull($this->entityManager->find(DiffusionDraft::class, $targetId));
+        self::assertTrue($this->entityManager->find(Diffusion::class, $historyId)->isUnpublished());
+
+        $consumedId = $this->onlyPending($group)->getId();
+        $replacement = $this->place($consumedId, '2026-11-14 17:00:00');
+        $replacementId = $replacement->getId();
+        self::assertNotSame($targetId, $replacementId);
+        $this->entityManager->clear();
+        self::assertNull($this->entityManager->find(DiffusionDraft::class, $replacementId)->getPublishedDiffusion());
+        self::assertSame(0, (int) $this->entityManager->getConnection()->fetchOne(
+            'SELECT COUNT(*) FROM diffusion_draft WHERE published_diffusion_id = ?', [$historyId]
+        ), 'The retained unpublished history must be orphaned before republication.');
+        self::assertCount(2, $this->drafts($group));
+        self::assertNull($this->entityManager->find(PendingRebroadcast::class, $consumedId));
+        $successorId = $this->onlyPending($group)->getId();
+        self::assertNotSame($consumedId, $successorId);
+
+        $weeks = ['2026-11-10', '2026-11-17'];
+        $beforePublication = $this->visibility($successorId, $weeks);
+        $this->publish('2026-11-10');
+        $this->entityManager->clear();
+        self::assertSame($historyId, $this->entityManager->find(DiffusionDraft::class, $replacementId)->getPublishedDiffusion()->getId());
+        self::assertSame($successorId, $this->onlyPending($group)->getId());
+        $afterPublication = $this->visibility($successorId, $weeks);
+
+        self::assertSame([[false, true], [false, true]], [$beforePublication, $afterPublication],
+            'The successor must be hidden on November 10 and visible on November 17, both before and after publication. Orphaned unpublished history must not bypass the scheduled-date rule.');
     }
 
     public function testNewUnassignedNonRegularEmissionRemainsIndependentOfDisplayedWeek(): void

@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.134] - 2026-11-xx
+### Ajouts
+- Ajout de tests de régression et de tests unitaires pour sécuriser la visibilité des rediffusions non régulières dans le parc « Émissions à diffuser ».
+### Corrections
+- Correction de l'affichage prématuré des rediffusions en attente après suppression et replacement d'une diffusion.
+- Prise en compte des dates des diffusions programmées, même lorsque la semaine radiophonique n'est pas encore validée.
+- Distinction entre historique incomplet (`complete`) et dates actives inconnues (`datesComplete`) pour fiabiliser le calcul de visibilité.
+- Les diffusions historiques dépubliées et orphelines ne perturbent plus la visibilité des Pending lorsque les dates actives sont connues.
+- Conservation du fonctionnement existant pour les émissions régulières et de la limite de trois diffusions.
+
+
 ## [1.0.133] - 2026-11-12
 ### Ajouts
 - Renforcement de la fiabilité des tests PHPUnit et de la gestion des ressources utilisées par les fixtures.
