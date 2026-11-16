@@ -45,3 +45,41 @@ services:
             $projectDir: '%kernel.project_dir%'
             $mp3WorkDir: '%app.mp3_work_dir%'
 
+    app.mp3_cleanup.connection:
+        class: Doctrine\DBAL\Connection
+        autowire: false
+        shared: true
+        factory: ['App\Service\AudioLibrary\Orphan\Mp3CleanupServiceFactory', 'createConnection']
+        arguments: ['@doctrine.dbal.default_connection']
+
+    App\Service\AudioLibrary\Orphan\Mp3CleanupIssueDbalAdapter:
+        arguments:
+            $connection: '@app.mp3_cleanup.connection'
+
+    App\Service\AudioLibrary\Orphan\Mp3CleanupIssueGrouper:
+        arguments:
+            $findActiveIssues: !closure ['@App\Service\AudioLibrary\Orphan\Mp3CleanupIssueDbalAdapter', 'findActiveIssues']
+            $createIssue: !closure ['@App\Service\AudioLibrary\Orphan\Mp3CleanupIssueDbalAdapter', 'createIssue']
+            $appendEvent: !closure ['@App\Service\AudioLibrary\Orphan\Mp3CleanupIssueDbalAdapter', 'appendEvent']
+
+    App\Service\AudioLibrary\Orphan\Mp3CleanupIssueWriter:
+        arguments:
+            $connection: '@app.mp3_cleanup.connection'
+            $grouper: '@App\Service\AudioLibrary\Orphan\Mp3CleanupIssueGrouper'
+
+    app.mp3_cleanup.recipient:
+        class: Closure
+        autowire: false
+        factory: ['App\Service\AudioLibrary\Orphan\Mp3CleanupServiceFactory', 'createRecipient']
+        arguments:
+            $writerProvider: !service_closure '@App\Service\AudioLibrary\Orphan\Mp3CleanupIssueWriter'
+            $connectionProvider: !service_closure '@app.mp3_cleanup.connection'
+
+    App\Service\AudioLibrary\Orphan\Mp3CleanupReporter:
+        arguments:
+            $recipient: '@app.mp3_cleanup.recipient'
+            $fallbackLogger: '@monolog.logger.mp3'
+
+    App\Service\Mp3Replacement:
+        calls:
+            - [setCleanupReporter, ['@App\Service\AudioLibrary\Orphan\Mp3CleanupReporter']]

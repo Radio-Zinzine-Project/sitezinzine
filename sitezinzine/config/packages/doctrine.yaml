@@ -1,6 +1,8 @@
 doctrine:
     dbal:
         url: '%env(resolve:DATABASE_URL)%'
+        types:
+            utc_datetime_microseconds: App\Doctrine\Type\UtcDateTimeMicrosecondsType
 
         # Version réelle du serveur MySQL utilisé par l'application.
         # Évite que Doctrine DBAL tente de deviner la plateforme.

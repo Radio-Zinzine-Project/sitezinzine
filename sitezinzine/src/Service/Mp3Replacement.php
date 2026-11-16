@@ -11,11 +11,20 @@ use Doctrine\ORM\Events;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use App\Enum\Mp3FailureStage;
 use App\Exception\Mp3OperationFailure;
+use App\Service\AudioLibrary\Orphan\Mp3CleanupReporter;
 
 /** SQL controls references; disk changes have their own lifetime and compensation. */
 final class Mp3Replacement
 {
+    private ?Mp3CleanupReporter $cleanupReporter = null;
+
     public function __construct(private Mp3Processor $processor) {}
+
+    /** Transitional explicit injection; Symfony wiring is deliberately deferred. */
+    public function setCleanupReporter(Mp3CleanupReporter $cleanupReporter): void
+    {
+        $this->cleanupReporter = $cleanupReporter;
+    }
 
     public function replace(
         Emission $emission,
@@ -135,12 +144,25 @@ final class Mp3Replacement
         if ($initialLevel === 0 && $connection->getTransactionNestingLevel() === 0
             && $original !== null && $original !== $emission->getThumbnailMp3()) {
             try {
-                $references = (int) $connection->fetchOne('SELECT COUNT(*) FROM emission WHERE thumbnail_mp3 = ?', [$original]);
+                try {
+                    $references = (int) $connection->fetchOne('SELECT COUNT(*) FROM emission WHERE thumbnail_mp3 = ?', [$original]);
+                } catch (\Throwable $error) {
+                    $this->cleanupReporter?->reportReferenceCheckFailure(
+                        $emission->getId(), $original, $emission->getThumbnailMp3(), $error,
+                    );
+                    return;
+                }
                 if ($references === 0) {
-                    $this->processor->removeObsolete($original);
+                    try {
+                        $this->processor->removeObsolete($original);
+                    } catch (\Throwable $error) {
+                        $this->cleanupReporter?->reportObsoleteCleanupFailure(
+                            $emission->getId(), $original, $emission->getThumbnailMp3(), $error,
+                        );
+                    }
                 }
             } catch (\Throwable) {
-                // A retained old file is preferable to turning a confirmed replacement into failure.
+                // Even an unexpected reporting failure cannot invalidate a confirmed replacement.
             }
         }
     }
