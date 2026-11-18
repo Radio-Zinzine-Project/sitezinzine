@@ -1,14 +1,43 @@
 # Changelog
 
-## [1.0.134] - 2026-11-xx
+## [1.0.134] - 2026-11-18
 ### Ajouts
 - Ajout de tests de régression et de tests unitaires pour sécuriser la visibilité des rediffusions non régulières dans le parc « Émissions à diffuser ».
+- Mise en place du socle technique de la bibliothèque audio pour préparer l'inventaire des fichiers MP3 historiques.
+- Ajout d'un scanner physique progressif des répertoires MP3, avec contrôle des chemins autorisés, exclusion des répertoires configurés et remontée des erreurs de lecture.
+- Ajout d'un collecteur de références audio depuis MySQL, utilisant une lecture cohérente des données et prenant en compte les émissions supprimées logiquement.
+- Ajout d'un mécanisme de résolution des URL audio locales pour distinguer les références aux fichiers MP3 des URL externes.
+- Mise en place du rapprochement entre fichiers physiques et références en base de données, avec classification des fichiers associés, des associations multiples, des orphelins potentiels, des références problématiques et des situations indéterminées.
+- Ajout de mécanismes de tri externe et de fusion progressive pour traiter de grands volumes de fichiers et d'associations tout en limitant l'utilisation de la mémoire.
+- Ajout d'un espace de travail temporaire privé, avec contrôle des ressources et validation de l'intégrité des fichiers intermédiaires.
+- Mise en place de rapports d'inventaire persistants, paginés et protégés par des contrôles d'intégrité, avec publication uniquement après une collecte complète.
+- Ajout d'un mode d'inventaire `observation_only`, permettant de produire des observations sans prétendre certifier l'exhaustivité du stockage.
+- Ajout d'une commande Symfony `app:audio-inventory:run` permettant de lancer un inventaire depuis un profil explicitement configuré.
+- Ajout d'un service de découverte des rapports d'inventaire publiés, avec limitation des ressources et signalement des résultats partiels ou corrompus.
+- Ajout d'une interface d'administration pour consulter les inventaires MP3, leurs statistiques, diagnostics, restrictions et résultats paginés.
+- Ajout du lien « Inventaire MP3 » dans le menu déroulant « Administration », exclusivement visible pour les super-administrateurs.
+- Protection des routes de consultation des inventaires par `ROLE_SUPER_ADMIN`, avec contrôle d'accès avant lecture et réponses HTTP privées.
+- Ajout de tests unitaires, de sécurité et d'intégration couvrant les composants de l'inventaire, les rapports et leur consultation.
+- Ajout d'un test de bout en bout sous Docker, PHP 8.3 et MySQL 8, validant le parcours complet depuis les fichiers et références SQL synthétiques jusqu'à l'affichage dans l'administration.
+- Ajout de documentation technique sur la commande d'inventaire et la découverte des rapports.
 ### Corrections
 - Correction de l'affichage prématuré des rediffusions en attente après suppression et replacement d'une diffusion.
 - Prise en compte des dates des diffusions programmées, même lorsque la semaine radiophonique n'est pas encore validée.
 - Distinction entre historique incomplet (`complete`) et dates actives inconnues (`datesComplete`) pour fiabiliser le calcul de visibilité.
 - Les diffusions historiques dépubliées et orphelines ne perturbent plus la visibilité des Pending lorsque les dates actives sont connues.
 - Conservation du fonctionnement existant pour les émissions régulières et de la limite de trois diffusions.
+- Normalisation des URL audio vides en `NULL` dans l'entité `Emission`.
+- Mise en place d'une contrainte d'unicité sur `emission.url`, insensible à la casse et sensible aux accents, tout en autorisant plusieurs valeurs `NULL`.
+- Ajout de la migration MySQL associée et de tests de régression pour sécuriser l'unicité des URL audio.
+- Correction du conflit entre l'option globale Symfony `--profile` et la commande d'inventaire, remplacée par `--inventory-profile`.
+### Sécurité et fiabilité
+- Aucun traitement destructif des fichiers MP3 pendant l'inventaire.
+- Les fichiers détectés sans association sont considérés comme des orphelins potentiels et non comme des fichiers automatiquement supprimables.
+- Les références dont la présence physique ne peut être établie restent indéterminées.
+- Les rapports ne certifient ni l'exhaustivité du stockage ni l'absence définitive de fichiers.
+- Les profils d'inventaire restent désactivés par défaut tant que leurs chemins et paramètres ne sont pas explicitement configurés.
+- Les rapports et fichiers temporaires sont conservés dans des espaces privés, hors accès public.
+- Les tests d'intégration utilisent des fichiers synthétiques et des données SQL temporaires, sans modification des données métier existantes.
 
 
 ## [1.0.133] - 2026-11-12
@@ -1028,7 +1057,7 @@ Montée vers symfony 7.4
 - Ouverture du site en démo aux zinzinien·nes.
 ### Ajout
 - Ajout du contenu provisoire pour la page infos.
-- Ajout du widget grille hebdomadaire de libretime dans la partie programme (mais c'est moche ...). 
+- Ajout du widget grille hebdomadaire de libretime dans la partie programme (mais c'est moche ...).
 
 
 ## [1.0.19] - 2025-07-06

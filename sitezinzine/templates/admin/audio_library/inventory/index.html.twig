@@ -1,0 +1,38 @@
+{% extends 'admin/admin.html.twig' %}
+{% block title %}Inventaire MP3{% endblock %}
+{% block body %}
+<h1>Inventaire MP3</h1>
+<section class="bg-white p-3">
+    {% if error is defined %}
+        <p role="alert">{{ error }}</p>
+    {% elseif profiles is empty %}
+        <p>Aucun profil de consultation configuré.</p>
+    {% else %}
+        <form method="get">
+            <label for="inventory-profile">Profil autorisé</label>
+            <select id="inventory-profile" name="profile">
+                {% for name in profiles %}<option value="{{ name }}" {% if name == profile %}selected{% endif %}>{{ name }}</option>{% endfor %}
+            </select>
+            <button type="submit">Consulter</button>
+        </form>
+        {% if discovery %}
+            {% if discovery.partial %}<p role="alert">Liste partielle : elle ne représente pas tous les rapports disponibles.</p>{% endif %}
+            {% if discovery.status == 'unavailable' %}<p role="alert">Stockage des rapports indisponible.</p>{% endif %}
+            <p>{{ discovery.entries_examined }} entrées examinées ; {{ discovery.unpublished_count }} rapports provisoires ignorés.</p>
+            <div role="note">Inventaire non certifié — aucune conclusion d'absence autorisée. Aucun résultat ne constitue une permission de suppression.</div>
+            {% for report in discovery.reports %}
+                <article class="border p-2 my-2">
+                    <h2><a href="{{ path('admin.audio_library.inventory.show', {profile: profile, inventoryId: report.inventory_id}) }}">{{ report.inventory_id }}</a></h2>
+                    <p>Profil : {{ profile }} — {{ report.date }} — {{ report.scope }} — {{ report.mode }}</p>
+                    <p>{{ report.result_count }} résultats. Références complètes : {{ report.references_complete ? 'oui' : 'non' }} ; collecte physique sans erreur : {{ report.physical_complete ? 'oui' : 'non' }}.</p>
+                    <ul>{% for class in report.classes %}<li>{{ class.label }} : {{ class.count }}</li>{% endfor %}</ul>
+                </article>
+            {% else %}<p>Aucun rapport publié valide dans les entrées examinées.</p>{% endfor %}
+            {% if discovery.anomalies %}
+                <h2>Anomalies de découverte</h2>
+                <ul>{% for anomaly in discovery.anomalies %}<li>{{ anomaly.inventory_id }} : {{ anomaly.status }} ({{ anomaly.reason }})</li>{% endfor %}</ul>
+            {% endif %}
+        {% endif %}
+    {% endif %}
+</section>
+{% endblock %}

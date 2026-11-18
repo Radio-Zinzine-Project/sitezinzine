@@ -4,6 +4,10 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    # No implicit deployment paths or permission to access another environment.
+    # Populate authorized profiles explicitly; see Docs/audio-inventory-command.md.
+    app.audio_inventory.profiles: {}
+    app.audio_inventory.discovery_max_entries: 100
     # app.mp3_base_dir: '%kernel.project_dir%/public/uploads/mp3'
     app.mp3_base_dir: '%kernel.project_dir%/public/uploads/emissionsMp3'
     app.mp3_work_dir: '%kernel.project_dir%/var/mp3-work'
@@ -83,3 +87,24 @@ services:
     App\Service\Mp3Replacement:
         calls:
             - [setCleanupReporter, ['@App\Service\AudioLibrary\Orphan\Mp3CleanupReporter']]
+
+    # A separate DBAL object, never the cleanup connection or the ORM alias.
+    # Constructed lazily, after profile/path validation; closed after each run.
+    app.audio_inventory.connection:
+        class: Doctrine\DBAL\Connection
+        autowire: false
+        factory: ['App\Service\AudioLibrary\Orphan\Mp3CleanupServiceFactory', 'createConnection']
+        arguments: ['@doctrine.dbal.default_connection']
+
+    App\Service\AudioLibrary\Inventory\AudioInventoryCommandRunner:
+        arguments:
+            $profiles: '%app.audio_inventory.profiles%'
+            $connectionProvider: !service_closure '@app.audio_inventory.connection'
+            $publicRoot: '%kernel.project_dir%/public'
+            $uploadWorkRoot: '%app.mp3_work_dir%'
+
+    App\Service\AudioLibrary\Inventory\AudioInventoryReportDiscovery:
+        arguments:
+            $profiles: '%app.audio_inventory.profiles%'
+            $publicRoot: '%kernel.project_dir%/public'
+            $maxEntries: '%app.audio_inventory.discovery_max_entries%'

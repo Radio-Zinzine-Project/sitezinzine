@@ -333,6 +333,11 @@
                       <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_siteImage_' ? 'active' : '' }}" href="{{ path('admin_siteImage_index') }}">
                         Images du site
                       </a>
+                      {% if is_granted('ROLE_SUPER_ADMIN') %}
+                        <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.audio_library.inventory.' ? 'active' : '' }}" href="{{ path('admin.audio_library.inventory.index') }}">
+                          Inventaire MP3
+                        </a>
+                      {% endif %}
                     </div>
                   </li>
                 {% endif %}

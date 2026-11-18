@@ -1,0 +1,39 @@
+{% extends 'admin/admin.html.twig' %}
+{% block title %}Inventaire MP3 — {{ summary.inventory_id }}{% endblock %}
+{% block body %}
+<h1>Inventaire MP3</h1>
+<section class="bg-white p-3">
+    <p><a href="{{ path('admin.audio_library.inventory.index', {profile: profile}) }}">Retour aux inventaires</a></p>
+    <div role="alert">Inventaire non certifié — aucune conclusion d'absence autorisée.</div>
+    <p>Aucune action de suppression ou de modification. Un orphelin potentiel n'est pas un fichier à supprimer.</p>
+    <h2>{{ summary.inventory_id }}</h2>
+    <p>Profil : {{ profile }} — {{ summary.date }} — {{ summary.scope }} — {{ summary.mode }}</p>
+    <p>{{ summary.result_count }} résultats ; {{ summary.physical_paths }} chemins physiques ; {{ summary.referenced_paths }} chemins référencés ; {{ summary.association_count }} associations.</p>
+    <p>Références complètes : {{ summary.references_complete ? 'oui' : 'non' }} ; collecte physique sans erreur : {{ summary.physical_complete ? 'oui' : 'non' }}. Ces indicateurs ne certifient ni le volume ni sa complétude.</p>
+    <ul>{% for class in summary.classes %}<li>{{ class.label }} : {{ class.count }}</li>{% endfor %}</ul>
+    <h2>Diagnostics de préparation</h2>
+    <ul>
+        {% for diagnostic in diagnostics.physical %}<li>{{ diagnostic.path }} : {{ diagnostic.reason }}</li>{% endfor %}
+        {% for diagnostic in diagnostics.sql %}<li>URL locale incertaine{% if diagnostic.emission_id %} — <a href="{{ path('admin.emission.show', {id: diagnostic.emission_id}) }}">Émission #{{ diagnostic.emission_id }}</a>{% endif %} : {{ diagnostic.reason }}</li>{% endfor %}
+    </ul>
+    <p>{{ diagnostics.secondary_count }} erreurs secondaires enregistrées. Les messages techniques bruts ne sont pas affichés.</p>
+    <h2>Résultats</h2>
+    {% if results is empty %}<p>Aucun résultat.</p>{% else %}
+        <p>Page {{ page }} sur {{ page_count }}</p>
+        <div class="table-responsive"><table class="table">
+            <thead><tr><th>Chemin relatif</th><th>Classification</th><th>Observation</th><th>Associations conservées</th></tr></thead>
+            <tbody>{% for result in results %}<tr>
+                <td><code>{{ result.relative_path }}</code></td><td>{{ result.classification }}</td><td>{{ result.presence }}</td>
+                <td><ul>{% for association in result.associations %}<li>
+                    {% if association.emission_id %}<a href="{{ path('admin.emission.show', {id: association.emission_id}) }}">Émission #{{ association.emission_id }}</a>{% else %}Association invalide{% endif %}
+                    — {{ association.origin }}{% if association.thumbnail_missing %} — référence thumbnail manquante{% endif %}
+                </li>{% endfor %}</ul></td>
+            </tr>{% endfor %}</tbody>
+        </table></div>
+    {% endif %}
+    <nav aria-label="Pages du rapport">
+        {% if previous %}<a href="{{ path('admin.audio_library.inventory.show', {profile: profile, inventoryId: summary.inventory_id, page: previous}) }}">Précédent</a>{% endif %}
+        {% if next %}<a href="{{ path('admin.audio_library.inventory.show', {profile: profile, inventoryId: summary.inventory_id, page: next}) }}">Suivant</a>{% endif %}
+    </nav>
+</section>
+{% endblock %}
