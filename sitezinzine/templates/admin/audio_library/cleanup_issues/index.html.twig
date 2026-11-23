@@ -1,0 +1,47 @@
+{% extends 'admin/admin.html.twig' %}
+
+{% block title %}Incidents de nettoyage MP3{% endblock %}
+
+{% block body %}
+    {% set statuses = {open: 'Ouvert', investigating: 'En cours', resolved: 'Résolu'} %}
+    <h1>Incidents de nettoyage MP3</h1>
+    <section class="bg-white p-3">
+        <p><a href="{{ path('admin.audio_library.index') }}">Retour à la bibliothèque MP3</a></p>
+        {% if error is not null %}
+            <p role="alert">{{ error }}</p>
+        {% elseif rows is empty %}
+            <p>Aucun incident de nettoyage MP3 à afficher.</p>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Incident</th>
+                            <th scope="col">Stockage</th>
+                            <th scope="col">Ancien fichier</th>
+                            <th scope="col">État</th>
+                            <th scope="col">Ouvert le</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                            <tr>
+                                <td><a href="{{ path('admin.audio_library.cleanup_issues.show', {issueId: row.id}) }}">{{ row.id }}</a></td>
+                                <td>{{ row.storage }}</td>
+                                <td><code>{{ row.obsolete_relative_path ?? 'Chemin indisponible' }}</code></td>
+                                <td>{{ statuses[row.status] ?? row.status }}</td>
+                                <td><time datetime="{{ row.created_at|date('c', 'Europe/Paris') }}">{{ row.created_at|date('d/m/Y H:i', 'Europe/Paris') }}</time></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        {% if previous or next %}
+            <nav aria-label="Pages des incidents de nettoyage MP3">
+                {% if previous %}<a href="{{ path('admin.audio_library.cleanup_issues.index', {page: previous}) }}">Précédent</a>{% endif %}
+                {% if next %}<a href="{{ path('admin.audio_library.cleanup_issues.index', {page: next}) }}">Suivant</a>{% endif %}
+            </nav>
+        {% endif %}
+    </section>
+{% endblock %}

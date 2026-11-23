@@ -1663,7 +1663,8 @@ class GrilleControllerTest extends KernelTestCase
         $this->controller->publishWeek(
             '2026-09-15',
             $request,
-            $publicationService
+            $publicationService,
+            static::getContainer()->get(\App\Service\GridWeekValidation::class)
         );
     }
 
@@ -1699,7 +1700,8 @@ class GrilleControllerTest extends KernelTestCase
         $this->controller->publishWeek(
             'date-invalide',
             $request,
-            $publicationService
+            $publicationService,
+            static::getContainer()->get(\App\Service\GridWeekValidation::class)
         );
     }
 
@@ -1725,7 +1727,8 @@ class GrilleControllerTest extends KernelTestCase
         $this->controller->unpublishWeek(
             '2026-09-15',
             $request,
-            $unpublicationService
+            $unpublicationService,
+            static::getContainer()->get(\App\Service\GridWeekValidation::class)
         );
     }
 
@@ -1761,7 +1764,8 @@ class GrilleControllerTest extends KernelTestCase
         $this->controller->unpublishWeek(
             'date-invalide',
             $request,
-            $unpublicationService
+            $unpublicationService,
+            static::getContainer()->get(\App\Service\GridWeekValidation::class)
         );
     }
 

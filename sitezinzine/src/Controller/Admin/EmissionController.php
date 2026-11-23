@@ -29,8 +29,11 @@ use App\Service\Mp3Processor;
 use App\Service\Mp3Replacement;
 use App\Service\Mp3IncidentReporter;
 use App\Exception\Mp3OperationFailure;
+use App\Exception\Mp3TrashFailure;
+use App\Service\Mp3TrashEdit;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Form\FormError;
+use Symfony\Component\Form\FormInterface;
 use App\Entity\Categories;
 use App\Repository\CategoriesRepository;
 use App\Service\EmissionUserChoicesProvider;
@@ -241,6 +244,7 @@ class EmissionController extends AbstractController
         Mp3Processor $mp3Processor,
         Mp3Replacement $mp3Replacement,
         Mp3IncidentReporter $mp3Incidents,
+        Mp3TrashEdit $mp3TrashEdit,
         ManagerRegistry $doctrine
     ): Response {
         $user = $security->getUser();
@@ -273,48 +277,59 @@ class EmissionController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-
-            // Checkbox "Marquer comme complétée" (visible si l'émission est en attente de finalisation)
-            if (
-                $emission->isPendingCompletion()
-                && $form->has('markAsCompleted')
-                && $form->get('markAsCompleted')->getData()
-            ) {
-                $emission->markAsCompleted();
-            }
-
-            // ✅ suppression image si demandée
-            if ($request->request->getBoolean('delete_thumbnail')) {
-                $mappings = $mappingFactory->fromObject($emission);
-                $thumbnailMapping = null;
-
-                foreach ($mappings as $m) {
-                    if (
-                        method_exists($m, 'getFilePropertyName')
-                        && $m->getFilePropertyName() === 'thumbnailFile'
-                    ) {
-                        $thumbnailMapping = $m;
-                        break;
-                    }
-                }
-
-                if (null !== $thumbnailMapping) {
-                    $storage->remove($emission, $thumbnailMapping);
-                }
-
-                $emission->setThumbnail(null);
-            }
-
-            // ✅ gestion MP3
             $deleteMp3 = $form->has('deleteMp3') ? (bool) $form->get('deleteMp3')->getData() : false;
             $newMp3Uploaded = $form->has('thumbnailFileMp3') && $form->get('thumbnailFileMp3')->getData() !== null;
+            $trashConfirmed = false;
+            if ($deleteMp3 && !$newMp3Uploaded && $originalMp3) {
+                try {
+                    $mp3TrashEdit->trash($em, $emission, $originalMp3, $originalMp3Url, $user instanceof User ? $user->getId() : null);
+                    $trashConfirmed = true;
+                } catch (Mp3TrashFailure $failure) {
+                    $incomplete = !in_array($failure->step, ['precondition', 'reservation'], true);
+                    $blocked = $failure->commitUncertain || $incomplete;
+                    $message = match (true) {
+                        $failure->commitUncertain => 'Le résultat de la mise en corbeille du MP3 n’a pas pu être confirmé. Ne relancez pas la suppression.',
+                        $incomplete => 'La mise en corbeille du MP3 reste inachevée. Demandez une vérification du journal avant de réessayer.',
+                        default => 'La suppression est refusée. Le MP3 n’a pas été mis en corbeille.',
+                    };
 
-            // Si suppression demandée sans nouvel upload
-            if ($deleteMp3 && !$newMp3Uploaded) {
-                $mp3Processor->delete($emission);
+                    return $this->renderTrashEditError($emission, $form,
+                        $message . ' Les autres modifications n’ont pas été enregistrées.', $blocked ? 409 : 422, $blocked, $blocked);
+                }
             }
 
             try {
+                // Checkbox "Marquer comme complétée" (visible si l'émission est en attente de finalisation)
+                if (
+                    $emission->isPendingCompletion()
+                    && $form->has('markAsCompleted')
+                    && $form->get('markAsCompleted')->getData()
+                ) {
+                    $emission->markAsCompleted();
+                }
+
+                // ✅ suppression image si demandée
+                if ($request->request->getBoolean('delete_thumbnail')) {
+                    $mappings = $mappingFactory->fromObject($emission);
+                    $thumbnailMapping = null;
+
+                    foreach ($mappings as $m) {
+                        if (
+                            method_exists($m, 'getFilePropertyName')
+                            && $m->getFilePropertyName() === 'thumbnailFile'
+                        ) {
+                            $thumbnailMapping = $m;
+                            break;
+                        }
+                    }
+
+                    if (null !== $thumbnailMapping) {
+                        $storage->remove($emission, $thumbnailMapping);
+                    }
+
+                    $emission->setThumbnail(null);
+                }
+
                 if ($newMp3Uploaded) {
                     $mp3Replacement->replace($emission, $em, $originalMp3, $originalMp3Url);
                 } elseif (!$deleteMp3 && $originalMp3 && $originalEditorialState !== $mp3Processor->editorialState($emission)) {
@@ -323,7 +338,15 @@ class EmissionController extends AbstractController
                     $emission->setUpdatedat(new \DateTime());
                     $em->flush();
                 }
-            } catch (Mp3OperationFailure $failure) {
+            } catch (\Throwable $failure) {
+                if ($trashConfirmed) {
+                    return $this->renderTrashEditError($emission, $form,
+                        'Le MP3 est déjà en corbeille. L’enregistrement des autres modifications n’a pas pu être confirmé.',
+                        409, false, true);
+                }
+                if (!$failure instanceof Mp3OperationFailure) {
+                    throw $failure;
+                }
                 // Keep the bound form/draft objects for display, but discard their managed
                 // state so a later flush cannot accidentally save a rolled-back request.
                 $em->clear();
@@ -354,6 +377,29 @@ class EmissionController extends AbstractController
         ]);
     }
 
+
+    private function renderTrashEditError(
+        Emission $emission,
+        FormInterface $form,
+        string $message,
+        int $status,
+        bool $retryBlocked,
+        bool $hideAudio,
+    ): Response {
+        $form->addError(new FormError($message));
+        $view = $form->createView();
+        if ($hideAudio) {
+            $view['url']->vars['value'] = '';
+            $view['deleteMp3']->vars['checked'] = false;
+        }
+
+        return $this->render('admin/emission/edit.html.twig', [
+            'emission' => $emission,
+            'formEmission' => $view,
+            'mp3RetryBlocked' => $retryBlocked,
+            'mp3ShowCurrent' => !$hideAudio,
+        ], new Response(status: $status));
+    }
 
     #[Route('/{id}', name: 'delete', methods: ['DELETE'], requirements: ['id' => Requirement::DIGITS])]
     public function delete(

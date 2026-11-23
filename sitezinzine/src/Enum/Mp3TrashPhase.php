@@ -1,0 +1,16 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Enum;
+
+enum Mp3TrashPhase: string
+{
+    case SUPPRESSION_PREPAREE = 'SUPPRESSION_PREPAREE';
+    case RETRAIT_PUBLIC_EN_ATTENTE = 'RETRAIT_PUBLIC_EN_ATTENTE';
+    case EN_CORBEILLE = 'EN_CORBEILLE';
+    case RESTAURATION_PREPAREE = 'RESTAURATION_PREPAREE';
+    case RETRAIT_PRIVE_EN_ATTENTE = 'RETRAIT_PRIVE_EN_ATTENTE';
+    case RESTAUREE = 'RESTAUREE';
+    case ANNULEE = 'ANNULEE';
+}

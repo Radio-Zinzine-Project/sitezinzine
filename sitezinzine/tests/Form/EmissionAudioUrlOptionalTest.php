@@ -51,7 +51,7 @@ final class EmissionAudioUrlOptionalTest extends FormIntegrationTestCase
         self::assertNull($this->em->find(Emission::class, $id)->getUrl());
     }
 
-    public function testEditingEmissionCanClearItsAudioUrl(): void
+    public function testEditingEmissionCannotClearItsAudioUrl(): void
     {
         $emission = $this->emission();
         $owner = $this->user(['ROLE_SUPER_ADMIN']);
@@ -61,6 +61,7 @@ final class EmissionAudioUrlOptionalTest extends FormIntegrationTestCase
         self::assertSame($url, $emission->getUrl());
 
         $form = $this->form(EmissionType::class, $emission, [
+            'with_mp3' => true,
             'current_user' => $owner,
             'can_manage_all_categories' => true,
             'can_manage_all_users' => true,
@@ -74,11 +75,11 @@ final class EmissionAudioUrlOptionalTest extends FormIntegrationTestCase
             'url' => '',
         ]);
         $this->assertValidForm($form);
-        self::assertNull($emission->getUrl());
+        self::assertSame($url, $emission->getUrl());
         $this->em->flush();
         $id = $emission->getId();
         $this->em->clear();
-        self::assertNull($this->em->find(Emission::class, $id)->getUrl());
+        self::assertSame($url, $this->em->find(Emission::class, $id)->getUrl());
     }
 
     public function testNonEmptyAudioUrlIsPreserved(): void
@@ -86,7 +87,10 @@ final class EmissionAudioUrlOptionalTest extends FormIntegrationTestCase
         $emission = $this->emission();
         $owner = $this->user(['ROLE_SUPER_ADMIN']);
         $url = 'https://Example.test/Émission.MP3?Token=AbC-' . bin2hex(random_bytes(16)) . '&nom=Café%20du%20soir';
+        $emission->setUrl($url);
+        $this->em->flush();
         $form = $this->form(EmissionType::class, $emission, [
+            'with_mp3' => true,
             'current_user' => $owner,
             'can_manage_all_categories' => true,
             'can_manage_all_users' => true,
@@ -97,7 +101,7 @@ final class EmissionAudioUrlOptionalTest extends FormIntegrationTestCase
             'categorie' => (string) $emission->getCategorie()->getId(),
             'theme' => (string) $emission->getTheme()->getId(),
             'users' => [(string) $owner->getId()],
-            'url' => $url,
+            'url' => 'https://forged.example/replacement.mp3',
         ]);
         $this->assertValidForm($form);
         self::assertSame($url, $emission->getUrl());

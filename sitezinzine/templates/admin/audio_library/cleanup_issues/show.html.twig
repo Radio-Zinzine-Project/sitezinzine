@@ -1,0 +1,73 @@
+{% extends 'admin/admin.html.twig' %}
+
+{% block title %}Incident de nettoyage MP3{% endblock %}
+
+{% block body %}
+    {% set statuses = {open: 'Ouvert', investigating: 'En cours', resolved: 'Résolu'} %}
+    {% set reasons = {
+        reference_check_failed: 'Vérification des références en échec',
+        obsolete_cleanup_failed: 'Retrait de l’ancien fichier en échec'
+    } %}
+    <h1>Incident de nettoyage MP3{% if error is null %} n° {{ detail.issue.id }}{% endif %}</h1>
+    <section class="bg-white p-3">
+        <p><a href="{{ path('admin.audio_library.cleanup_issues.index') }}">Retour aux incidents de nettoyage MP3</a></p>
+        {% if error is not null %}
+            <p role="alert">{{ error }}</p>
+        {% else %}
+            {% set issue = detail.issue %}
+            <dl>
+                <dt>État</dt><dd>{{ statuses[issue.status] ?? 'Inconnu' }}</dd>
+                <dt>Ouvert le</dt><dd>{{ date(issue.created_at, 'UTC')|date('d/m/Y H:i', 'Europe/Paris') }}</dd>
+                {% if issue.resolved_at is not null %}
+                    <dt>Résolu le</dt><dd>{{ date(issue.resolved_at, 'UTC')|date('d/m/Y H:i', 'Europe/Paris') }}</dd>
+                {% endif %}
+                <dt>Stockage</dt><dd>{{ issue.storage }}</dd>
+                <dt>Ancien fichier</dt><dd><code>{{ issue.obsolete_relative_path ?? 'Chemin indisponible' }}</code></dd>
+            </dl>
+            {% include 'admin/audio_library/cleanup_issues/attempts.html.twig' %}
+            <h2>Historique des événements</h2>
+            {% if detail.events is empty %}
+                <p>Aucun événement à afficher.</p>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Événement</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Motif</th>
+                                <th scope="col">Émission</th>
+                                <th scope="col">Fichier de remplacement</th>
+                                <th scope="col">Commit confirmé</th>
+                                <th scope="col">Références restantes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for event in detail.events %}
+                                <tr>
+                                    <td>{{ event.id }}</td>
+                                    <td>{{ date(event.occurred_at, 'UTC')|date('d/m/Y H:i', 'Europe/Paris') }}</td>
+                                    <td>{{ reasons[event.reason] ?? 'Motif inconnu' }}</td>
+                                    <td>{{ event.emission_id }}</td>
+                                    <td><code>{{ event.context.replacement_relative_path ?? 'Chemin indisponible' }}</code></td>
+                                    <td>{{ event.context.commit_confirmed is same as(true) ? 'Oui' : (event.context.commit_confirmed is same as(false) ? 'Non' : 'Inconnu') }}</td>
+                                    <td>{{ event.context.reference_count is same as(null) ? 'Inconnu' : event.context.reference_count }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+            {% if hasCursor or detail.pagination.has_more %}
+                <nav aria-label="Pages de l’historique">
+                    {% if hasCursor %}
+                        <a href="{{ path('admin.audio_library.cleanup_issues.show', {issueId: issue.id}) }}">Événements récents</a>
+                    {% endif %}
+                    {% if detail.pagination.has_more %}
+                        <a href="{{ path('admin.audio_library.cleanup_issues.show', {issueId: issue.id, last: last, before: detail.pagination.next_before_id}) }}">Événements plus anciens</a>
+                    {% endif %}
+                </nav>
+            {% endif %}
+        {% endif %}
+    </section>
+{% endblock %}

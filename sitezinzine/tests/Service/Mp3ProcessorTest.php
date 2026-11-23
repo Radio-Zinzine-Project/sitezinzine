@@ -20,13 +20,13 @@ class Mp3ProcessorTest extends KernelTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->fixtureHash = hash_file('sha256', dirname(__DIR__) . '/Fixtures/mp3/test.mp3');
+        $this->fixtureHash = hash_file('sha256', dirname(__DIR__) . '/Fixtures/mp3/test-short.mp3');
     }
 
     protected function tearDown(): void
     {
         try {
-            self::assertSame($this->fixtureHash, hash_file('sha256', dirname(__DIR__) . '/Fixtures/mp3/test.mp3'));
+            self::assertSame($this->fixtureHash, hash_file('sha256', dirname(__DIR__) . '/Fixtures/mp3/test-short.mp3'));
         } finally {
             parent::tearDown();
         }
@@ -37,10 +37,12 @@ class Mp3ProcessorTest extends KernelTestCase
         self::bootKernel();
         $container = self::getContainer();
         $root = \App\Tests\Support\Mp3TestStorage::root();
-        self::assertSame($root, $container->getParameter('app.mp3_base_dir'));
+        self::assertSame($root . '/library', $container->getParameter('app.mp3_base_dir'));
+        self::assertSame($root . '/work', $container->getParameter('app.mp3_work_dir'));
         $mapping = $container->getParameter('vich_uploader.mappings')['emissionsMp3'] ?? null;
         self::assertNotNull($mapping);
-        self::assertSame($root, $mapping['upload_destination']);
+        self::assertSame($root . '/library', $mapping['upload_destination']);
+        self::assertSame('https://example.test/uploads/emissionsMp3', $mapping['uri_prefix']);
         self::assertSame($container->getParameter('app.mp3_public_base_url'), $mapping['uri_prefix']);
         self::assertSame(realpath(sys_get_temp_dir()), dirname($root));
         self::assertMatchesRegularExpression('/^zinzine-mp3-tests-[a-f0-9]{32}$/', basename($root));
@@ -120,8 +122,8 @@ class Mp3ProcessorTest extends KernelTestCase
 
         $projectDir = $container->getParameter('kernel.project_dir');
 
-        $fixturePath = $projectDir . '/tests/Fixtures/mp3/test.mp3';
-        $mp3BaseDir = \App\Tests\Support\Mp3TestStorage::root();
+        $fixturePath = $projectDir . '/tests/Fixtures/mp3/test-short.mp3';
+        $mp3BaseDir = \App\Tests\Support\Mp3TestStorage::library();
 
         $this->assertFileExists($fixturePath);
 
@@ -193,8 +195,8 @@ class Mp3ProcessorTest extends KernelTestCase
 
         $projectDir = $container->getParameter('kernel.project_dir');
 
-        $fixturePath = $projectDir . '/tests/Fixtures/mp3/test.mp3';
-        $mp3BaseDir = \App\Tests\Support\Mp3TestStorage::root();
+        $fixturePath = $projectDir . '/tests/Fixtures/mp3/test-short.mp3';
+        $mp3BaseDir = \App\Tests\Support\Mp3TestStorage::library();
 
         $this->assertFileExists($fixturePath);
 
@@ -206,8 +208,8 @@ class Mp3ProcessorTest extends KernelTestCase
         $filePath = $mp3BaseDir . '/' . $filename;
 
         $this->assertTrue(
-            copy($fixturePath, $filePath),
-            'Impossible de copier la fixture MP3.'
+            file_put_contents($filePath, 'Synthetic MP3 deletion fixture.') !== false,
+            'Impossible de créer la petite fixture de suppression MP3.'
         );
 
         $emission = new Emission();
@@ -256,8 +258,8 @@ class Mp3ProcessorTest extends KernelTestCase
 
         $projectDir = $container->getParameter('kernel.project_dir');
 
-        $fixturePath = $projectDir . '/tests/Fixtures/mp3/test.mp3';
-        $mp3BaseDir = \App\Tests\Support\Mp3TestStorage::root();
+        $fixturePath = $projectDir . '/tests/Fixtures/mp3/test-short.mp3';
+        $mp3BaseDir = \App\Tests\Support\Mp3TestStorage::library();
 
         $this->assertFileExists($fixturePath);
 
@@ -332,8 +334,8 @@ class Mp3ProcessorTest extends KernelTestCase
 
         $projectDir = $container->getParameter('kernel.project_dir');
 
-        $fixturePath = $projectDir . '/tests/Fixtures/mp3/test.mp3';
-        $mp3BaseDir = \App\Tests\Support\Mp3TestStorage::root();
+        $fixturePath = $projectDir . '/tests/Fixtures/mp3/test-short.mp3';
+        $mp3BaseDir = \App\Tests\Support\Mp3TestStorage::library();
 
         $this->assertFileExists($fixturePath);
 
@@ -408,7 +410,7 @@ class Mp3ProcessorTest extends KernelTestCase
         $container = self::getContainer();
         $projectDir = $container->getParameter('kernel.project_dir');
 
-        $fixtureMp3Path = $projectDir . '/tests/Fixtures/mp3/test.mp3';
+        $fixtureMp3Path = $projectDir . '/tests/Fixtures/mp3/test-short.mp3';
         $coverPath = $projectDir . '/tests/Fixtures/images/test-cover.png';
 
         $this->assertFileExists($fixtureMp3Path);

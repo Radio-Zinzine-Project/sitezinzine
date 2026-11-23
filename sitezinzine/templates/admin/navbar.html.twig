@@ -327,6 +327,9 @@
                       <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.grille.' ? 'active' : '' }}" href="{{ path('admin.grille.index_current') }}">
                         Grille
                       </a>
+                      <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.radio_mp3.' ? 'active' : '' }}" href="{{ path('admin.radio_mp3.index') }}">
+                        Gestion des MP3 radio
+                      </a>
                       <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_categorieTagImage_' ? 'active' : '' }}" href="{{ path('admin_categorieTagImage_index') }}">
                         Images tags MP3
                       </a>
@@ -334,8 +337,8 @@
                         Images du site
                       </a>
                       {% if is_granted('ROLE_SUPER_ADMIN') %}
-                        <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.audio_library.inventory.' ? 'active' : '' }}" href="{{ path('admin.audio_library.inventory.index') }}">
-                          Inventaire MP3
+                        <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin.audio_library.' ? 'active' : '' }}" href="{{ path('admin.audio_library.index') }}">
+                          Bibliothèque MP3
                         </a>
                       {% endif %}
                     </div>

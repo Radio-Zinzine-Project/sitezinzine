@@ -4,105 +4,91 @@ declare(strict_types=1);
 
 namespace App\Service\AudioLibrary\Orphan;
 
-use App\Exception\Mp3CleanupTransactionFailure;
+use App\Service\AudioLibrary\Inventory\AudioLocalUrlResolver;
+use App\Service\Mp3StorageLock;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Exception\ConnectionLost;
 
-/** Owns a short resolution transaction on an exclusively dedicated connection; never retries. */
 final readonly class Mp3CleanupIssueResolutionService
 {
     public function __construct(
-        private Connection $connection,
-        private Mp3CleanupResolutionDecision $decision,
+        private Mp3StorageLock $lock,
+        private Mp3DeferredCleanupPreconditions $preconditions,
+        private Mp3CleanupIdentityVerifier $identity,
     ) {}
 
-    public function resolve(int $issueId, mixed $token, \DateTimeImmutable $resolvedAt): string
+    public function resolve(Connection $db, int $issueId, array $token, AudioLocalUrlResolver $urls, int $actorId,
+        string $reason, \DateTimeImmutable $resolvedAt): string
     {
-        if ($this->connection->getTransactionNestingLevel() !== 0) {
-            throw new \LogicException('MP3 cleanup resolution requires a connection without an active transaction.');
+        $reason = trim($reason);
+        if ($actorId < 1 || $actorId > 2_147_483_647 || $reason === '' || !mb_check_encoding($reason, 'UTF-8')
+            || mb_strlen($reason) > 500 || preg_match('/[\x00-\x1f\x7f]/', $reason)) {
+            return 'invalid_reason';
+        }
+        if ($db->getTransactionNestingLevel() !== 0) {
+            return 'indeterminate';
         }
 
+        $entered = false;
         try {
-            $this->connection->beginTransaction();
-        } catch (\Throwable $openingError) {
-            $this->cleanUpFailedBegin($openingError);
-            throw $openingError;
-        }
-
-        try {
-            $issue = $this->connection->fetchAssociative(
-                'SELECT id, status, resolved_at FROM mp3_cleanup_issue WHERE id = ? FOR UPDATE',
-                [$issueId],
-            );
-
-            $result = 'not_found';
-            if ($issue !== false) {
-                $lastEventId = $this->connection->fetchOne(
-                    'SELECT id FROM mp3_cleanup_event WHERE issue_id = ? ORDER BY id DESC LIMIT 1 FOR UPDATE',
-                    [$issueId],
-                );
-                $result = $this->decision->decide(
-                    $issueId, $issue['status'], $lastEventId === false ? null : (int) $lastEventId, $token,
-                );
-
-                if ($result === 'allowed') {
-                    $affected = $this->connection->executeStatement(
-                        'UPDATE mp3_cleanup_issue SET status = ?, resolved_at = ? WHERE id = ? AND status IN (?, ?)',
-                        [
-                            'resolved',
-                            $resolvedAt->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s.u'),
-                            $issueId, 'open', 'investigating',
-                        ],
-                    );
-
-                    if ((int) $affected !== 1) {
-                        throw new \UnexpectedValueException('MP3 cleanup resolution must update exactly one issue.');
-                    }
-                }
-            }
-
-            $this->connection->commit();
-
-            return $result;
-        } catch (\Throwable $error) {
-            if ($this->connection->getTransactionNestingLevel() > 0) {
+            return $this->lock->synchronized(function () use ($db, $issueId, $token, $urls, $actorId, $reason, $resolvedAt, &$entered): string {
+                $entered = true;
                 try {
-                    $this->connection->rollBack();
-                } catch (\Throwable $rollbackFailure) {
-                    throw new Mp3CleanupTransactionFailure($error, $rollbackFailure);
-                }
-            }
+                    // The locking lookup must also protect the empty unique-key range against a concurrent reservation.
+                    $db->executeStatement('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ WRITE');
 
-            throw $error;
+                    return $db->transactional(fn (Connection $session): string =>
+                        $this->resolveLocked($session, $issueId, $token, $urls, $actorId, $reason, $resolvedAt));
+                } catch (\Throwable $error) {
+                    $db->close();
+                    throw $error;
+                }
+            });
+        } catch (\Throwable) {
+            return $entered ? 'indeterminate' : 'lock_unavailable';
         }
     }
 
-    private function cleanUpFailedBegin(\Throwable $openingError): void
+    private function resolveLocked(Connection $db, int $issueId, array $token, AudioLocalUrlResolver $urls,
+        int $actorId, string $reason, \DateTimeImmutable $resolvedAt): string
     {
-        if ($this->connection->getTransactionNestingLevel() === 0) {
-            return;
+        $decision = $this->preconditions->inspectLocked($db, $issueId, $token, $urls, $relative, lockIssue: true);
+        if ($decision !== Mp3DeferredCleanupDecision::PreconditionsVerified) {
+            return $decision->value;
         }
 
-        $nativeActive = false;
-        if (!$openingError instanceof ConnectionLost && $this->connection->isConnected()) {
-            try {
-                $native = $this->connection->getNativeConnection();
-                // Local PDO state permits defensive cleanup, not certainty about the server.
-                $nativeActive = $native instanceof \PDO && $native->inTransaction();
-            } catch (\Throwable) {
-                // Preserve the opening error when native state cannot be inspected.
-            }
+        if ($db->fetchOne(
+            'SELECT request_id FROM mp3_deferred_cleanup_attempt FORCE INDEX (uniq_mp3_deferred_cleanup_active) WHERE issue_id = ? AND active_marker = 1 FOR UPDATE',
+            [$issueId],
+        ) !== false) {
+            return 'active_attempt';
         }
 
-        if (!$nativeActive) {
-            $this->connection->close();
-            return;
+        $observation = $this->identity->checkAbsenceForClosure($relative, Mp3DeferredCleanup::historicalProofs($db, $issueId));
+        if ($observation !== Mp3CleanupIdentityDecision::Absent) {
+            return $observation->value;
         }
 
-        try {
-            $this->connection->rollBack();
-        } catch (\Throwable $rollbackError) {
-            throw new Mp3CleanupTransactionFailure($openingError, $rollbackError);
+        $attempt = $db->fetchOne(
+            "SELECT request_id FROM mp3_deferred_cleanup_attempt WHERE issue_id = ? AND expected_event_id = ?
+             AND state = 'finished' AND result_code = 'removed' ORDER BY requested_at DESC, request_id DESC LIMIT 1",
+            [$issueId, $token['last_event_id']],
+        );
+        $at = $resolvedAt->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s.u');
+        if ((int) $db->insert('mp3_cleanup_issue_closure', [
+            'issue_id' => $issueId,
+            'actor_id' => $actorId,
+            'closed_at' => $at,
+            'reason' => $reason,
+            'proof_type' => $attempt === false ? 'currently_absent' : 'confirmed_removal',
+            'request_id' => $attempt === false ? null : $attempt,
+            'expected_event_id' => $token['last_event_id'],
+        ]) !== 1 || (int) $db->executeStatement(
+            "UPDATE mp3_cleanup_issue SET status = 'resolved', resolved_at = ? WHERE id = ? AND status IN ('open', 'investigating')",
+            [$at, $issueId],
+        ) !== 1) {
+            throw new \UnexpectedValueException('Both the MP3 incident and its closure trace must be persisted.');
         }
+
+        return 'allowed';
     }
 }

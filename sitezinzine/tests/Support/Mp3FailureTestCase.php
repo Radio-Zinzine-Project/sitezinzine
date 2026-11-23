@@ -17,6 +17,8 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 abstract class Mp3FailureTestCase extends FunctionalTestCase
 {
+    use WithMp3StorageLock;
+
     protected Emission $subject;
     protected Emission $witness;
     protected Mp3FailureProbe $probe;
@@ -39,8 +41,8 @@ abstract class Mp3FailureTestCase extends FunctionalTestCase
         $this->client->disableReboot();
         $this->client->catchExceptions(true);
         $container = self::getContainer();
-        self::assertSame(Mp3TestStorage::root(), $container->getParameter('app.mp3_base_dir'));
-        self::assertSame(Mp3TestStorage::root(), $container->getParameter('vich_uploader.mappings')['emissionsMp3']['upload_destination']);
+        self::assertSame(Mp3TestStorage::library(), $container->getParameter('app.mp3_base_dir'));
+        self::assertSame(Mp3TestStorage::library(), $container->getParameter('vich_uploader.mappings')['emissionsMp3']['upload_destination']);
         $this->entityManager = $container->get(EntityManagerInterface::class);
         self::assertStringContainsString('_test', (string) $this->entityManager->getConnection()->getDatabase());
         $this->entityManager->getConnection()->beginTransaction();
@@ -128,7 +130,7 @@ abstract class Mp3FailureTestCase extends FunctionalTestCase
     {
         $files = [];
         if ($this->operation !== 'editorial') {
-            $upload = $this->path('request-' . bin2hex(random_bytes(16)) . '.mp3');
+            $upload = Mp3TestStorage::root() . '/request-' . bin2hex(random_bytes(16)) . '.mp3';
             self::assertTrue(copy($this->fixture(), $upload));
             $files = ['emission' => ['thumbnailFileMp3' => new UploadedFile($upload, 'new.mp3', 'audio/mpeg', null, true)]];
         }
@@ -207,12 +209,12 @@ abstract class Mp3FailureTestCase extends FunctionalTestCase
         if ($relative === '' || str_contains($relative, '..') || str_starts_with($relative, '/') || str_contains($relative, '\\')) {
             throw new \LogicException('Unsafe MP3 test path.');
         }
-        return Mp3TestStorage::root() . '/' . $relative;
+        return Mp3TestStorage::library() . '/' . $relative;
     }
 
     private function fixture(): string
     {
-        return dirname(__DIR__) . '/Fixtures/mp3/test.mp3';
+        return dirname(__DIR__) . '/Fixtures/mp3/test-short.mp3';
     }
 
     private function install(Emission $emission, string $name): void

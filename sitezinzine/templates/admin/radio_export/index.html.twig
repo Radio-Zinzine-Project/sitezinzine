@@ -1,0 +1,151 @@
+{% extends 'admin/admin.html.twig' %}
+
+{% block title %}Gestion des MP3 radio{% endblock %}
+
+{% block body %}
+    <h1>Gestion des MP3 radio</h1>
+
+    <form method="get" action="{{ path('admin.radio_mp3.index') }}" class="row g-3 align-items-end mb-3">
+        <div class="col-auto">
+            <label for="radio-week" class="form-label">Mardi de la semaine radio</label>
+            <input type="date" id="radio-week" name="week" class="form-control" required value="{{ week ? week|date('Y-m-d', 'Europe/Paris') : '' }}">
+        </div>
+        <div class="col-auto"><button class="btn btn-primary">Afficher</button></div>
+    </form>
+
+    {% if error %}
+        <p class="alert alert-warning" role="alert">{{ error }}</p>
+    {% endif %}
+
+    {% if week %}
+        <h2>Du mardi {{ week|date('d/m/Y', 'Europe/Paris') }} au lundi {{ week|date_modify('+6 days')|date('d/m/Y', 'Europe/Paris') }}</h2>
+        <nav aria-label="Semaines radio" class="mb-3">
+            <a href="{{ path('admin.radio_mp3.index', {week: week|date_modify('-7 days')|date('Y-m-d', 'Europe/Paris')}) }}">Semaine précédente</a>
+            <a class="ms-3" href="{{ path('admin.radio_mp3.index', {week: week|date_modify('+7 days')|date('Y-m-d', 'Europe/Paris')}) }}">Semaine suivante</a>
+        </nav>
+        {% if validated is same as(true) %}
+            <p>Semaine validée manuellement.</p>
+        {% elseif validated is same as(false) %}
+            <p>Semaine non validée. Les préparations existantes restent consultables.</p>
+        {% endif %}
+        {% if expired %}
+            <p>Cette semaine radio est terminée. Les archives existantes restent consultables jusqu’à leur purge.</p>
+        {% endif %}
+        {% if not configured %}
+            <p>Le stockage des préparations radio reste à configurer.</p>
+        {% elseif not error and rows is empty %}
+            <p>Aucune préparation pour cette semaine.</p>
+        {% endif %}
+
+        {% if validated and launchBlock == 'reference_unavailable' %}
+            <p class="alert alert-warning">La référence n’est pas utilisable pour lancer un correctif. Consultez l’historique.</p>
+        {% endif %}
+        {% if launchRequestId and not error %}
+            {% set launchWeek = week|date('Y-m-d', 'Europe/Paris') %}
+            <form method="post" action="{{ path('admin.radio_mp3.prepare', {week: launchWeek}) }}" class="mb-3">
+                <input type="hidden" name="request_id" value="{{ launchRequestId }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('radio-prepare-' ~ launchWeek ~ '-' ~ launchRequestId) }}">
+                <button type="submit" class="btn btn-primary">Préparer les MP3</button>
+            </form>
+        {% endif %}
+
+        {% if orderUncertain %}
+            <p class="alert alert-warning">Plusieurs préparations utilisables existent. Leur ordre de publication ne permet pas de déterminer la référence.</p>
+        {% elseif referenceId %}
+            {% set freshnessLabels = {
+                current_verified: 'Sources vérifiées lors du contrôle.',
+                change_detected: 'Une modification des fichiers attendus a été détectée.',
+                verification_required: 'Le contenu des MP3 reste à vérifier.',
+                source_unavailable: 'Au moins une source MP3 est indisponible.',
+                preparation_required: 'Une nouvelle préparation est nécessaire pour la grille actuelle.'
+            } %}
+            <h3>Préparation de référence</h3>
+            <p>{{ referenceId }}. {{ revisionCurrent ? 'Cette préparation correspond à la grille validée.' : 'Cette préparation appartient à l’historique.' }}</p>
+            {% if validated or revisionCurrent %}
+                <p>{{ freshnessLabels[freshness.status] }}{% if freshness.issues %} {{ freshness.issues|length }} diffusion(s) à vérifier.{% endif %}</p>
+            {% endif %}
+        {% elseif rows is not empty and not error %}
+            <p>Aucune préparation utilisable pour cette semaine.</p>
+        {% endif %}
+
+        {% if summary is not null %}
+            <h3>Suivi des transferts déclarés</h3>
+            <ul>
+                <li>À transférer : {{ summary.to_transfer ?? 0 }}</li>
+                <li>Déclarés transférés : {{ summary.transferred ?? 0 }}</li>
+                <li>Nouvelles versions à transférer : {{ summary.new_version ?? 0 }}</li>
+                <li>Indisponibles : {{ summary.unavailable ?? 0 }}</li>
+                <li>Exclus : {{ summary.excluded ?? 0 }}</li>
+            </ul>
+        {% endif %}
+
+        {% if work %}
+            {% include 'admin/radio_export/_worklist.html.twig' %}
+        {% endif %}
+
+        {% if transferHistory %}
+            <section id="transfer-history" class="mb-4">
+                <h3>Historique des déclarations pour {{ transferHistory.filename }}</h3>
+                {% if transferHistory.events %}
+                    <ul>
+                        {% for event in transferHistory.events %}
+                            <li>{{ event.confirmed_at }} UTC, compte {{ event.actor_id }},
+                                préparation {{ event.preparation_id }}{% if event.origin_attempt_id != event.preparation_id %}, ZIP {{ event.origin_attempt_id }}{% endif %}.
+                                <small>SHA-256 : <code class="text-break">{{ event.sha256 }}</code></small></li>
+                        {% endfor %}
+                    </ul>
+                    {% if transferHistory.older %}
+                        <a href="{{ path('admin.radio_mp3.index', {week: week|date('Y-m-d', 'Europe/Paris'), history: transferHistory.filename, before: transferHistory.older}) }}#transfer-history">Déclarations plus anciennes</a>
+                    {% endif %}
+                {% else %}
+                    <p>Aucune déclaration pour ce fichier.</p>
+                {% endif %}
+            </section>
+        {% endif %}
+
+        {% if rows %}
+            {% set types = {complete: 'Complète', differential: 'Différentielle', report_only: 'Rapport seul'} %}
+            {% set statuses = {published: 'Publiée', failed: 'Échec signalé', incomplete: 'Publication incomplète',
+                unusable: 'Publication inutilisable', origin_unavailable: 'Archive d’origine indisponible'} %}
+            <h3>Historique des préparations</h3>
+            <p>Les correctifs apparaissent avant leur base. Pour les tentatives sans relation, le tri utilise la date du fichier de résultat.</p>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead><tr>
+                        <th scope="col">Tentative</th><th scope="col">Date du fichier de résultat</th>
+                        <th scope="col">Type</th><th scope="col">État</th><th scope="col">Fichiers archivés</th>
+                        <th scope="col">Diffusions avec anomalie</th><th scope="col">Archive</th><th scope="col">Rapport</th>
+                    </tr></thead>
+                    <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            <th scope="row">{{ row.attemptId }}{% if row.attemptId == referenceId %} (référence){% endif %}</th>
+                            <td>{{ row.recordMtime is not null ? row.recordMtime|date('d/m/Y H:i', 'Europe/Paris') : '?' }}</td>
+                            <td>{{ row.type ? types[row.type] : '?' }}</td>
+                            <td>{{ statuses[row.status] }}</td>
+                            <td>{{ row.fileCount ?? '?' }}</td><td>{{ row.anomalyCount ?? '?' }}</td>
+                            {% set address = {week: week|date('Y-m-d', 'Europe/Paris'), attemptId: row.attemptId} %}
+                            <td>
+                                {% if row.archiveAvailable %}
+                                    <a href="{{ path('admin.radio_mp3.download', address|merge({artifact: 'zip'})) }}">Télécharger le ZIP</a>
+                                {% elseif row.type == 'report_only' %}
+                                    Aucun ZIP généré
+                                {% else %}
+                                    Indisponible
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if row.reportAvailable %}
+                                    <a href="{{ path('admin.radio_mp3.download', address|merge({artifact: 'report'})) }}">Télécharger le rapport</a>
+                                {% else %}
+                                    Indisponible
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    {% endif %}
+{% endblock %}

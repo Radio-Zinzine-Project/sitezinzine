@@ -187,8 +187,8 @@ final class InventoryControllerTest extends TestCase
                 || ($role === 'ROLE_ADMIN' && in_array($required, ['ROLE_ADMIN', 'ROLE_EDITOR', 'ROLE_USER'], true))
                 || ($role === 'ROLE_USER' && $required === 'ROLE_USER')));
             $html = $twig->render('admin/navbar.html.twig');
-            self::assertSame($role === 'ROLE_SUPER_ADMIN', str_contains($html, 'Bibliothèque audio'));
-            self::assertSame($role === 'ROLE_SUPER_ADMIN', str_contains($html, '/admin.audio_library.inventory.index'));
+            self::assertSame($role === 'ROLE_SUPER_ADMIN', str_contains($html, 'Bibliothèque MP3'));
+            self::assertSame($role === 'ROLE_SUPER_ADMIN', str_contains($html, '/admin.audio_library.index'));
         }
     }
 

@@ -13,3 +13,4 @@ vendor/
 var/
 src/DataFixtures/
 var/data/
+/docker/prod/deploy-preprod-actuel.sh

@@ -28,7 +28,6 @@ final class AudioInventoryEndToEndTest extends WebTestCase
     private ?array $rootIdentity = null;
     /** @var list<Connection> */
     private array $connections = [];
-    private array $evidence = [];
 
     public function testSyntheticFilesThroughRealSqlAndCommandReachReadOnlyAdministration(): void
     {
@@ -181,11 +180,7 @@ final class AudioInventoryEndToEndTest extends WebTestCase
         self::assertSame([], $container->getParameter('app.audio_inventory.profiles'));
         foreach ($fileHashes as $file => $hash) { self::assertSame($hash, hash_file('sha256', $this->root.'/library/'.$file)); }
         self::assertSame(2, count(glob($this->root.'/reports/inventory-*')));
-        $this->evidence = ['environment' => 'test', 'database' => 'symfony_test', 'php' => PHP_VERSION, 'os' => PHP_OS_FAMILY, 'mysql' => $version,
-            'collector_session' => $session, 'observer_session' => $observerSession,
-            'physical_files' => 3, 'temporary_sql_rows' => 5, 'result_rows' => 4, 'result_pages' => 2,
-            'classifications' => $manifest['classification_counts'], 'persistent_business_writes' => 0];
-    }
+        }
 
     private function connection(Connection $business): Connection
     {
@@ -217,7 +212,6 @@ final class AudioInventoryEndToEndTest extends WebTestCase
             }
         } catch (\Throwable $error) { $failures[] = $error; }
         finally { $this->connections = []; try { parent::tearDown(); } catch (\Throwable $error) { $failures[] = $error; } }
-        if ($this->evidence !== []) { fwrite(STDERR, 'INVENTORY_E2E '.json_encode($this->evidence + ['cleanup_complete' => $failures === []], JSON_THROW_ON_ERROR).PHP_EOL); }
         foreach ($failures as $error) { fwrite(STDERR, 'Inventory end-to-end cleanup failed: '.$error::class.PHP_EOL); }
         if ($failures !== [] && !$this->hasFailed()) { throw $failures[0]; }
     }

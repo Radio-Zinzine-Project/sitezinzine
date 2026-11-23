@@ -1,0 +1,116 @@
+{% extends 'admin/admin.html.twig' %}
+
+{% block title %}Détail de la corbeille MP3{% endblock %}
+
+{% macro file_state(entry) %}
+    {% set types = {regular: 'Fichier régulier', symlink: 'Lien symbolique', directory: 'Répertoire', special: 'Entrée spéciale', missing: 'Aucune entrée', unknown: 'Type indéterminé'} %}
+    <dl>
+        <dt>Présence</dt>
+        <dd>{{ entry.present is same as(true) ? 'Présence constatée' : (entry.present is same as(false) ? 'Absence confirmée' : 'Présence indéterminée') }}</dd>
+        <dt>Type</dt><dd>{{ types[entry.type] ?? entry.type }}</dd>
+        <dt>Intégrité</dt>
+        <dd>{{ entry.matches_journal is same as(true) ? 'Conforme au journal' : (entry.matches_journal is same as(false) ? 'Contenu différent du journal' : 'Intégrité non vérifiée') }}</dd>
+        {% if entry.size is not null %}<dt>Taille</dt><dd>{{ entry.size }} octets</dd>{% endif %}
+    </dl>
+{% endmacro %}
+
+{% block body %}
+    {% from _self import file_state %}
+    {% set statuses = {
+        intermediate_coherent: 'État intermédiaire cohérent',
+        conflict: 'Conflit détecté',
+        indeterminate: 'Inspection indéterminée',
+        potentially_resumable: 'Reprise potentiellement possible',
+        completed: 'Opération terminée'
+    } %}
+    {% set phases = {
+        SUPPRESSION_PREPAREE: 'Suppression préparée',
+        RETRAIT_PUBLIC_EN_ATTENTE: 'Retrait public en attente',
+        EN_CORBEILLE: 'En corbeille',
+        RESTAURATION_PREPAREE: 'Restauration préparée',
+        RETRAIT_PRIVE_EN_ATTENTE: 'Retrait privé en attente',
+        RESTAUREE: 'Restaurée',
+        ANNULEE: 'Annulée'
+    } %}
+    <h1>Détail de la corbeille MP3</h1>
+    <section class="bg-white p-3">
+        <p><a href="{{ path('admin.audio_library.trash.index', filters) }}">Retour à la corbeille MP3</a></p>
+        <p>Opération <code>{{ operationId }}</code></p>
+        {% if unavailable %}
+            <p role="alert">Inspection indéterminée. Le journal de la corbeille MP3 ne peut pas être consulté de façon fiable.</p>
+        {% elseif detail is null %}
+            <p role="alert">Opération de corbeille introuvable.</p>
+        {% else %}
+            {% set observation = detail.inspection %}
+            {% set journal = observation.journal %}
+            {% set emission = observation.emission %}
+            {% set disk = observation.disk %}
+            <p><a href="{{ path('admin.audio_library.trash.history', filters|merge({operationId: operationId})) }}">Historique administratif</a></p>
+            {% if not is_granted('IS_IMPERSONATOR') %}
+                {% if canPrepareRestore %}
+                    <p><a href="{{ path('admin.audio_library.trash.confirm', filters|merge({operationId: operationId, action: 'restore'})) }}">Restaurer</a></p>
+                {% elseif journal.phase in ['SUPPRESSION_PREPAREE', 'RETRAIT_PUBLIC_EN_ATTENTE'] %}
+                    <p><a href="{{ path('admin.audio_library.trash.confirm', filters|merge({operationId: operationId, action: 'resume-deletion'})) }}">Préparer la reprise de suppression</a></p>
+                    {% if journal.phase == 'SUPPRESSION_PREPAREE' %}
+                        <p><a href="{{ path('admin.audio_library.trash.confirm', filters|merge({operationId: operationId, action: 'cancel-deletion'})) }}">Préparer l’annulation de suppression</a></p>
+                    {% endif %}
+                {% elseif journal.phase in ['RESTAURATION_PREPAREE', 'RETRAIT_PRIVE_EN_ATTENTE'] and journal.last_attempt.outcome|default(null) == 'pending' %}
+                    <p><a href="{{ path('admin.audio_library.trash.confirm', filters|merge({operationId: operationId, action: 'resume-restoration'})) }}">Préparer la reprise de restauration</a></p>
+                    {% if journal.phase == 'RESTAURATION_PREPAREE' %}
+                        <p><a href="{{ path('admin.audio_library.trash.confirm', filters|merge({operationId: operationId, action: 'cancel-restoration'})) }}">Préparer l’annulation de restauration</a></p>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+            <h2>État enregistré</h2>
+            <dl>
+                <dt>Phase</dt><dd>{{ phases[journal.phase] ?? journal.phase }}</dd>
+                <dt>Blocage</dt><dd>{{ journal.blocked ? 'Bloquée' : 'Non bloquée' }}</dd>
+                <dt>Émission historique</dt>
+                <dd>#{{ journal.emission_id }} · {{ not emission.exists ? 'Émission introuvable' : (emission.deleted_at is not null ? 'Émission supprimée' : 'Émission existante') }}</dd>
+                <dt>Opération ouverte le</dt><dd>{{ detail.opened_at is not null ? detail.opened_at|date('d/m/Y H:i', 'Europe/Paris') : 'Date indisponible' }}</dd>
+                <dt>Dernier diagnostic</dt>
+                <dd>
+                    {{ journal.last_diagnostic_code ?? 'Aucun diagnostic enregistré' }}
+                    {% if journal.last_diagnostic_at is not null %} · {{ date(journal.last_diagnostic_at, 'UTC')|date('d/m/Y H:i', 'Europe/Paris') }}{% endif %}
+                </dd>
+                <dt>Dernière tentative de restauration</dt><dd>{{ journal.last_attempt_id ?? 'Aucune tentative enregistrée' }}</dd>
+            </dl>
+            <h2>Références audio</h2>
+            <dl>
+                <dt>Fichier d’origine</dt><dd>{{ journal.original_thumbnail_mp3 }}</dd>
+                <dt>URL d’origine</dt><dd>{{ journal.original_url ?: 'Aucune' }}</dd>
+                {% if emission.exists %}
+                    <dt>Fichier associé actuellement</dt><dd>{{ emission.thumbnail_mp3 ?: 'Aucun' }}</dd>
+                    <dt>URL associée actuellement</dt><dd>{{ emission.url ?: 'Aucune' }}</dd>
+                {% endif %}
+                <dt>Références concurrentes</dt><dd>{{ emission.reference_count }}</dd>
+                <dt>Réservations concurrentes</dt><dd>{{ emission.reservation_count }}</dd>
+            </dl>
+            <h2>Inspection</h2>
+            <p><strong>{{ statuses[observation.diagnostic.status] ?? observation.diagnostic.status }}</strong></p>
+            <p>L’état observé peut évoluer. Une éventuelle action exige une nouvelle vérification sous verrou.</p>
+            {% if observation.diagnostic.status == 'indeterminate' %}
+                <p role="alert">Les observations disponibles ne permettent pas de conclure.</p>
+            {% endif %}
+            <div class="row">
+                <div class="col-md-6"><h3>Nom public</h3>{{ file_state(disk.public) }}</div>
+                <div class="col-md-6"><h3>Nom privé</h3>{{ file_state(disk.private) }}</div>
+            </div>
+            <details>
+                <summary>Diagnostic technique</summary>
+                <dl class="mt-2">
+                    <dt>Motif</dt><dd><code>{{ observation.diagnostic.reason }}</code></dd>
+                    {% if journal.block_version is not null %}<dt>Version du blocage (UTC)</dt><dd><code>{{ journal.block_version }}</code></dd>{% endif %}
+                    <dt>SHA‑256 de référence</dt><dd><code>{{ journal.sha256 }}</code></dd>
+                    {% for label, entry in {'Public': disk.public, 'Privé': disk.private} %}
+                        {% if entry.inode is not null %}<dt>{{ label }} · périphérique et inode</dt><dd><code>{{ entry.device }} / {{ entry.inode }}</code></dd>{% endif %}
+                        {% if entry.sha256 is not null %}<dt>{{ label }} · SHA‑256 observé</dt><dd><code>{{ entry.sha256 }}</code></dd>{% endif %}
+                        {% if entry.error is not null %}<dt>{{ label }} · erreur</dt><dd><code>{{ entry.error }}</code></dd>{% endif %}
+                    {% endfor %}
+                    {% if disk.same_inode is not null %}<dt>Identité des deux noms</dt><dd>{{ disk.same_inode ? 'Même inode' : 'Inodes différents' }}</dd>{% endif %}
+                    {% if disk.pair_error is not null %}<dt>Vérification des deux noms</dt><dd><code>{{ disk.pair_error }}</code></dd>{% endif %}
+                </dl>
+            </details>
+        {% endif %}
+    </section>
+{% endblock %}

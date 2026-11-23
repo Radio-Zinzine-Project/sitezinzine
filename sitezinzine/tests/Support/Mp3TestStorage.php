@@ -19,14 +19,24 @@ final class Mp3TestStorage
         if ($parent === false) {
             throw new \RuntimeException('Temporary directory unavailable.');
         }
+        $project = realpath(dirname(__DIR__, 2));
+        if ($project === false
+            || str_starts_with($parent . DIRECTORY_SEPARATOR, $project . DIRECTORY_SEPARATOR)) {
+            throw new \RuntimeException('MP3 test storage must be outside the project.');
+        }
         $root = $parent . DIRECTORY_SEPARATOR . 'zinzine-mp3-tests-' . bin2hex(random_bytes(16));
         if (!mkdir($root, 0700)) {
             throw new \RuntimeException('Cannot create isolated MP3 storage.');
         }
         self::$root = $root;
+        register_shutdown_function([self::class, 'cleanup']);
+        foreach (['library', 'work', 'trash'] as $directory) {
+            if (!mkdir($root . '/' . $directory, 0700)) {
+                throw new \RuntimeException('Cannot create MP3 test directory: ' . $directory);
+            }
+        }
         putenv('MP3_TEST_STORAGE=' . $root);
         $_ENV['MP3_TEST_STORAGE'] = $_SERVER['MP3_TEST_STORAGE'] = $root;
-        register_shutdown_function([self::class, 'cleanup']);
     }
 
     public static function root(): string
@@ -36,6 +46,16 @@ final class Mp3TestStorage
         }
 
         return self::$root;
+    }
+
+    public static function library(): string
+    {
+        return self::root() . '/library';
+    }
+
+    public static function work(): string
+    {
+        return self::root() . '/work';
     }
 
     public static function cleanup(): void

@@ -6,10 +6,11 @@ namespace App\Tests\Service;
 
 use App\Entity\{Categories, Emission};
 use App\Enum\Mp3FailureStage;
+use App\Enum\Mp3StoredFileState;
 use App\Exception\Mp3OperationFailure;
 use App\Repository\CategorieTagImageRepository;
 use App\Service\AudioLibrary\Orphan\Mp3CleanupReporter;
-use App\Service\{Mp3Processor, Mp3Replacement};
+use App\Service\{Mp3Processor, Mp3Replacement, Mp3StorageLock, Mp3TrashPath};
 use App\Tests\Support\Mp3TestStorage;
 use App\ValueObject\AudioLibrary\Mp3CleanupAnomaly;
 use Doctrine\Common\EventManager;
@@ -32,11 +33,23 @@ final class Mp3ReplacementCleanupTest extends TestCase
     private string $originalHash;
     private Emission $emission;
     private Mp3Replacement $replacement;
+    private Mp3Processor $processor;
+    private bool $cleanupConfigured = true;
+    private Mp3StorageLock $lock;
+    private string $lockFile;
+    private bool $checkLock = false;
+    private bool $replaceOriginalAtCommit = false;
+    private bool $leaveOriginalWhenRemoving = false;
     private ?\Throwable $removalFailure = null;
     private array $timeline = [];
     private array $removals = [];
     private array $received = [];
     private int $level = 0;
+    private array $reservedPaths = [];
+    private array $referencingUrls = [];
+    private int $oldPathReservations = 0;
+    private int|false $activeOperation = false;
+    private ?\RuntimeException $reservationFailure = null;
 
     protected function setUp(): void
     {
@@ -44,8 +57,8 @@ final class Mp3ReplacementCleanupTest extends TestCase
         $project = dirname(__DIR__, 2);
         $this->base = Mp3TestStorage::root() . '/cleanup-' . bin2hex(random_bytes(8));
         (new Filesystem())->mkdir($this->base . '/TST/2024', 0700);
-        // The fixture starts directly with MPEG frames. Read a bounded excerpt, never copy its 87 MB.
-        $audio = file_get_contents($project . '/tests/Fixtures/mp3/test.mp3', false, null, 0, 65536);
+        // Read a bounded excerpt of the synthetic MP3 fixture.
+        $audio = file_get_contents($project . '/tests/Fixtures/mp3/test-short.mp3', false, null, 0, 65536);
         self::assertIsString($audio);
         self::assertSame(65536, strlen($audio));
         file_put_contents($this->base . '/' . $this->original, $audio);
@@ -57,15 +70,200 @@ final class Mp3ReplacementCleanupTest extends TestCase
         (new \ReflectionProperty(Emission::class, 'id'))->setValue($this->emission, 42);
         $filesystem = $this->getMockBuilder(Filesystem::class)->onlyMethods(['remove'])->getMock();
         $filesystem->method('remove')->willReturnCallback(function (string|iterable $files): void {
+            if ($this->checkLock) { $this->assertStorageLocked(); }
             $this->timeline[] = 'remove';
             $this->removals[] = $files;
             if ($this->removalFailure !== null) { throw $this->removalFailure; }
-            (new Filesystem())->remove($files);
+            if (!$this->leaveOriginalWhenRemoving) {
+                (new Filesystem())->remove($files);
+            }
         });
-        $processor = new Mp3Processor($this->createMock(StorageInterface::class), $filesystem,
+        $this->processor = new Mp3Processor($this->createMock(StorageInterface::class), $filesystem,
             $this->createMock(CategorieTagImageRepository::class), $this->base,
             'https://example.test/mp3', $project, $this->base . '/private');
-        $this->replacement = new Mp3Replacement($processor);
+        $this->lock = new Mp3StorageLock(new Mp3TrashPath(Mp3TestStorage::root() . '/trash',
+            Mp3TestStorage::library(), Mp3TestStorage::work(), $project . '/public'), 20);
+        $this->lockFile = Mp3TestStorage::root() . '/trash/.storage.lock';
+        $this->replacement = new Mp3Replacement($this->processor, $this->lock, 'https://example.test/mp3',
+            '["https://legacy.example.test/audio"]');
+    }
+
+    public function testGlobalLockCoversTheTransactionAndPostCommitRemoval(): void
+    {
+        $this->checkLock = true;
+        $this->execute(0);
+        self::assertSame(['commit', 'references', 'remove'], $this->timeline);
+        self::assertTrue($this->lock->synchronized(static fn () => true));
+    }
+
+    public function testSkipsReservedNamesAndPhysicalCollisionsWithOneRead(): void
+    {
+        $stem = 'TST/2024/TST20240615Titre';
+        $this->reservedPaths = [$stem . '.mp3', $stem . '-1.mp3', $stem . '-3.mp3'];
+        $occupied = $this->base . '/' . $stem . '-2.mp3';
+        file_put_contents($occupied, 'physical occupant');
+
+        $this->execute(0);
+
+        self::assertSame($stem . '-4.mp3', $this->emission->getThumbnailMp3());
+        self::assertSame('physical occupant', file_get_contents($occupied));
+        foreach ($this->reservedPaths as $path) {
+            self::assertFileDoesNotExist($this->base . '/' . $path);
+        }
+        self::assertFileDoesNotExist($this->base . '/' . $this->original);
+        self::assertSame(['commit', 'references', 'remove'], $this->timeline);
+    }
+
+    public function testReservationReadFailureRollsBackAndDoesNotPublish(): void
+    {
+        $this->reservationFailure = new \RuntimeException('Reservation read failed');
+        $this->injectReporter();
+        try {
+            $this->execute(0);
+            self::fail('The replacement must fail before publication.');
+        } catch (Mp3OperationFailure $error) {
+            self::assertSame(Mp3FailureStage::DOCTRINE, $error->stage);
+            self::assertSame($this->reservationFailure, $error->getPrevious());
+            self::assertTrue($error->rollbackConfirmed);
+        }
+        self::assertSame(['rollback'], $this->timeline);
+        self::assertSame([], $this->received);
+        self::assertSame([$this->base . '/' . $this->original], glob($this->base . '/TST/2024/*.mp3'));
+        $this->assertOriginalPreserved();
+    }
+
+    /** @dataProvider operations */
+    public function testActiveOperationRefusesBeforeAnyFlushOrPublication(bool $reprocess): void
+    {
+        $this->activeOperation = 42;
+        $this->injectReporter();
+        try {
+            $this->execute(0, $reprocess);
+            self::fail('An active trash operation must prevent the replacement.');
+        } catch (Mp3OperationFailure $error) {
+            self::assertSame(Mp3FailureStage::CONFLICT, $error->stage);
+            self::assertTrue($error->rollbackConfirmed);
+            self::assertTrue($error->originalPreserved);
+        }
+        self::assertSame($this->original, $this->emission->getThumbnailMp3());
+        self::assertSame($this->originalUrl, $this->emission->getUrl());
+        self::assertSame([$this->base . '/' . $this->original], glob($this->base . '/TST/2024/*.mp3'));
+        self::assertSame(['rollback'], $this->timeline);
+        self::assertSame([], $this->received);
+        $this->assertOriginalPreserved();
+    }
+
+    public function testConfirmedAbsenceDoesNotCreateAnIncidentWithoutHistoricalIdentity(): void
+    {
+        unlink($this->base . '/' . $this->original);
+        $this->injectReporter();
+
+        $this->execute(0);
+
+        $this->assertSuccessfulReplacement();
+        self::assertSame([], $this->removals);
+        self::assertSame([], $this->received);
+    }
+
+    public function testUnconfirmedAbsenceReportsRetentionWithoutInventingHistoricalIdentity(): void
+    {
+        $this->emission->setThumbnailMp3('unavailable-parent/original.mp3');
+        $this->injectReporter();
+
+        $this->execute(0);
+
+        $this->assertSuccessfulReplacement();
+        self::assertSame([], $this->removals);
+        self::assertCount(1, $this->received);
+        self::assertSame('obsolete_cleanup_failed', $this->received[0]->reason);
+        self::assertNull($this->received[0]->historicalIdentity?->identity);
+    }
+
+    public function testPresentUnreadableOriginalIsPreservedWithoutHistoricalIdentity(): void
+    {
+        $path = $this->base . '/' . $this->original;
+        self::assertTrue(chmod($path, 0000));
+        try {
+            clearstatcache(true, $path);
+            if (is_readable($path)) {
+                self::markTestSkipped('Run as an unprivileged user to check unreadable file permissions.');
+            }
+            $this->injectReporter();
+            self::assertSame(Mp3StoredFileState::Unverifiable, $this->processor->inspectStoredFile($this->original)['state']);
+
+            $this->execute(0);
+
+            $this->assertSuccessfulReplacement();
+            self::assertSame([], $this->removals);
+            self::assertCount(1, $this->received);
+            self::assertSame('obsolete_cleanup_failed', $this->received[0]->reason);
+            self::assertNull($this->received[0]->historicalIdentity?->identity);
+        } finally {
+            chmod($path, 0600);
+        }
+        $this->assertOriginalPreserved();
+    }
+
+    public function testRemovalWithoutConfirmedAbsenceReportsRetention(): void
+    {
+        $this->leaveOriginalWhenRemoving = true;
+        $this->injectReporter();
+
+        $this->execute(0);
+
+        $this->assertSuccessfulReplacement();
+        $this->assertOriginalPreserved();
+        self::assertCount(1, $this->received);
+        self::assertSame('obsolete_cleanup_failed', $this->received[0]->reason);
+        self::assertSame($this->originalHash, $this->received[0]->historicalIdentity?->identity['sha256']);
+    }
+
+    public function testChangedInodeWithIdenticalBytesIsNotRemoved(): void
+    {
+        $originalInode = fileinode($this->base . '/' . $this->original);
+        $this->replaceOriginalAtCommit = true;
+        $this->injectReporter();
+        $this->execute(0);
+        self::assertSame([], $this->removals);
+        self::assertSame('obsolete_cleanup_failed', $this->received[0]->reason);
+        self::assertSame($originalInode, $this->received[0]->historicalIdentity?->identity['ino']);
+        $this->assertOriginalPreserved();
+    }
+
+    public function testContentionRefusesAnySqlMutation(): void
+    {
+        $this->lock->synchronized(static fn () => null);
+        $holder = fopen($this->lockFile, 'r+b');
+        self::assertTrue(flock($holder, LOCK_EX | LOCK_NB));
+        try {
+            $connection = $this->createMock(Connection::class);
+            $connection->expects(self::never())->method('beginTransaction');
+            $manager = $this->createMock(EntityManagerInterface::class);
+            $manager->method('getConnection')->willReturn($connection);
+            $manager->expects(self::never())->method('flush');
+            $this->emission->setThumbnailFileMp3(new UploadedFile($this->base . '/upload.mp3', 'replacement.mp3', null, null, true));
+            try {
+                $this->replacement->replace($this->emission, $manager, $this->original, $this->originalUrl);
+                self::fail('An occupied storage lock must prevent the replacement.');
+            } catch (Mp3OperationFailure $error) {
+                self::assertInstanceOf(\App\Exception\Mp3StorageLockTimeout::class, $error->getPrevious());
+                $this->assertOriginalPreserved();
+                self::assertFileExists($this->base . '/upload.mp3');
+            }
+        } finally {
+            fclose($holder);
+        }
+    }
+
+    private function assertStorageLocked(): void
+    {
+        self::assertFileExists($this->lockFile);
+        $probe = fopen($this->lockFile, 'r+b');
+        try {
+            self::assertFalse(flock($probe, LOCK_EX | LOCK_NB));
+        } finally {
+            fclose($probe);
+        }
     }
 
     public static function operations(): iterable
@@ -85,6 +283,12 @@ final class Mp3ReplacementCleanupTest extends TestCase
         self::assertSame([], $this->removals);
         $this->assertOriginalPreserved();
         $this->assertAnomaly('reference_check_failed', null, $origin);
+        $proof = $this->received[0]->historicalIdentity;
+        self::assertNotNull($proof);
+        self::assertSame('complete', $proof->state);
+        self::assertSame($this->original, $proof->relativePath);
+        self::assertSame($this->originalUrl, $proof->originalUrl);
+        self::assertSame($this->originalHash, $proof->identity['sha256']);
     }
 
     /** @dataProvider operations */
@@ -103,7 +307,6 @@ final class Mp3ReplacementCleanupTest extends TestCase
     public static function noAnomalies(): iterable
     {
         yield 'successful removal' => [0, true];
-        yield 'still referenced' => [2, true];
         yield 'no previous MP3' => [0, false];
     }
 
@@ -118,14 +321,53 @@ final class Mp3ReplacementCleanupTest extends TestCase
         if (!$hasOriginal) {
             self::assertSame(['commit'], $this->timeline);
             self::assertSame([], $this->removals);
-        } elseif ($references > 0) {
-            self::assertSame(['commit', 'references'], $this->timeline);
-            self::assertSame([], $this->removals);
-            $this->assertOriginalPreserved();
         } else {
             self::assertSame(['commit', 'references', 'remove'], $this->timeline);
             self::assertFileDoesNotExist($this->base . '/' . $this->original);
         }
+    }
+
+    /** @dataProvider retainedPaths */
+    public function testPostCommitGuardPreservesReferencedOrReservedFile(array $urls, int $pathReferences, int $reservations): void
+    {
+        $this->referencingUrls = $urls;
+        $this->oldPathReservations = $reservations;
+        $this->injectReporter();
+        $this->checkLock = true;
+        $this->execute($pathReferences);
+
+        $this->assertSuccessfulReplacement();
+        $this->assertOriginalPreserved();
+        self::assertSame([], $this->removals);
+        self::assertCount(1, $this->received);
+        self::assertSame('reference_check_failed', $this->received[0]->reason);
+        self::assertNull($this->received[0]->context['reference_count']);
+    }
+
+    public static function retainedPaths(): iterable
+    {
+        yield 'physical reference' => [[], 1, 0];
+        // The URL query must include soft-deleted emissions as well.
+        yield 'local URL only on another emission' => [['https://example.test/mp3/TST/2024/original.mp3'], 0, 0];
+        yield 'historical URL only (including soft-deleted emissions)' => [['https://legacy.example.test/audio/TST/2024/original.mp3'], 0, 0];
+        yield 'active reservation on another emission' => [[], 0, 1];
+        yield 'ambiguous local URL' => [['https://example.test/mp3/TST/2024/original.mp3?token=1'], 0, 0];
+    }
+
+    public function testUnconfiguredUrlCoverageLeavesReplacementCommittedAndReportsRetention(): void
+    {
+        $this->cleanupConfigured = false;
+        $this->replacement = new Mp3Replacement($this->processor, $this->lock, 'https://example.test/mp3');
+        $this->injectReporter();
+
+        $this->execute(0);
+
+        $this->assertSuccessfulReplacement();
+        $this->assertOriginalPreserved();
+        self::assertSame([], $this->removals);
+        self::assertCount(1, $this->received);
+        self::assertSame('reference_check_failed', $this->received[0]->reason);
+        self::assertSame(['commit', 'report'], $this->timeline);
     }
 
     public function testUnconfirmedCommitDoesNotRunCleanupOrReport(): void
@@ -144,12 +386,15 @@ final class Mp3ReplacementCleanupTest extends TestCase
         self::assertSame([], $this->received);
         self::assertSame([], $this->removals);
         $this->assertOriginalPreserved();
+        self::assertTrue($this->lock->synchronized(static fn () => true));
     }
 
     public function testEnclosingTransactionDefersCleanupAndReporting(): void
     {
         $this->injectReporter();
-        $this->execute(0, initialLevel: 1);
+        $this->reservedPaths = ['TST/2024/TST20240615Titre.mp3'];
+        $this->lock->synchronized(fn () => $this->execute(0, initialLevel: 1));
+        self::assertSame('TST/2024/TST20240615Titre-1.mp3', $this->emission->getThumbnailMp3());
         $this->assertSuccessfulReplacement(1);
         self::assertSame(['commit'], $this->timeline);
         self::assertSame([], $this->received);
@@ -214,30 +459,75 @@ final class Mp3ReplacementCleanupTest extends TestCase
         $this->level = $initialLevel;
         $connection = $this->createMock(Connection::class);
         $connection->method('getTransactionNestingLevel')->willReturnCallback(fn (): int => $this->level);
-        $connection->expects(self::once())->method('beginTransaction')->willReturnCallback(function (): void { ++$this->level; });
-        $connection->method('fetchAssociative')->willReturn(['thumbnail_mp3' => $original, 'url' => $originalUrl]);
-        $connection->expects(self::once())->method('commit')->willReturnCallback(function () use ($commitFailure): void {
-            $this->timeline[] = 'commit';
-            if ($commitFailure !== null) { throw $commitFailure; }
-            --$this->level;
+        $connection->expects(self::once())->method('beginTransaction')->willReturnCallback(function (): void {
+            if ($this->checkLock) { $this->assertStorageLocked(); }
+            ++$this->level;
         });
-        $connection->expects($commitFailure === null ? self::never() : self::once())->method('rollBack')->willReturnCallback(function (): void {
-            $this->timeline[] = 'rollback';
-            --$this->level;
+        $canCommit = $this->reservationFailure === null && $this->activeOperation === false;
+        $cleanupExpected = $this->cleanupConfigured && $commitFailure === null && $canCommit && $initialLevel === 0 && $original !== null;
+        $lineLocked = false;
+        $connection->method('fetchAssociative')->willReturnCallback(function (string $sql) use (&$lineLocked, $original, $originalUrl): array {
+            self::assertStringContainsString('FOR UPDATE', $sql);
+            $lineLocked = true;
+            return ['thumbnail_mp3' => $original, 'url' => $originalUrl];
         });
-        $cleanupExpected = $commitFailure === null && $initialLevel === 0 && $original !== null;
-        $connection->expects($cleanupExpected ? self::once() : self::never())->method('fetchOne')
-            ->with('SELECT COUNT(*) FROM emission WHERE thumbnail_mp3 = ?', [$original])
-            ->willReturnCallback(function () use ($references): int {
+        $connection->expects(self::exactly($cleanupExpected ? ($references === 0 ? 3 : 2) : 1))->method('fetchOne')
+            ->willReturnCallback(function (string $sql, array $params) use (&$lineLocked, $original, $references): int|false {
+                if (str_contains($sql, 'COUNT(*) FROM mp3_trash_operation')) {
+                    self::assertSame('SELECT COUNT(*) FROM mp3_trash_operation WHERE active_marker = 1 AND original_thumbnail_mp3 = ?', $sql);
+                    self::assertSame([$original], $params);
+                    $this->assertStorageLocked();
+                    return $this->oldPathReservations;
+                }
+                if (str_contains($sql, 'mp3_trash_operation')) {
+                    self::assertSame('SELECT id FROM mp3_trash_operation WHERE emission_id = ? AND active_marker = 1 FOR SHARE', $sql);
+                    self::assertSame([42], $params);
+                    self::assertTrue($lineLocked);
+                    $this->assertStorageLocked();
+                    return $this->activeOperation;
+                }
+                self::assertSame('SELECT COUNT(*) FROM emission WHERE thumbnail_mp3 = ?', $sql);
+                self::assertSame([$original], $params);
+                self::assertSame(0, $this->level);
                 $this->timeline[] = 'references';
                 if ($references instanceof \Throwable) { throw $references; }
                 return $references;
+        });
+        $connection->method('iterateColumn')->willReturnCallback(function (string $sql, array $params): \Traversable {
+            self::assertSame('SELECT url FROM emission WHERE url IS NOT NULL AND url <> ?', $sql);
+            self::assertSame([''], $params);
+            $this->assertStorageLocked();
+            yield from $this->referencingUrls;
+        });
+        $connection->expects($this->activeOperation === false ? self::once() : self::never())->method('fetchFirstColumn')
+            ->with('SELECT original_thumbnail_mp3 FROM mp3_trash_operation WHERE active_marker = 1 FOR SHARE')
+            ->willReturnCallback(function () use ($initialLevel): array {
+                $this->assertStorageLocked();
+                self::assertSame($initialLevel + 1, $this->level);
+                if ($this->reservationFailure !== null) {
+                    throw $this->reservationFailure;
+                }
+                return $this->reservedPaths;
             });
+        $connection->expects($canCommit ? self::once() : self::never())->method('commit')->willReturnCallback(function () use ($commitFailure): void {
+            $this->timeline[] = 'commit';
+            if ($commitFailure !== null) { throw $commitFailure; }
+            if ($this->replaceOriginalAtCommit) {
+                $path = $this->base . '/' . $this->original;
+                copy($path, $path . '.new');
+                rename($path . '.new', $path);
+            }
+            --$this->level;
+        });
+        $connection->expects($commitFailure === null && $canCommit ? self::never() : self::once())->method('rollBack')->willReturnCallback(function (): void {
+            $this->timeline[] = 'rollback';
+            --$this->level;
+        });
         $manager = $this->createMock(EntityManagerInterface::class);
         $events = new EventManager();
         $manager->method('getConnection')->willReturn($connection);
         $manager->method('getEventManager')->willReturn($events);
-        $manager->expects(self::exactly(2))->method('flush')->willReturnCallback(static function () use ($manager, $events): void {
+        $manager->expects(self::exactly($this->activeOperation !== false ? 0 : ($canCommit ? 2 : 1)))->method('flush')->willReturnCallback(static function () use ($manager, $events): void {
             $events->dispatchEvent(Events::onFlush, new OnFlushEventArgs($manager));
         });
         if ($reprocess) {

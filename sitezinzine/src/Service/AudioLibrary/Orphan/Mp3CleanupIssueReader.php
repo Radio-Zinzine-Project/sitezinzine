@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service\AudioLibrary\Orphan;
 
 use App\Exception\Mp3CleanupTransactionFailure;
+use App\ValueObject\AudioLibrary\Mp3CleanupHistoricalIdentity;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\ConnectionLost;
 
@@ -154,7 +155,7 @@ final readonly class Mp3CleanupIssueReader
         $context = json_decode($row['context'], true, 512, JSON_THROW_ON_ERROR);
         $diagnostic = json_decode($row['diagnostic'], true, 512, JSON_THROW_ON_ERROR);
 
-        return [
+        $event = [
             'id' => (int) $row['id'],
             'occurred_at' => $row['occurred_at'],
             'reason' => $row['reason'],
@@ -171,5 +172,10 @@ final readonly class Mp3CleanupIssueReader
                 'sql_state' => $diagnostic['sql_state'],
             ],
         ];
+        if (array_key_exists('historical_identity', $context)) {
+            $event['historical_identity'] = Mp3CleanupHistoricalIdentity::restore($context['historical_identity'])->toArray();
+        }
+
+        return $event;
     }
 }

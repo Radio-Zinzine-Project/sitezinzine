@@ -129,7 +129,7 @@ final class Mp3FailureHandlingTest extends Mp3FailureTestCase
             foreach ([$this->secret, $this->personal, 'Test-password-42!'] as $forbidden) {
                 self::assertStringNotContainsString($forbidden, $diagnostic);
             }
-            $mp3 = file_get_contents(dirname(__DIR__, 2) . '/Fixtures/mp3/test.mp3');
+            $mp3 = file_get_contents(dirname(__DIR__, 2) . '/Fixtures/mp3/test-short.mp3');
             self::assertStringNotContainsString($mp3, $diagnostic);
             self::assertStringNotContainsString(base64_encode($mp3), $diagnostic);
             self::assertStringNotContainsString(substr($mp3, 0, 64), $diagnostic);

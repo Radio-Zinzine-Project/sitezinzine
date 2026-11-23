@@ -1,0 +1,14 @@
+{% extends 'admin/admin.html.twig' %}
+
+{% block title %}Bibliothèque MP3{% endblock %}
+
+{% block body %}
+    <h1>Bibliothèque MP3</h1>
+    <div class="bg-white p-3">
+        <ul class="mb-0">
+            <li><a href="{{ path('admin.audio_library.inventory.index') }}">Inventaire MP3</a></li>
+            <li><a href="{{ path('admin.audio_library.trash.index') }}">Corbeille MP3</a></li>
+            <li><a href="{{ path('admin.audio_library.cleanup_issues.index') }}">Incidents de nettoyage MP3</a></li>
+        </ul>
+    </div>
+{% endblock %}

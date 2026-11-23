@@ -29,12 +29,12 @@ final class Mp3WorkflowFault
                 continue;
             }
             $this->observed = $entity;
-            $this->originalPresentBeforeConfirmation[] = is_file(Mp3TestStorage::root() . '/' . $this->original);
+            $this->originalPresentBeforeConfirmation[] = is_file(Mp3TestStorage::library() . '/' . $this->original);
             $relative = $entity->getThumbnailMp3();
             if ($this->failPreparedSave && $relative !== null
                 && ($relative !== $this->original || !$entity->getThumbnailFileMp3() instanceof \Symfony\Component\HttpFoundation\File\UploadedFile)
                 && str_contains($relative, '/')
-                && is_file(Mp3TestStorage::root() . '/' . $relative)) {
+                && is_file(Mp3TestStorage::library() . '/' . $relative)) {
                 $this->triggered = true;
                 $this->preparedRelative = $relative;
                 throw new \RuntimeException('MP3_TEST_FAULT:doctrine');

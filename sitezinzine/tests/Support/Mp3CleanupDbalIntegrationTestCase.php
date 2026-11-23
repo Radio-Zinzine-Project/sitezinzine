@@ -88,6 +88,18 @@ abstract class Mp3CleanupDbalIntegrationTestCase extends KernelTestCase
         return $path;
     }
 
+    private bool $closureSchemaAvailable = false;
+
+    protected function requireClosureSchema(Connection $db): void
+    {
+        $this->closureSchemaAvailable = (int) $db->fetchOne(
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'mp3_cleanup_issue_closure'",
+        ) === 1;
+        if (!$this->closureSchemaAvailable) {
+            self::markTestSkipped('Version20261120190000 must be applied to symfony_test first.');
+        }
+    }
+
     protected function tearDown(): void
     {
         $failures = [];
@@ -113,6 +125,9 @@ abstract class Mp3CleanupDbalIntegrationTestCase extends KernelTestCase
                             [$fixture['storage'], $fixture['path']],
                         );
                         foreach ($ids as $id) {
+                            if ($this->closureSchemaAvailable) {
+                                $cleanup->executeStatement('DELETE FROM mp3_cleanup_issue_closure WHERE issue_id = ?', [(int) $id]);
+                            }
                             $cleanup->executeStatement('DELETE FROM mp3_cleanup_event WHERE issue_id = ?', [(int) $id]);
                             $cleanup->executeStatement(
                                 'DELETE FROM mp3_cleanup_issue WHERE id = ? AND storage = ? AND obsolete_relative_path = ?',
