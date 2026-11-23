@@ -10,7 +10,7 @@ use Doctrine\ORM\Mapping as ORM;
 /** Table written by GridWeekValidation on the connection of the grid operation. */
 #[ORM\Entity(readOnly: true)]
 #[ORM\Table(name: 'grid_week_validation')]
-final class GridWeekValidationState
+class GridWeekValidationState
 {
     #[ORM\Id]
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]

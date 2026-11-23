@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.136] - 2026-11-23
+### Corrections
+- Suppression du mot-clé `final` de l'entité `GridWeekValidationState` pour permettre la génération des proxies Doctrine.
+- Correction de l'échec de `cache:clear` lors de l'installation des dépendances Composer pendant la construction de l'image Docker de production.
+### Validation
+- Reconstruction du cache Symfony en environnement `prod` effectuée avec succès en local.
+### Déploiement
+- Version corrective de la v1.0.135, dont la construction Docker a échoué.
+- Aucune modification du schéma de base de données liée à ce correctif.
+
+
 ## [1.0.135] - 2026-11-23
 ### Ajouts
 - Mise en place de la corbeille MP3 réversible, permettant de retirer un fichier audio d'une émission sans le supprimer définitivement.
