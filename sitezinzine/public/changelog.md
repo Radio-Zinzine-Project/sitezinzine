@@ -1,6 +1,5 @@
 # Changelog
 
-
 ## [1.0.135] - 2026-11-23
 ### Ajouts
 - Mise en place de la corbeille MP3 réversible, permettant de retirer un fichier audio d'une émission sans le supprimer définitivement.
@@ -22,6 +21,7 @@
 - Mise en place de la confirmation manuelle des transferts, avec journal persistant, traçabilité et protection contre les confirmations obsolètes.
 - Ajout d'un mécanisme de verrouillage hebdomadaire pour coordonner les préparations, les confirmations et la purge.
 - Ajout d'une commande de purge des artefacts RadioExport des semaines expirées, avec mode simulation et fichiers de configuration systemd préparatoires, sans activation automatique.
+- Ajout de l'heure du début de l'émission dans l'impression de la grille.
 ### Corrections
 - Correction du formulaire d'édition des émissions : préservation de la durée enregistrée en BDD à l'ouverture du formulaire, avec application de la durée par défaut de la catégorie uniquement si aucune durée n'est renseignée ou lors d'un changement de catégorie.
 - Adaptation du test de création d'émission à la gestion interne des URL audio, celles-ci ne pouvant plus être renseignées manuellement lors de la création.
@@ -31,6 +31,7 @@
 - Harmonisation de la validation de la destination RadioExport entre la consultation, la préparation et la confirmation des transferts.
 - Correction des contrôles de références MP3 dans la corbeille, la restauration et les reprises, afin de reconnaître les alias d'URL locales configurés désignant un même fichier physique.
 - Prise en compte des références audio des émissions supprimées logiquement dans les contrôles de conflits d'association.
+- Correction du troncage des titres d'émission dans les émission d'un quart d'heure.
 ### Sécurité et fiabilité
 - Préservation de la cohérence entre les fichiers physiques, les associations SQL et les journaux d'opérations lors de la suppression et de la restauration.
 - Vérification de l'identité des fichiers et des conditions de restauration avant toute modification.
