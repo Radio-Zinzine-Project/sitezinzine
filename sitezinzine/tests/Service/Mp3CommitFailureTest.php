@@ -26,7 +26,7 @@ final class Mp3CommitFailureTest extends KernelTestCase
     {
         self::bootKernel();
         $project = self::getContainer()->getParameter('kernel.project_dir');
-        $fixture = $project . '/tests/Fixtures/mp3/test.mp3';
+        $fixture = $project . '/tests/Fixtures/mp3/test-short.mp3';
         $fixtureHash = hash_file('sha256', $fixture);
         $base = Mp3TestStorage::root() . '/commit-' . bin2hex(random_bytes(16));
         $fs = new Filesystem();

@@ -6,7 +6,7 @@ monolog:
         mp3:
             type: stream
             path: "%kernel.logs_dir%/%kernel.environment%.log"
-            level: error
+            level: notice
             channels: [mp3]
 
 when@dev:

@@ -1,5 +1,55 @@
 # Changelog
 
+
+## [1.0.135] - 2026-11-23
+### Ajouts
+- Mise en place de la corbeille MP3 réversible, permettant de retirer un fichier audio d'une émission sans le supprimer définitivement.
+- Ajout d'un journal métier persistant pour suivre les opérations de mise en corbeille, leurs états et leurs transitions.
+- Ajout d'un mécanisme sécurisé de restauration des MP3, avec rétablissement du fichier à son emplacement d'origine et de ses associations en base de données.
+- Ajout des interfaces d'administration de la corbeille MP3 : liste paginée, consultation du détail, historique des opérations et confirmation de restauration.
+- Ajout de contrôles de sécurité sur les opérations de restauration, notamment les autorisations, les jetons CSRF, les conflits d'association et les collisions de fichiers.
+- Mise en place d'un parcours HTTP complet de suppression et de restauration, testé avec les services réels, MySQL TEST et un stockage isolé.
+- Ajout de tests unitaires, fonctionnels et d'intégration pour sécuriser les opérations de mise en corbeille, de restauration et leurs différents états.
+- Ajout d'une fixture MP3 courte destinée aux tests nécessitant un véritable fichier audio.
+- Mise en place de RadioExport pour préparer les fichiers MP3 destinés au serveur radio à partir des diffusions publiées d'une semaine radiophonique validée.
+- Ajout d'un espace de préparation privé, organisé par semaine et par tentative, avec génération de manifestes, de rapports JSON et d'archives ZIP.
+- Ajout de la vérification des archives ZIP par contrôle des noms, des tailles et des empreintes SHA-256 des fichiers.
+- Mise en place des préparations différentielles pour identifier les fichiers nouveaux ou modifiés par rapport à une préparation de référence vérifiée.
+- Ajout de la détection des modifications des MP3, y compris les changements de métadonnées ID3 et de couvertures intégrées.
+- Ajout d'un historique des préparations avec vérification de leur intégrité et de leur filiation.
+- Création de l'interface administrative RadioExport : sélection de la semaine, consultation des préparations, lancement sécurisé et téléchargement des ZIP et rapports.
+- Ajout d'une liste de transfert distinguant les fichiers à transférer, déjà transférés, modifiés, indisponibles ou exclus.
+- Mise en place de la confirmation manuelle des transferts, avec journal persistant, traçabilité et protection contre les confirmations obsolètes.
+- Ajout d'un mécanisme de verrouillage hebdomadaire pour coordonner les préparations, les confirmations et la purge.
+- Ajout d'une commande de purge des artefacts RadioExport des semaines expirées, avec mode simulation et fichiers de configuration systemd préparatoires, sans activation automatique.
+### Corrections
+- Correction du formulaire d'édition des émissions : préservation de la durée enregistrée en BDD à l'ouverture du formulaire, avec application de la durée par défaut de la catégorie uniquement si aucune durée n'est renseignée ou lors d'un changement de catégorie.
+- Adaptation du test de création d'émission à la gestion interne des URL audio, celles-ci ne pouvant plus être renseignées manuellement lors de la création.
+- Optimisation des tests MP3 par remplacement ciblé de la fixture audio longue par une version courte, sans modification des scénarios métier ni des assertions existantes.
+- Correction de la sélection des préparations de référence lorsque le rapport d'une tentative intermédiaire est indisponible, sous réserve d'une filiation vérifiable.
+- Correction du catalogue RadioExport pour isoler les tentatives aux permissions incorrectes ou présentant des liens symboliques, sans bloquer les autres préparations.
+- Harmonisation de la validation de la destination RadioExport entre la consultation, la préparation et la confirmation des transferts.
+- Correction des contrôles de références MP3 dans la corbeille, la restauration et les reprises, afin de reconnaître les alias d'URL locales configurés désignant un même fichier physique.
+- Prise en compte des références audio des émissions supprimées logiquement dans les contrôles de conflits d'association.
+### Sécurité et fiabilité
+- Préservation de la cohérence entre les fichiers physiques, les associations SQL et les journaux d'opérations lors de la suppression et de la restauration.
+- Vérification de l'identité des fichiers et des conditions de restauration avant toute modification.
+- Conservation des protections contre les écrasements de fichiers, les associations audio concurrentes et les restaurations non autorisées.
+- Traçabilité des demandes administratives et des transitions de restauration, avec corrélation entre l'opération, l'administrateur et la tentative.
+- Renforcement du nettoyage des données et événements temporaires dans les tests fonctionnels, y compris en cas d'échec.
+- Réduction significative du temps d'exécution de plusieurs suites de tests MP3 grâce à l'utilisation d'une fixture audio courte, tout en conservant leur couverture fonctionnelle.
+- Sécurisation de la capture des MP3 par verrouillage du stockage et vérification de l'identité et de l'empreinte SHA-256 des fichiers sources.
+- Publication contrôlée des préparations RadioExport, avec vérification des archives et publication du rapport final uniquement après validation des artefacts.
+- Protection des téléchargements RadioExport par vérification de l'intégrité, contrôle des autorisations et interdiction d'accès direct aux espaces privés.
+- Refus du téléchargement des rapports contenant des URL susceptibles d'exposer des paramètres ou fragments sensibles.
+- Restriction de RadioExport aux fichiers MP3 locaux de la bibliothèque, sans téléchargement de sources audio externes.
+- Refus des nouvelles préparations et confirmations de transfert après expiration de la semaine radiophonique, le mardi à 00 h 00, heure de Paris.
+- Conservation de l'accès aux archives historiques intègres jusqu'à leur purge, indépendamment des modifications ultérieures de la grille.
+- Protection des MP3 originaux contre la purge RadioExport, limitée aux artefacts privés et aux confirmations des semaines expirées.
+- Renforcement des contrôles de références locales avant toute suppression, restauration ou reprise, afin d'empêcher le retrait d'un fichier encore référencé par une autre émission.
+- Ajout de tests ciblés couvrant les alias d'URL, les conflits d'association, les interruptions, les préparations différentielles, les expirations et les opérations concurrentes.
+
+
 ## [1.0.134] - 2026-11-18
 ### Ajouts
 - Ajout de tests de régression et de tests unitaires pour sécuriser la visibilité des rediffusions non régulières dans le parc « Émissions à diffuser ».

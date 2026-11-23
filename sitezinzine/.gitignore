@@ -43,3 +43,6 @@ sitezinzine/quick_deploy.ps1
 npm-debug.log
 yarn-error.log
 ###< symfony/webpack-encore-bundle ###
+
+# Script historique de déploiement préproduction (référence locale uniquement)
+/docker/prod/deploy-preprod-actuel.sh

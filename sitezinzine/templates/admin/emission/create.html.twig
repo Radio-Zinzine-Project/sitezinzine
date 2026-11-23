@@ -309,18 +309,9 @@
     <div class="tinymce-wrap" data-controller="tinymce">
       {{ form_row(form.descriptif) }}
     </div>
-    {# Fichiers + URL #}
     <div class="grid-3">
       <div class="field">
         {{ form_row(form.thumbnailFile) }}
-      </div>
-      <div class="field">
-        {% if form.thumbnailFileMp3 is defined %}
-          {{ form_row(form.thumbnailFileMp3) }}
-        {% endif %}
-      </div>
-      <div class="field">
-        {{ form_row(form.url) }}
       </div>
     </div>
     {{ form_end(form) }}

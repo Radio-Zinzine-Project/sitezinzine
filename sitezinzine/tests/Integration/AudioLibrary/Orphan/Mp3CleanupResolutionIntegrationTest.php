@@ -6,9 +6,8 @@ namespace App\Tests\Integration\AudioLibrary\Orphan;
 
 use App\Service\AudioLibrary\Orphan\Mp3CleanupIssueDbalAdapter;
 use App\Service\AudioLibrary\Orphan\Mp3CleanupIssueGrouper;
-use App\Service\AudioLibrary\Orphan\Mp3CleanupIssueResolutionService;
+use App\Tests\Support\Mp3CleanupClosureFixture;
 use App\Service\AudioLibrary\Orphan\Mp3CleanupIssueWriter;
-use App\Service\AudioLibrary\Orphan\Mp3CleanupResolutionDecision;
 use App\Tests\Support\Mp3CleanupDbalIntegrationTestCase;
 use App\ValueObject\AudioLibrary\Mp3CleanupAnomaly;
 use Doctrine\DBAL\Connection;
@@ -19,14 +18,19 @@ final class Mp3CleanupResolutionIntegrationTest extends Mp3CleanupDbalIntegratio
     {
         $path = $this->newFixturePath();
         $connection = $this->newConnection();
+        $this->requireClosureSchema($connection);
         $id = $this->writer($connection)->record('emissionsMp3', $this->anomaly($path));
         $events = $this->events($connection, $id);
         self::assertCount(1, $events);
         $token = $this->token($id, $events);
 
-        self::assertSame('allowed', $this->resolver($connection)->resolve($id, $token, $this->resolvedAt()));
+        self::assertSame('allowed', Mp3CleanupClosureFixture::resolve($connection, $path, $id, $token, $this->resolvedAt()));
         $issue = $this->issue($connection, $id);
         self::assertSame('resolved', $issue['status']);
+        $observer = $this->newConnection();
+        $trace = $observer->fetchAssociative('SELECT actor_id, proof_type, request_id, reason FROM mp3_cleanup_issue_closure WHERE issue_id = ?', [$id]);
+        self::assertSame([19, 'currently_absent', null, 'Synthetic closure'],
+            [(int) $trace['actor_id'], $trace['proof_type'], $trace['request_id'], $trace['reason']]);
         self::assertNull($issue['active_marker']);
         self::assertSame('2026-11-15 07:04:56.123456', $issue['resolved_at']);
         self::assertSame($events, $this->events($connection, $id));
@@ -37,6 +41,7 @@ final class Mp3CleanupResolutionIntegrationTest extends Mp3CleanupDbalIntegratio
     {
         $path = $this->newFixturePath();
         $connection = $this->newConnection();
+        $this->requireClosureSchema($connection);
         $writer = $this->writer($connection);
         $id = $writer->record('emissionsMp3', $this->anomaly($path));
         $initialEvents = $this->events($connection, $id);
@@ -48,7 +53,7 @@ final class Mp3CleanupResolutionIntegrationTest extends Mp3CleanupDbalIntegratio
         self::assertCount(2, $beforeEvents);
         self::assertGreaterThan($token['last_event_id'], (int) $beforeEvents[1]['id']);
 
-        self::assertSame('stale_view', $this->resolver($connection)->resolve($id, $token, $this->resolvedAt()));
+        self::assertSame('stale_view', Mp3CleanupClosureFixture::resolve($connection, $path, $id, $token, $this->resolvedAt()));
         self::assertSame($beforeIssue, $this->issue($connection, $id));
         self::assertSame('open', $beforeIssue['status']);
         self::assertSame(1, (int) $beforeIssue['active_marker']);
@@ -62,11 +67,12 @@ final class Mp3CleanupResolutionIntegrationTest extends Mp3CleanupDbalIntegratio
     {
         $path = $this->newFixturePath();
         $connection = $this->newConnection();
+        $this->requireClosureSchema($connection);
         $writer = $this->writer($connection);
         $oldId = $writer->record('emissionsMp3', $this->anomaly($path));
         $history = $this->events($connection, $oldId);
         self::assertCount(1, $history);
-        self::assertSame('allowed', $this->resolver($connection)->resolve($oldId, $this->token($oldId, $history), $this->resolvedAt()));
+        self::assertSame('allowed', Mp3CleanupClosureFixture::resolve($connection, $path, $oldId, $this->token($oldId, $history), $this->resolvedAt()));
         $resolved = $this->issue($connection, $oldId);
         self::assertSame('resolved', $resolved['status']);
         self::assertNull($resolved['active_marker']);
@@ -86,17 +92,30 @@ final class Mp3CleanupResolutionIntegrationTest extends Mp3CleanupDbalIntegratio
         self::assertSame(0, $connection->getTransactionNestingLevel());
     }
 
+    public function testTraceRollsBackWhenFinalStateCannotBeUpdated(): void
+    {
+        $db = $this->newConnection(Mp3CleanupClosureFailingUpdateConnection::class);
+        $this->requireClosureSchema($db);
+        $path = $this->newFixturePath();
+        $id = $this->writer($db)->record('emissionsMp3', $this->anomaly($path));
+        $observer = $this->newConnection();
+        $events = $this->events($db, $id);
+
+        self::assertSame('indeterminate', Mp3CleanupClosureFixture::resolve(
+            $db, $path, $id, $this->token($id, $events), $this->resolvedAt(),
+        ));
+        self::assertTrue($db->reachedUpdate);
+        self::assertSame('open', $this->issue($observer, $id)['status']);
+        self::assertSame(0, (int) $observer->fetchOne('SELECT COUNT(*) FROM mp3_cleanup_issue_closure WHERE issue_id = ?', [$id]));
+        self::assertSame($events, $this->events($observer, $id));
+    }
+
     private function writer(Connection $connection): Mp3CleanupIssueWriter
     {
         $adapter = new Mp3CleanupIssueDbalAdapter($connection);
         return new Mp3CleanupIssueWriter($connection, new Mp3CleanupIssueGrouper(
             $adapter->findActiveIssues(...), $adapter->createIssue(...), $adapter->appendEvent(...),
         ));
-    }
-
-    private function resolver(Connection $connection): Mp3CleanupIssueResolutionService
-    {
-        return new Mp3CleanupIssueResolutionService($connection, new Mp3CleanupResolutionDecision());
     }
 
     private function anomaly(string $path): Mp3CleanupAnomaly
@@ -132,5 +151,22 @@ final class Mp3CleanupResolutionIntegrationTest extends Mp3CleanupDbalIntegratio
     private function resolvedAt(): \DateTimeImmutable
     {
         return new \DateTimeImmutable('2026-11-15 12:34:56.123456+05:30');
+    }
+}
+
+final class Mp3CleanupClosureFailingUpdateConnection extends Connection
+{
+    public bool $reachedUpdate = false;
+
+    public function executeStatement(string $sql, array $params = [], array $types = []): int|string
+    {
+        if (str_starts_with($sql, "UPDATE mp3_cleanup_issue SET status = 'resolved'")) {
+            $this->reachedUpdate = (int) $this->fetchOne(
+                'SELECT COUNT(*) FROM mp3_cleanup_issue_closure WHERE issue_id = ?', [$params[1]],
+            ) === 1;
+            throw new \RuntimeException('Synthetic failure after inserting the administrative trace.');
+        }
+
+        return parent::executeStatement($sql, $params, $types);
     }
 }

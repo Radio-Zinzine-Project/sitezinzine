@@ -1,0 +1,9 @@
+[Unit]
+Description=RadioExport cleanup (%i)
+After=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/zinzine/radio-export-purge-%i.env
+ExecStart=/usr/bin/docker compose exec -T app php bin/console --env=prod app:radio-export:purge-expired --no-interaction
+TimeoutStartSec=30min

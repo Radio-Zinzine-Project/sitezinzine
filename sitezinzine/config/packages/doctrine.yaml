@@ -1,6 +1,8 @@
 doctrine:
     dbal:
         url: '%env(resolve:DATABASE_URL)%'
+        # Append-only administrative and radio transfer journals are managed by explicit SQL migrations.
+        schema_filter: '~^(?!(?:mp3_administrative_event|radio_transfer_confirmation)$)~'
         types:
             utc_datetime_microseconds: App\Doctrine\Type\UtcDateTimeMicrosecondsType
 

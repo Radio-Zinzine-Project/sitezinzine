@@ -1,0 +1,87 @@
+{% extends 'admin/admin.html.twig' %}
+
+{% block title %}Historique administratif{% endblock %}
+
+{% block body %}
+    {% set eventTypes = {
+        request: ['Demande enregistrée', 'text-bg-secondary'],
+        transition_confirmed: ['Transition confirmée', 'text-bg-success'],
+        refusal: ['Refus', 'text-bg-warning'],
+        failure: ['Échec', 'text-bg-danger'],
+        uncertain: ['Issue incertaine', 'text-bg-warning']
+    } %}
+    {% set actions = {
+        resume_deletion: 'Reprise de suppression',
+        resume_restoration: 'Reprise de restauration',
+        cancel_deletion: 'Annulation de suppression',
+        cancel_restoration: 'Annulation de restauration',
+        restore: 'Restauration'
+    } %}
+    {% set phases = {
+        SUPPRESSION_PREPAREE: 'Suppression préparée',
+        RETRAIT_PUBLIC_EN_ATTENTE: 'Retrait public en attente',
+        EN_CORBEILLE: 'En corbeille',
+        RESTAURATION_PREPAREE: 'Restauration préparée',
+        RETRAIT_PRIVE_EN_ATTENTE: 'Retrait privé en attente',
+        RESTAUREE: 'Restaurée',
+        ANNULEE: 'Annulée'
+    } %}
+    {% set destination = filters|merge({operationId: operationId}) %}
+    <h1>Historique administratif</h1>
+    <section class="bg-white p-3">
+        <p><a href="{{ path('admin.audio_library.trash.show', destination) }}">Retour au détail de l’opération</a></p>
+        <p>Opération <code>{{ operationId }}</code></p>
+        {% if error %}
+            <p role="alert">{{ error }}</p>
+        {% elseif history.rows is empty %}
+            <p>{{ hasCursor ? 'Aucun événement sur cette page.' : 'Aucun événement administratif enregistré pour cette opération.' }}</p>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table">
+                    <caption>Événements enregistrés, du plus récent au plus ancien.</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Événement</th>
+                            <th scope="col">Date</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Action</th>
+                            <th scope="col">Acteur</th>
+                            <th scope="col">Phase attendue</th>
+                            <th scope="col">Phase constatée</th>
+                            <th scope="col">Tentative</th>
+                            <th scope="col">Code de résultat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set previousRequest = null %}
+                        {% for event in history.rows %}
+                            {% if previousRequest != event.request_id %}
+                                <tr class="table-light"><td colspan="9">Demande <code>{{ event.request_id }}</code></td></tr>
+                            {% endif %}
+                            {% set previousRequest = event.request_id %}
+                            {% set type = eventTypes[event.event_type] ?? [event.event_type, 'text-bg-secondary'] %}
+                            <tr>
+                                <th scope="row">#{{ event.id }}</th>
+                                <td><time datetime="{{ event.recorded_at|date('c', 'Europe/Paris') }}">{{ event.recorded_at|date('d/m/Y H:i:s', 'Europe/Paris') }}</time></td>
+                                <td><span class="badge {{ type[1] }}">{{ type[0] }}</span></td>
+                                <td>{{ actions[event.action] ?? event.action }}</td>
+                                <td>{{ event.actor_name ?? 'Compte introuvable' }} <small>(#{{ event.actor_id }})</small></td>
+                                <td>{{ phases[event.expected_phase] ?? event.expected_phase }}</td>
+                                <td>{{ event.observed_phase is null ? 'Non constatée' : (phases[event.observed_phase] ?? event.observed_phase) }}</td>
+                                <td>{% if event.attempt_id is not null %}<code>{{ event.attempt_id }}</code>{% else %}—{% endif %}</td>
+                                <td><code>{{ event.result_code }}</code></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        {% if history is not null and (hasCursor or history.newer or history.older) %}
+            <nav aria-label="Pages de l’historique administratif" class="d-flex gap-3">
+                {% if history.newer %}<a href="{{ path('admin.audio_library.trash.history', destination|merge({after: history.newer})) }}">Plus récents</a>{% endif %}
+                {% if history.older %}<a href="{{ path('admin.audio_library.trash.history', destination|merge({before: history.older})) }}">Plus anciens</a>{% endif %}
+                {% if hasCursor %}<a href="{{ path('admin.audio_library.trash.history', destination) }}">Première page</a>{% endif %}
+            </nav>
+        {% endif %}
+    </section>
+{% endblock %}

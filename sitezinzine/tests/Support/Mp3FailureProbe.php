@@ -44,7 +44,7 @@ final class Mp3FailureProbe extends AbstractHandler
             }
             $relative = $entity->getThumbnailMp3();
             if ($relative !== null && $relative !== $this->original && str_contains($relative, '/')
-                && !str_contains($relative, '..') && is_file(Mp3TestStorage::root() . '/' . $relative)) {
+                && !str_contains($relative, '..') && is_file(Mp3TestStorage::library() . '/' . $relative)) {
                 $this->fail();
             }
         }

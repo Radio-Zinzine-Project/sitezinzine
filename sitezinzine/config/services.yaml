@@ -8,9 +8,20 @@ parameters:
     # Populate authorized profiles explicitly; see Docs/audio-inventory-command.md.
     app.audio_inventory.profiles: {}
     app.audio_inventory.discovery_max_entries: 100
+    # Absolute private 0700 directory, owned by PHP, persistent and separate from MP3/public roots.
+    # All PHP launchers must share the same filesystem and flock semantics.
+    env(RADIO_EXPORT_ROOT): ''
+    # Stable opaque identifier (1-64 ASCII letters/digits, underscores or hyphens); never SFTP credentials.
+    env(RADIO_EXPORT_DESTINATION): ''
     # app.mp3_base_dir: '%kernel.project_dir%/public/uploads/mp3'
     app.mp3_base_dir: '%kernel.project_dir%/public/uploads/emissionsMp3'
     app.mp3_work_dir: '%kernel.project_dir%/var/mp3-work'
+    app.mp3_trash_dir: null
+    # Set the reviewed complete list of local library URL prefixes before enabling deferred cleanup.
+    app.mp3_deferred_cleanup.local_url_prefixes: '%env(MP3_DEFERRED_CLEANUP_LOCAL_URL_PREFIXES)%'
+    env(MP3_DEFERRED_CLEANUP_LOCAL_URL_PREFIXES): '[]'
+    app.mp3_replacement.local_url_prefixes: '%app.mp3_deferred_cleanup.local_url_prefixes%'
+    app.mp3_storage_lock_timeout_ms: 1000
     app.mp3_public_base_url: 'https://eloisemcglasson.ovh/uploads/emissionsMp3'
     libretime_week_info_url: '%env(LIBRETIME_WEEK_INFO_URL)%'
 
@@ -49,6 +60,81 @@ services:
             $projectDir: '%kernel.project_dir%'
             $mp3WorkDir: '%app.mp3_work_dir%'
 
+    App\Service\Mp3TrashPath:
+        arguments:
+            $trashDir: '%app.mp3_trash_dir%'
+            $libraryDir: '%app.mp3_base_dir%'
+            $workDir: '%app.mp3_work_dir%'
+            $publicDir: '%kernel.project_dir%/public'
+
+    App\Service\Mp3TrashDisk:
+        arguments:
+            $libraryDir: '%app.mp3_base_dir%'
+
+    App\Service\Mp3TrashInspection:
+        arguments:
+            $publicBaseUrl: '%app.mp3_public_base_url%'
+
+    app.mp3_trash_detail.connection:
+        class: Doctrine\DBAL\Connection
+        shared: false
+        factory: ['App\Service\AudioLibrary\Orphan\Mp3CleanupServiceFactory', 'createConnection']
+        arguments: ['@doctrine.dbal.default_connection']
+
+    App\Service\AudioLibrary\Mp3TrashDetail:
+        arguments:
+            $connect: !service_closure '@app.mp3_trash_detail.connection'
+
+    App\Service\Mp3TrashRecovery:
+        arguments:
+            $localUrls: '@app.mp3_trash.local_urls'
+            $publicBaseUrl: '%app.mp3_public_base_url%'
+            $logger: '@monolog.logger.mp3'
+
+    App\Service\Mp3TrashCancellation:
+        arguments:
+            $publicBaseUrl: '%app.mp3_public_base_url%'
+            $logger: '@monolog.logger.mp3'
+
+    App\Service\Mp3StorageLock:
+        arguments:
+            $timeoutMs: '%app.mp3_storage_lock_timeout_ms%'
+
+    app.mp3_trash.local_urls:
+        class: App\Service\AudioLibrary\Inventory\AudioLocalUrlResolver
+        factory: ['App\Service\AudioLibrary\Inventory\AudioLocalUrlResolver', 'forTrash']
+        arguments: ['%app.mp3_public_base_url%', '%app.mp3_deferred_cleanup.local_url_prefixes%']
+
+    App\Service\Mp3TrashService:
+        arguments:
+            $localUrls: '@app.mp3_trash.local_urls'
+
+    App\Service\Mp3RestoreService:
+        arguments:
+            $localUrls: '@app.mp3_trash.local_urls'
+
+    app.mp3_cleanup_detail.connection:
+        class: Doctrine\DBAL\Connection
+        shared: false
+        factory: ['App\Service\AudioLibrary\Orphan\Mp3CleanupServiceFactory', 'createConnection']
+        arguments: ['@doctrine.dbal.default_connection']
+
+    App\Service\AudioLibrary\Orphan\Mp3CleanupIdentityVerifier:
+        arguments:
+            $libraryDir: '%app.mp3_base_dir%'
+
+    App\Service\AudioLibrary\Orphan\Mp3DeferredCleanup:
+        arguments:
+            $libraryDir: '%app.mp3_base_dir%'
+
+    App\Service\AudioLibrary\Orphan\Mp3DeferredCleanupPreconditions:
+        arguments:
+            $libraryDir: '%app.mp3_base_dir%'
+
+    App\Service\AudioLibrary\Orphan\Mp3CleanupIssueReader:
+        arguments:
+            $connection: '@app.mp3_cleanup_detail.connection'
+
     app.mp3_cleanup.connection:
         class: Doctrine\DBAL\Connection
         autowire: false
@@ -85,6 +171,10 @@ services:
             $fallbackLogger: '@monolog.logger.mp3'
 
     App\Service\Mp3Replacement:
+        arguments:
+            $storageLock: '@?app.mp3_replacement_storage_lock'
+            $publicBaseUrl: '%app.mp3_public_base_url%'
+            $localUrlPrefixes: '%app.mp3_replacement.local_url_prefixes%'
         calls:
             - [setCleanupReporter, ['@App\Service\AudioLibrary\Orphan\Mp3CleanupReporter']]
 

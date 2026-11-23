@@ -237,12 +237,6 @@ class EmissionType extends AbstractType
                 'label' => 'Émission en direct',
                 'required' => false,
             ])
-            ->add('url', UrlType::class, [
-                'required' => false,
-                'default_protocol' => 'http',
-                'label' => 'Url de l\'émission',
-                'empty_data' => '',
-            ])
             ->add('descriptif', TextareaType::class, [
                 'empty_data' => 'Description à remplir',
                 'label' => 'Descriptif (obligatoire)',
@@ -256,6 +250,14 @@ class EmissionType extends AbstractType
 
         if ($options['with_mp3']) {
             $builder
+                // Display the stored URL; only internal MP3 workflows may change it.
+                ->add('url', UrlType::class, [
+                    'required' => false,
+                    'default_protocol' => 'http',
+                    'label' => 'Url de l\'émission',
+                    'empty_data' => '',
+                    'disabled' => true,
+                ])
                 ->add('thumbnailFileMp3', FileType::class, [
                     'required' => false,
                     'label' => 'Ajouter un Mp3 :',

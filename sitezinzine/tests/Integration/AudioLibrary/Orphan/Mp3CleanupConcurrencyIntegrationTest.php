@@ -172,6 +172,7 @@ final class Mp3CleanupConcurrencyIntegrationTest extends Mp3CleanupDbalIntegrati
 
     public function testResolutionBeforeConcurrentReportCreatesANewActiveIssue(): void
     {
+        $this->requireClosureSchema($this->newConnection());
         $path = $this->newFixturePath();
         $b = $this->newConnection();
         $b->executeStatement('SET SESSION innodb_lock_wait_timeout = 20');

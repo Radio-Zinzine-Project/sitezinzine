@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\PersistentCollection;
 use App\Enum\Mp3FailureStage;
+use App\Enum\Mp3StoredFileState;
 use App\Exception\Mp3OperationFailure;
 
 final class Mp3Processor
@@ -80,7 +81,7 @@ final class Mp3Processor
         }
         $candidate = new PreparedMp3(
             $directory, $directory . '/ready.mp3', $code, $date->format('Y'),
-            $code . $date->format('Ymd') . $this->formatTitleCamelCase($emission->getTitre())
+            $code . $date->format('Ymd') . Mp3FilenameTitle::normalize($emission->getTitre())
         );
         try {
             $input = $directory . '/input.mp3';
@@ -150,12 +151,13 @@ final class Mp3Processor
         return new File($this->storedPath($relative));
     }
 
-    public function publish(PreparedMp3 $candidate): string
+    /** @param array<string, true> $reserved Paths relative to the library root. */
+    public function publish(PreparedMp3 $candidate, array $reserved = []): string
     {
-        return Mp3OperationFailure::at(Mp3FailureStage::MOVE, fn () => $this->publishCandidate($candidate));
+        return Mp3OperationFailure::at(Mp3FailureStage::MOVE, fn () => $this->publishCandidate($candidate, $reserved));
     }
 
-    private function publishCandidate(PreparedMp3 $candidate): string
+    private function publishCandidate(PreparedMp3 $candidate, array $reserved): string
     {
         if (!chmod($candidate->path, 0644)) {
             throw new \RuntimeException('Permissions de publication MP3 incorrectes.');
@@ -167,10 +169,14 @@ final class Mp3Processor
         $this->storedPath($candidate->code . '/' . $candidate->year);
         for ($suffix = 0; ; ++$suffix) {
             $name = $candidate->basename . ($suffix === 0 ? '' : '-' . $suffix) . '.mp3';
+            $relative = $candidate->code . '/' . $candidate->year . '/' . $name;
+            if (isset($reserved[$relative])) {
+                continue;
+            }
             $target = $destDir . DIRECTORY_SEPARATOR . $name;
             // link() is an atomic no-replace operation, unlike check-then-rename(false).
             if (@link($candidate->path, $target)) {
-                return $candidate->code . '/' . $candidate->year . '/' . $name;
+                return $relative;
             }
             clearstatcache(true, $target);
             if (file_exists($target) || is_link($target)) {
@@ -196,6 +202,61 @@ final class Mp3Processor
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /** @return array{dev:int, ino:int, size:int, mtime:int, ctime:int, sha256:string}|null */
+    public function storedFileIdentity(?string $relative): ?array
+    {
+        if ($relative === null) {
+            return null;
+        }
+        try {
+            $path = $this->storedPath($relative);
+            $keys = array_flip(['dev', 'ino', 'size', 'mtime', 'ctime']);
+            $before = @lstat($path);
+            if ($before === false || ($before['mode'] & 0170000) !== 0100000 || $before['ino'] <= 0) {
+                return null;
+            }
+            $identity = array_intersect_key($before, $keys);
+            $hash = @hash_file('sha256', $path);
+            clearstatcache(true, $path);
+            $after = @lstat($path);
+            if ($hash === false || $after === false || ($after['mode'] & 0170000) !== 0100000
+                || array_intersect_key($after, $keys) !== $identity) {
+                return null;
+            }
+
+            return $identity + ['sha256' => $hash];
+        } catch (\RuntimeException) {
+            return null;
+        }
+    }
+
+    /**
+     * @return array{state: Mp3StoredFileState, identity: array{dev:int, ino:int, size:int, mtime:int, ctime:int, sha256:string}|null}
+     */
+    public function inspectStoredFile(string $relative): array
+    {
+        try {
+            $path = $this->storedPath($relative);
+            if (@lstat($path) !== false) {
+                $identity = $this->storedFileIdentity($relative);
+
+                return ['state' => $identity === null ? Mp3StoredFileState::Unverifiable : Mp3StoredFileState::Verified,
+                    'identity' => $identity];
+            }
+
+            // A failed stat also occurs with inaccessible paths. Confirm absence in the immediate parent.
+            $entries = @scandir(dirname($path), SCANDIR_SORT_NONE);
+            if ($entries !== false && !in_array(basename($path), $entries, true)
+                && $this->storedPath($relative) === $path && @lstat($path) === false) {
+                return ['state' => Mp3StoredFileState::Absent, 'identity' => null];
+            }
+        } catch (\RuntimeException) {
+            // An unsafe or unreadable path cannot be treated as absence.
+        }
+
+        return ['state' => Mp3StoredFileState::Indeterminate, 'identity' => null];
     }
 
     private function analyze(string $path): array
@@ -272,21 +333,7 @@ final class Mp3Processor
 
     private function storedPath(string $relative): string
     {
-        if ($relative === '' || preg_match('~(^[/\\\\]|[\\\\:]|(^|/)\.\.(/|$)|\x00)~', $relative)) {
-            throw new \RuntimeException('Chemin MP3 non autorisé.');
-        }
-        $root = realpath($this->mp3BaseDir);
-        if ($root === false) {
-            throw new \RuntimeException('Stockage MP3 introuvable.');
-        }
-        $path = $root;
-        foreach (explode('/', $relative) as $part) {
-            $path .= DIRECTORY_SEPARATOR . $part;
-            if (is_link($path)) {
-                throw new \RuntimeException('Lien symbolique non autorisé dans le stockage MP3.');
-            }
-        }
-        return $path;
+        return Mp3StoragePath::resolve($this->mp3BaseDir, $relative);
     }
 
     public function consumeUpload(UploadedFile $upload, ?string $original): void
@@ -308,28 +355,6 @@ final class Mp3Processor
         if (is_file($path)) {
             $this->fs->remove($path);
         }
-    }
-
-    private function formatTitleCamelCase(string $s): string
-    {
-        $s = trim($s);
-
-        // translittération (é → e, etc.)
-        $s = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s) ?: $s;
-
-        // remplace tout ce qui n’est pas lettre/chiffre par espace
-        $s = preg_replace('/[^A-Za-z0-9]+/', ' ', $s) ?? '';
-
-        // met en mots
-        $words = explode(' ', strtolower($s));
-
-        // supprime les valeurs vides éventuelles
-        $words = array_filter($words, static fn($w) => $w !== '');
-
-        // met en CamelCase
-        $words = array_map(static fn($w) => ucfirst($w), $words);
-
-        return substr(implode('', $words), 0, 50) ?: 'Emission';
     }
 
     private function writeTags(string $filePath, Emission $emission): array
@@ -463,7 +488,7 @@ final class Mp3Processor
             return;
         }
 
-        $fullPath = rtrim($this->mp3BaseDir, '/\\') . DIRECTORY_SEPARATOR . ltrim($currentMp3, '/\\');
+        $fullPath = $this->storedPath($currentMp3);
 
         if (is_file($fullPath)) {
             $this->fs->remove($fullPath);

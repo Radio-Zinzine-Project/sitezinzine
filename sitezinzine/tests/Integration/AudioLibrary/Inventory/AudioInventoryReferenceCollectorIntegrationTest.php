@@ -19,7 +19,6 @@ final class AudioInventoryReferenceCollectorIntegrationTest extends Mp3CleanupDb
     private array $ownedConnections = [];
     private ?array $baseline = null;
     private int $baselineMaxId = 0;
-    private array $evidence = [];
 
     protected static function createKernel(array $options = []): KernelInterface
     {
@@ -151,12 +150,6 @@ final class AudioInventoryReferenceCollectorIntegrationTest extends Mp3CleanupDb
         self::assertSame(0, $writer->getTransactionNestingLevel());
         self::assertSame(0, $observer->getTransactionNestingLevel());
         self::assertSame($this->baseline, $this->referenceFingerprint($observer, $this->baselineMaxId));
-        $this->evidence = [
-            'database' => 'symfony_test', 'sessions' => $sessions, 'interrupted_session' => $interruptedSession,
-            'pages' => $pages, 'fixture_emissions' => 3, 'fixture_associations' => count($seen),
-            'snapshot_preserved' => true, 'interruption_rolled_back' => true, 'collector_sessions_closed' => true,
-            'collations' => ['thumbnail_mp3' => $byName['thumbnail_mp3']['COLLATION_NAME'], 'url' => $byName['url']['COLLATION_NAME']],
-        ];
     }
 
     private function insertFixture(Connection $writer, array $columns, string $ref, ?string $physical, ?string $url, bool $deleted = false): int
@@ -239,8 +232,6 @@ final class AudioInventoryReferenceCollectorIntegrationTest extends Mp3CleanupDb
                 $cleanup->commit();
                 foreach ($this->fixtureRefs as $ref) { self::assertSame(0, (int) $cleanup->fetchOne('SELECT COUNT(*) FROM emission WHERE BINARY ref = ?', [$ref])); }
                 if ($this->baseline !== null) { self::assertSame($this->baseline, $this->referenceFingerprint($cleanup, $this->baselineMaxId)); }
-                $this->evidence['targeted_cleanup_verified'] = true;
-                $this->evidence['existing_references_unchanged'] = true;
             }
         } catch (\Throwable $error) {
             $failures[] = $error;
@@ -251,7 +242,6 @@ final class AudioInventoryReferenceCollectorIntegrationTest extends Mp3CleanupDb
             $this->fixtureRefs = $this->ownedConnections = [];
             $this->baseline = null;
         }
-        if ($this->evidence !== []) { fwrite(STDERR, 'Audio inventory SQL integration: ' . json_encode($this->evidence, JSON_THROW_ON_ERROR) . PHP_EOL); }
         foreach ($failures as $error) { fwrite(STDERR, 'Audio inventory cleanup failed: ' . $error::class . PHP_EOL); }
         if ($failures !== [] && !$this->hasFailed()) { throw $failures[0]; }
     }

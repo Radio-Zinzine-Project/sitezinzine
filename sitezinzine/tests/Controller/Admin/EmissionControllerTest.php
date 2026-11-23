@@ -84,7 +84,6 @@ class EmissionControllerTest extends WebTestCase
             'emission[categorie]' => (string) $categorie->getId(),
             'emission[duree]' => 60,
             'emission[descriptif]' => 'Description test',
-            'emission[url]' => '',
             'emission[ref]' => '',
             'emission[users]' => [(string) $admin->getId()],
         ]);
@@ -188,7 +187,6 @@ class EmissionControllerTest extends WebTestCase
         $categorie = $this->createCategorie($admin);
 
         $titre = 'Test Émission ' . uniqid();
-        $audioUrl = 'https://test.com/emission-' . bin2hex(random_bytes(16));
 
         $this->client->loginUser($admin);
 
@@ -211,7 +209,6 @@ class EmissionControllerTest extends WebTestCase
                     'titre' => $titre,
                     'descriptif' => 'Description test',
                     'duree' => '60',
-                    'url' => $audioUrl,
                     'keyword' => 'test-keyword',
                     'theme' => (string) $theme->getId(),
                     'categorie' => (string) $categorie->getId(),
@@ -236,10 +233,7 @@ class EmissionControllerTest extends WebTestCase
         $this->assertSame('Description test', $emission->getDescriptif());
         $this->assertSame(60, $emission->getDuree());
 
-        $this->assertSame(
-            $audioUrl,
-            $emission->getUrl()
-        );
+        $this->assertNull($emission->getUrl());
 
         $this->assertSame(
             'test-keyword',
@@ -639,7 +633,8 @@ class EmissionControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
 
-        $newAudioUrl = 'https://test.com/updated-' . bin2hex(random_bytes(16));
+        $originalAudioUrl = $emission->getUrl();
+        $this->assertSelectorExists('#emission_url[disabled]');
 
         $form = $crawler->selectButton('Sauvegarder')->form([
             'emission[titre]' => 'Titre modifié',
@@ -648,7 +643,6 @@ class EmissionControllerTest extends WebTestCase
             'emission[categorie]' => (string) $categorie->getId(),
             'emission[duree]' => 60,
             'emission[descriptif]' => 'Description initiale',
-            'emission[url]' => $newAudioUrl,
             'emission[users]' => [(string) $admin->getId()],
         ]);
 
@@ -663,6 +657,7 @@ class EmissionControllerTest extends WebTestCase
             ->find($emissionId);
 
         $this->assertNotNull($updatedEmission);
+        $this->assertSame($originalAudioUrl, $updatedEmission->getUrl());
         $this->assertSame(
             'Titre modifié',
             $updatedEmission->getTitre()
@@ -707,7 +702,6 @@ class EmissionControllerTest extends WebTestCase
             'emission[categorie]' => (string) $categorie->getId(),
             'emission[duree]' => 60,
             'emission[descriptif]' => 'Description initiale',
-            'emission[url]' => $emission->getUrl(),
             'emission[users]' => [(string) $admin->getId()],
             'emission[markAsCompleted]' => '1',
         ]);
@@ -726,7 +720,7 @@ class EmissionControllerTest extends WebTestCase
         $this->assertFalse($updatedEmission->isPendingCompletion());
     }
 
-    public function testEditEmissionCanDeleteMp3(): void
+    public function testEditEmissionRefusesInconsistentMp3References(): void
     {
         $admin = $this->createUser(['ROLE_ADMIN']);
         $theme = $this->createTheme();
@@ -762,14 +756,13 @@ class EmissionControllerTest extends WebTestCase
             'emission[categorie]' => (string) $categorie->getId(),
             'emission[duree]' => 60,
             'emission[descriptif]' => 'Description initiale',
-            'emission[url]' => 'https://test.com/audio.mp3',
             'emission[users]' => [(string) $admin->getId()],
             'emission[deleteMp3]' => '1',
         ]);
 
         $this->client->submit($form);
 
-        $this->assertResponseRedirects();
+        $this->assertResponseStatusCodeSame(422);
 
         $this->entityManager->clear();
 
@@ -778,8 +771,8 @@ class EmissionControllerTest extends WebTestCase
             ->find($emissionId);
 
         $this->assertNotNull($updatedEmission);
-        $this->assertNull($updatedEmission->getThumbnailMp3());
-        $this->assertNull($updatedEmission->getUrl());
+        $this->assertSame('test-file.mp3', $updatedEmission->getThumbnailMp3());
+        $this->assertSame('https://test.com/audio.mp3', $updatedEmission->getUrl());
     }
 
     public function testEditEmissionCanDeleteThumbnail(): void
@@ -834,7 +827,6 @@ class EmissionControllerTest extends WebTestCase
                 'emission[categorie]' => (string) $categorie->getId(),
                 'emission[duree]' => 60,
                 'emission[descriptif]' => 'Description initiale',
-                'emission[url]' => $emission->getUrl(),
                 'emission[users]' => [(string) $admin->getId()],
                 'delete_thumbnail' => '1',
             ]);
@@ -895,11 +887,12 @@ class EmissionControllerTest extends WebTestCase
         $theme = $this->createTheme();
         $categorie = $this->createCategorie($admin);
         $categorie->setSlug('TST');
+        $titre = 'Émission MP3 test ' . bin2hex(random_bytes(8));
 
         $emission = $this->createEmission(
             theme: $theme,
             categorie: $categorie,
-            titre: 'Émission MP3 test'
+            titre: $titre
         );
 
         $emissionId = $emission->getId();
@@ -915,18 +908,17 @@ class EmissionControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
 
-        $mp3Path = dirname(__DIR__, 2) . '/Fixtures/mp3/test.mp3';
+        $mp3Path = dirname(__DIR__, 2) . '/Fixtures/mp3/test-short.mp3';
 
         $this->assertFileExists($mp3Path);
 
         $form = $crawler->selectButton('Sauvegarder')->form([
-            'emission[titre]' => 'Émission MP3 test',
+            'emission[titre]' => $titre,
             'emission[keyword]' => 'test-mp3',
             'emission[theme]' => (string) $theme->getId(),
             'emission[categorie]' => (string) $categorie->getId(),
             'emission[duree]' => 60,
             'emission[descriptif]' => 'Description test MP3',
-            'emission[url]' => '',
             'emission[users]' => [(string) $admin->getId()],
         ]);
 
@@ -973,13 +965,13 @@ class EmissionControllerTest extends WebTestCase
         );
 
         $finalMp3Path =
-            \App\Tests\Support\Mp3TestStorage::root()
+            \App\Tests\Support\Mp3TestStorage::library()
             . '/'
             . $updatedEmission->getThumbnailMp3();
 
         $this->assertFileExists($finalMp3Path);
         self::assertSame($fixtureHash, hash_file('sha256', $mp3Path));
-        self::assertStringStartsWith(\App\Tests\Support\Mp3TestStorage::root() . DIRECTORY_SEPARATOR, realpath($finalMp3Path));
+        self::assertStringStartsWith(realpath(\App\Tests\Support\Mp3TestStorage::library()) . DIRECTORY_SEPARATOR, realpath($finalMp3Path));
     }
 
     public function testMarkCompletedDeniedForUserNotLinkedToEmission(): void

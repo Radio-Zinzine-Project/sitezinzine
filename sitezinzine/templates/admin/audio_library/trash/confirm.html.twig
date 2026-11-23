@@ -1,0 +1,56 @@
+{% extends 'admin/admin.html.twig' %}
+
+{% block title %}Confirmation administrative MP3{% endblock %}
+
+{% block body %}
+    {% set actions = {
+        'resume-deletion': ['Reprendre la suppression', 'La reprise peut désassocier le MP3 de l’émission et retirer son nom public une fois la copie privée vérifiée.'],
+        'resume-restoration': ['Reprendre la restauration', 'La reprise peut rétablir le MP3 et son association d’origine, puis retirer le nom privé une fois la restauration confirmée.'],
+        'cancel-deletion': ['Annuler la suppression préparée', 'L’annulation clôt la suppression préparée. Le fichier public et l’association d’origine restent en place.'],
+        'cancel-restoration': ['Annuler la restauration préparée', 'L’annulation clôt la tentative. Le fichier reste dans la corbeille et l’émission reste sans association audio.'],
+        'restore': ['Restaurer le MP3', 'La restauration peut rétablir le fichier public et les références audio d’origine, puis retirer le nom privé après confirmation de la réassociation.']
+    } %}
+    {% set phases = {
+        SUPPRESSION_PREPAREE: 'Suppression préparée',
+        RETRAIT_PUBLIC_EN_ATTENTE: 'Retrait public en attente',
+        EN_CORBEILLE: 'En corbeille',
+        RESTAURATION_PREPAREE: 'Restauration préparée',
+        RETRAIT_PRIVE_EN_ATTENTE: 'Retrait privé en attente',
+        RESTAUREE: 'Restaurée',
+        ANNULEE: 'Annulée'
+    } %}
+    <h1>Confirmation administrative MP3</h1>
+    <section class="bg-white p-3">
+        <p><a href="{{ path('admin.audio_library.trash.show', filters|merge({operationId: operationId})) }}">Retour au détail de l’opération</a></p>
+        <h2>{{ actions[action][0] }}</h2>
+        <p>Opération <code>{{ operationId }}</code></p>
+        {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+        {% if inspection %}
+            <dl>
+                {% if action == 'restore' and inspection.journal.emission_id is defined %}<dt>Émission historique</dt><dd>#{{ inspection.journal.emission_id }}</dd>{% endif %}
+                <dt>Phase observée</dt><dd>{{ phases[inspection.journal.phase] ?? inspection.journal.phase }}</dd>
+                {% if inspection.journal.last_attempt_id is defined and inspection.journal.last_attempt_id is not null %}
+                    <dt>Dernière tentative de restauration</dt><dd><code>{{ inspection.journal.last_attempt_id }}</code></dd>
+                {% elseif action == 'restore' and inspection.journal.last_attempt_id is defined %}
+                    <dt>Dernière tentative de restauration</dt><dd>Aucune tentative enregistrée</dd>
+                {% endif %}
+                <dt>Blocage</dt><dd>{{ inspection.journal.blocked ? 'Opération bloquée' : 'Opération non bloquée' }}</dd>
+                {% if inspection.journal.blocked and inspection.journal.last_diagnostic_code is not null %}
+                    <dt>Motif du blocage</dt><dd><code>{{ inspection.journal.last_diagnostic_code }}</code></dd>
+                {% endif %}
+            </dl>
+            {% if inspection.diagnostic.status == 'indeterminate' %}
+                <p role="alert">Inspection indéterminée. Les observations disponibles ne permettent pas de conclure.</p>
+            {% endif %}
+            <p>{{ actions[action][1] }}</p>
+            <p>Toute action exige une nouvelle vérification sous verrou.</p>
+            {% if submission %}
+                <form method="post" action="{{ path(submissionRoute, filters|merge({operationId: operationId, action: action})) }}">
+                    <input type="hidden" name="request_id" value="{{ submission.request_id }}">
+                    <input type="hidden" name="_token" value="{{ submission.csrf_token }}">
+                    <button type="submit" class="btn btn-primary">{{ actions[action][0] }}</button>
+                </form>
+            {% endif %}
+        {% endif %}
+    </section>
+{% endblock %}

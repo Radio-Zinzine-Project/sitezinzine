@@ -1,0 +1,14 @@
+{% extends 'admin/admin.html.twig' %}
+
+{% block title %}Action administrative MP3{% endblock %}
+
+{% block body %}
+    <h1>Action administrative MP3</h1>
+    <section class="bg-white p-3">
+        <p role="alert">{{ message }}</p>
+        {% if requestId is not null %}<p>Demande <code>{{ requestId }}</code></p>{% endif %}
+        {% if traceUnavailable %}<p>La trace administrative du résultat n’a pas pu être enregistrée.</p>{% endif %}
+        <p><a href="{{ path('admin.audio_library.trash.show', destination) }}">Retour au détail de l’opération</a></p>
+        <p><a href="{{ path('admin.audio_library.trash.history', destination) }}">Historique administratif</a></p>
+    </section>
+{% endblock %}

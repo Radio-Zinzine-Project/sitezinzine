@@ -47,6 +47,30 @@ final class AudioLocalUrlResolver
         }
     }
 
+    public static function fromConfiguredLibrary(string $canonicalUrl, string $configuredPrefixes): ?self
+    {
+        $prefixes = json_decode($configuredPrefixes, true);
+        if (!is_array($prefixes) || !array_is_list($prefixes) || $prefixes === []) {
+            return null;
+        }
+        try {
+            return new self([$canonicalUrl, ...$prefixes]);
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
+    }
+
+    /** Allows canonical-only corbeille configuration while rejecting malformed alias lists. */
+    public static function forTrash(string $canonicalUrl, string $configuredPrefixes): self
+    {
+        if (json_decode($configuredPrefixes) === []) {
+            return new self([$canonicalUrl]);
+        }
+
+        return self::fromConfiguredLibrary($canonicalUrl, $configuredPrefixes)
+            ?? throw new \InvalidArgumentException('Invalid MP3 library URL aliases.');
+    }
+
     /**
      * No decoding, trimming, filesystem lookup or path case folding is performed.
      * Only scheme and host use their case-insensitive URL semantics.

@@ -6,9 +6,11 @@ namespace App\Tests\Integration\AudioLibrary\Orphan;
 
 use App\Service\AudioLibrary\Orphan\Mp3CleanupIssueDbalAdapter;
 use App\Service\AudioLibrary\Orphan\Mp3CleanupIssueGrouper;
+use App\Service\AudioLibrary\Orphan\Mp3CleanupIssueReader;
 use App\Service\AudioLibrary\Orphan\Mp3CleanupIssueWriter;
 use App\Tests\Support\Mp3CleanupDbalIntegrationTestCase;
 use App\ValueObject\AudioLibrary\Mp3CleanupAnomaly;
+use App\ValueObject\AudioLibrary\Mp3CleanupHistoricalIdentity;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\DriverException;
 
@@ -81,6 +83,31 @@ final class Mp3CleanupPersistenceIntegrationTest extends Mp3CleanupDbalIntegrati
         self::assertSame(0, (int) $connection->fetchOne(
             'SELECT COUNT(*) FROM mp3_cleanup_event WHERE obsolete_relative_path = ?', [$path],
         ));
+    }
+
+    public function testHistoricalIdentityRoundTripsPerEventAcrossConnections(): void
+    {
+        $path = $this->newFixturePath();
+        $writer = $this->writer($this->newConnection());
+        $legacy = $this->anomaly($path);
+        $id = $writer->record('emissionsMp3', $legacy);
+        $identity = ['dev' => 7, 'ino' => 123456, 'size' => 5, 'mtime' => 1795080000,
+            'ctime' => 1795080001, 'sha256' => hash('sha256', 'audio')];
+        $first = Mp3CleanupHistoricalIdentity::capture('emissionsMp3', $path, 'https://example.test/mp3/' . $path, $identity);
+        ++$identity['ino'];
+        $second = Mp3CleanupHistoricalIdentity::capture('emissionsMp3', $path, null, $identity);
+        $missing = Mp3CleanupHistoricalIdentity::capture('emissionsMp3', $path, null, null);
+        foreach ([$first, $second, $missing] as $evidence) {
+            self::assertSame($id, $writer->record('emissionsMp3', new Mp3CleanupAnomaly(
+                $legacy->reason, $legacy->emissionId, $path, $legacy->context, $legacy->diagnostic, $evidence,
+            )));
+        }
+
+        $events = (new Mp3CleanupIssueReader($this->newConnection()))->readInitialDetail($id)['events'];
+        self::assertSame($missing->toArray(), $events[0]['historical_identity']);
+        self::assertSame($second->toArray(), $events[1]['historical_identity']);
+        self::assertSame($first->toArray(), $events[2]['historical_identity']);
+        self::assertArrayNotHasKey('historical_identity', $events[3]);
     }
 
     private function writer(Connection $connection): Mp3CleanupIssueWriter

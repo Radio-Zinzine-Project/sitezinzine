@@ -8,8 +8,7 @@ require dirname(__DIR__, 2) . '/vendor/autoload.php';
 use App\Service\AudioLibrary\Orphan\Mp3CleanupIssueDbalAdapter;
 use App\Service\AudioLibrary\Orphan\Mp3CleanupIssueGrouper;
 use App\Service\AudioLibrary\Orphan\Mp3CleanupIssueWriter;
-use App\Service\AudioLibrary\Orphan\Mp3CleanupIssueResolutionService;
-use App\Service\AudioLibrary\Orphan\Mp3CleanupResolutionDecision;
+use App\Tests\Support\Mp3CleanupClosureFixture;
 use App\ValueObject\AudioLibrary\Mp3CleanupAnomaly;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Connection;
@@ -31,7 +30,7 @@ final class Mp3CleanupResolutionBarrierConnection extends Connection
     {
         $row = parent::fetchAssociative($query, $params, $types);
         if ($this->afterIssueLock !== null
-            && $query === 'SELECT id, status, resolved_at FROM mp3_cleanup_issue WHERE id = ? FOR UPDATE'
+            && $query === 'SELECT id, status, storage, obsolete_relative_path FROM mp3_cleanup_issue WHERE id = ? FOR UPDATE'
             && $params === [$this->expectedIssueId]) {
             if ($row === false || (int) $row['id'] !== $this->expectedIssueId || $this->getTransactionNestingLevel() !== 1) {
                 throw new LogicException('Expected a real locked issue in one owned resolution transaction.');
@@ -171,7 +170,7 @@ try {
             $send('observation_failed', ['transaction_a' => $transactionA, 'polls' => $polls, 'wait_sample' => $sample]);
             throw new RuntimeException('No B-to-resolution-A lock wait observed before deadline.');
         });
-        $result = (new Mp3CleanupIssueResolutionService($connection, new Mp3CleanupResolutionDecision()))->resolve(
+        $result = Mp3CleanupClosureFixture::resolve($connection, $config['path'],
             $config['issue_id'], $config['resolution_token'], new DateTimeImmutable('2026-11-15 12:00:00.123456', new DateTimeZone('UTC')),
         );
         $send('done', ['issue_id' => $config['issue_id'], 'result' => $result,
@@ -180,7 +179,7 @@ try {
     } elseif (($config['operation'] ?? 'report') === 'resolve') {
         $send('attempting');
         $send('before_resolution', ['level' => $connection->getTransactionNestingLevel()]);
-        $result = (new Mp3CleanupIssueResolutionService($connection, new Mp3CleanupResolutionDecision()))->resolve(
+        $result = Mp3CleanupClosureFixture::resolve($connection, $config['path'],
             $config['issue_id'], $config['resolution_token'], new DateTimeImmutable('2026-11-15 12:00:00.123456', new DateTimeZone('UTC')),
         );
         $send('done', ['issue_id' => $config['issue_id'], 'result' => $result,

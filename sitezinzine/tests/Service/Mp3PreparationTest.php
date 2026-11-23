@@ -8,6 +8,8 @@ use App\Entity\{Categories, Emission};
 use App\Repository\CategorieTagImageRepository;
 use App\Service\Mp3Processor;
 use App\Service\Mp3Replacement;
+use App\Service\Mp3StorageLock;
+use App\Service\Mp3TrashPath;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Tests\Support\Mp3TestStorage;
@@ -30,7 +32,7 @@ final class Mp3PreparationTest extends KernelTestCase
     {
         parent::setUp();
         self::bootKernel();
-        $this->fixture = self::getContainer()->getParameter('kernel.project_dir') . '/tests/Fixtures/mp3/test.mp3';
+        $this->fixture = self::getContainer()->getParameter('kernel.project_dir') . '/tests/Fixtures/mp3/test-short.mp3';
         $this->fixtureHash = hash_file('sha256', $this->fixture);
         $this->base = Mp3TestStorage::root() . '/prepare-' . bin2hex(random_bytes(16));
         (new Filesystem())->mkdir($this->base . '/TST/2024', 0700);
@@ -131,11 +133,19 @@ final class Mp3PreparationTest extends KernelTestCase
             self::assertSame($this->fixtureHash, hash_file('sha256', $this->base . '/' . $original));
             $committed = true;
         });
-        $connection->method('fetchOne')->willReturnCallback(function () use (&$committed): int {
+        $connection->method('fetchOne')->willReturnCallback(function (string $sql) use (&$committed): int|false {
+            if (str_contains($sql, 'emission_id = ?')) {
+                return false;
+            }
             self::assertTrue($committed, 'Obsolete-file cleanup must follow commit confirmation.');
             return 0;
         });
-        (new Mp3Replacement($this->processor))->replace($this->emission, $manager, $original, $originalUrl);
+        $connection->method('iterateColumn')->willReturn(new \ArrayIterator());
+        (new \ReflectionProperty(Emission::class, 'id'))->setValue($this->emission, 42);
+        $lock = new Mp3StorageLock(new Mp3TrashPath(Mp3TestStorage::root() . '/trash', Mp3TestStorage::library(),
+            Mp3TestStorage::work(), self::getContainer()->getParameter('kernel.project_dir') . '/public'), 20);
+        (new Mp3Replacement($this->processor, $lock, 'https://example.test/mp3', '["https://example.test/mp3"]'))
+            ->replace($this->emission, $manager, $original, $originalUrl);
         self::assertTrue($committed);
         self::assertFileDoesNotExist($this->base . '/' . $original);
         self::assertFileExists($this->base . '/' . $this->emission->getThumbnailMp3());

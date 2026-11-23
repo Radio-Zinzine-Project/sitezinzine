@@ -18,6 +18,7 @@ use App\Service\WeeklyAnnouncementPrintBuilder;
 use App\Service\GridAssignmentService;
 use App\Service\GridViewBuilder;
 use App\Service\GridUnpublicationService;
+use App\Service\GridWeekValidation;
 use App\Service\LiveEmissionCreator;
 use App\Service\ProgrammationGridBuilder;
 use Doctrine\ORM\EntityManagerInterface;
@@ -343,7 +344,8 @@ class GrilleController extends AbstractController
     public function publishWeek(
         string $startOfWeek,
         Request $request,
-        GridPublicationService $gridPublicationService
+        GridPublicationService $gridPublicationService,
+        GridWeekValidation $validation,
     ): Response {
         if (!$this->isCsrfTokenValid(
             'publish_grid_week_' . $startOfWeek,
@@ -353,13 +355,13 @@ class GrilleController extends AbstractController
         }
 
         try {
-            $weekStart = new \DateTimeImmutable($startOfWeek);
+            $weekStart = new \DateTimeImmutable($startOfWeek, new \DateTimeZone('Europe/Paris'));
         } catch (\Exception) {
             throw $this->createNotFoundException('Date de semaine invalide.');
         }
 
         try {
-            $result = $gridPublicationService->publishWeek($weekStart);
+            $result = $validation->changeManually($weekStart, true, $gridPublicationService->publishWeek(...));
         } catch (\DomainException | \LogicException $e) {
             $this->addFlash('danger', $e->getMessage());
 
@@ -1767,7 +1769,8 @@ class GrilleController extends AbstractController
     public function unpublishWeek(
         string $startOfWeek,
         Request $request,
-        GridUnpublicationService $gridUnpublicationService
+        GridUnpublicationService $gridUnpublicationService,
+        GridWeekValidation $validation,
     ): Response {
         if (!$this->isCsrfTokenValid(
             'unpublish_grid_week_' . $startOfWeek,
@@ -1777,13 +1780,13 @@ class GrilleController extends AbstractController
         }
 
         try {
-            $weekStart = new \DateTimeImmutable($startOfWeek);
+            $weekStart = new \DateTimeImmutable($startOfWeek, new \DateTimeZone('Europe/Paris'));
         } catch (\Exception) {
             throw $this->createNotFoundException('Date de semaine invalide.');
         }
 
         try {
-            $result = $gridUnpublicationService->unpublishWeek($weekStart);
+            $result = $validation->changeManually($weekStart, false, $gridUnpublicationService->unpublishWeek(...));
         } catch (\DomainException | \LogicException $e) {
             $this->addFlash('danger', $e->getMessage());
 

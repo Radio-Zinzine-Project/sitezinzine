@@ -13,7 +13,7 @@ export default class extends Controller {
     this.abortController = null
 
     if (!this.preserveSubmittedValue) {
-      this.syncCategoryDefaults()
+      this.syncCategoryDefaults(false)
     }
   }
 
@@ -22,11 +22,11 @@ export default class extends Controller {
   }
 
   async categoryChanged() {
-    this.syncCategoryDefaults()
+    this.syncCategoryDefaults(true)
     await this.refreshUsers()
   }
 
-  syncCategoryDefaults() {
+  syncCategoryDefaults(force = false) {
     if (!this.hasCategorieTarget) {
       return
     }
@@ -45,7 +45,11 @@ export default class extends Controller {
       this.dispatchNativeChange(this.editeurTarget)
     }
 
-    if (this.hasDureeTarget && duree !== '') {
+    if (
+      this.hasDureeTarget
+      && duree !== ''
+      && (force || this.dureeTarget.value.trim() === '')
+    ) {
       this.dureeTarget.value = duree
       this.dispatchNativeChange(this.dureeTarget)
     }

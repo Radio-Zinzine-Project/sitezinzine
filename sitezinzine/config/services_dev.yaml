@@ -1,0 +1,9 @@
+parameters:
+    app.mp3_dev_legacy_base_dir: '%kernel.project_dir%/public/uploads/emissionsMp3'
+    app.mp3_dev_legacy_work_dir: '%kernel.project_dir%/var/mp3-work'
+    app.mp3_base_dir: '%env(default:app.mp3_dev_legacy_base_dir:DEV_MP3_BASE_DIR)%'
+    app.mp3_work_dir: '%env(default:app.mp3_dev_legacy_work_dir:DEV_MP3_WORK_DIR)%'
+    app.mp3_trash_dir: '/srv/zinzine/audio/trash'
+
+services:
+    app.mp3_replacement_storage_lock: '@App\Service\Mp3StorageLock'

@@ -17,6 +17,8 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 /** Business contracts: these deliberately remain RED until the replacement refactor. */
 final class Mp3SafetyWorkflowTest extends FunctionalTestCase
 {
+    use \App\Tests\Support\WithMp3StorageLock;
+
     private Emission $emission;
     private Emission $other;
     private User $owner;
@@ -42,8 +44,8 @@ final class Mp3SafetyWorkflowTest extends FunctionalTestCase
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $this->marker = 'mp3red' . bin2hex(random_bytes(8));
         $container = self::getContainer();
-        self::assertSame(Mp3TestStorage::root(), $container->getParameter('app.mp3_base_dir'));
-        self::assertSame(Mp3TestStorage::root(), $container->getParameter('vich_uploader.mappings')['emissionsMp3']['upload_destination']);
+        self::assertSame(Mp3TestStorage::library(), $container->getParameter('app.mp3_base_dir'));
+        self::assertSame(Mp3TestStorage::library(), $container->getParameter('vich_uploader.mappings')['emissionsMp3']['upload_destination']);
         self::assertStringContainsString('_test', (string) $this->entityManager->getConnection()->getDatabase());
         $this->entityManager->getConnection()->beginTransaction();
         $this->fixtureHash = hash_file('sha256', $this->fixture());
@@ -104,7 +106,7 @@ final class Mp3SafetyWorkflowTest extends FunctionalTestCase
         self::assertSame('2024', (string) $tags['year'][0]);
         self::assertSame('Description du nouveau MP3', $tags['comment'][0]);
         // Retaining A as a deliberate backup is allowed; upload/staging leftovers are not.
-        $allowed = array_merge($before, [$stored['thumbnail_mp3']]);
+        $allowed = array_merge($before, ['library' . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $stored['thumbnail_mp3'])]);
         self::assertSame([], array_values(array_diff($this->files(), $allowed)), 'No unused intermediate may remain.');
         self::assertFileDoesNotExist($upload);
         $this->assertOtherUntouched();
@@ -216,7 +218,7 @@ final class Mp3SafetyWorkflowTest extends FunctionalTestCase
 
     private function fixture(): string
     {
-        return dirname(__DIR__, 2) . '/Fixtures/mp3/test.mp3';
+        return dirname(__DIR__, 2) . '/Fixtures/mp3/test-short.mp3';
     }
 
     private function path(string $relative): string
@@ -224,7 +226,7 @@ final class Mp3SafetyWorkflowTest extends FunctionalTestCase
         if (str_contains($relative, '..') || str_starts_with($relative, '/') || str_contains($relative, '\\')) {
             throw new \LogicException('Unsafe test MP3 path.');
         }
-        return Mp3TestStorage::root() . '/' . $relative;
+        return Mp3TestStorage::library() . '/' . $relative;
     }
 
     private function url(string $relative): string
@@ -287,7 +289,7 @@ final class Mp3SafetyWorkflowTest extends FunctionalTestCase
 
     private function uploadCopy(Form $form): string
     {
-        $path = $this->path('upload-' . bin2hex(random_bytes(16)) . '.mp3');
+        $path = Mp3TestStorage::root() . '/upload-' . bin2hex(random_bytes(16)) . '.mp3';
         self::assertTrue(copy($this->fixture(), $path));
         // Send our owned copy directly: DomCrawler::upload() makes an extra shared-/tmp copy.
         $this->upload = $path;

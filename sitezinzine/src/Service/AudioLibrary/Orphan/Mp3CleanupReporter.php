@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service\AudioLibrary\Orphan;
 
 use App\ValueObject\AudioLibrary\Mp3CleanupAnomaly;
+use App\ValueObject\AudioLibrary\Mp3CleanupHistoricalIdentity;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -16,14 +17,15 @@ final readonly class Mp3CleanupReporter
         private LoggerInterface $fallbackLogger = new NullLogger(),
     ) {}
 
-    /** Called after commit when the reference check failed; reference ownership remains unknown. */
+    /** Called after commit when the cleanup guard could not establish zero references and reservations. */
     public function reportReferenceCheckFailure(
         int $emissionId,
         string $obsoleteRelativePath,
         string $replacementRelativePath,
         \Throwable $error,
+        ?Mp3CleanupHistoricalIdentity $historicalIdentity = null,
     ): void {
-        $this->report('reference_check_failed', $emissionId, $obsoleteRelativePath, $replacementRelativePath, null, $error);
+        $this->report('reference_check_failed', $emissionId, $obsoleteRelativePath, $replacementRelativePath, null, $error, $historicalIdentity);
     }
 
     /** Called after commit only when zero references were established before cleanup failed. */
@@ -32,8 +34,9 @@ final readonly class Mp3CleanupReporter
         string $obsoleteRelativePath,
         string $replacementRelativePath,
         \Throwable $error,
+        ?Mp3CleanupHistoricalIdentity $historicalIdentity = null,
     ): void {
-        $this->report('obsolete_cleanup_failed', $emissionId, $obsoleteRelativePath, $replacementRelativePath, 0, $error);
+        $this->report('obsolete_cleanup_failed', $emissionId, $obsoleteRelativePath, $replacementRelativePath, 0, $error, $historicalIdentity);
     }
 
     private function report(
@@ -43,6 +46,7 @@ final readonly class Mp3CleanupReporter
         string $replacementRelativePath,
         ?int $referenceCount,
         \Throwable $error,
+        ?Mp3CleanupHistoricalIdentity $historicalIdentity = null,
     ): void {
         $anomaly = new Mp3CleanupAnomaly(
             $reason,
@@ -54,6 +58,7 @@ final readonly class Mp3CleanupReporter
                 'reference_count' => $referenceCount,
             ],
             $this->diagnostic($error),
+            $historicalIdentity,
         );
 
         try {

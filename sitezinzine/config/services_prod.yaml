@@ -1,0 +1,7 @@
+parameters:
+    app.mp3_base_dir: '/srv/zinzine/audio/library'
+    app.mp3_work_dir: '/srv/zinzine/audio/work'
+    app.mp3_trash_dir: '/srv/zinzine/audio/trash'
+
+services:
+    app.mp3_replacement_storage_lock: '@App\Service\Mp3StorageLock'

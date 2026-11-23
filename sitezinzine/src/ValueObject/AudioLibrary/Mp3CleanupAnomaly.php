@@ -16,5 +16,6 @@ final readonly class Mp3CleanupAnomaly
         public string $obsoleteRelativePath,
         public array $context,
         public array $diagnostic,
+        public ?Mp3CleanupHistoricalIdentity $historicalIdentity = null,
     ) {}
 }

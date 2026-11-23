@@ -61,16 +61,21 @@ final readonly class Mp3CleanupIssueDbalAdapter
 
     public function appendEvent(int $issueId, Mp3CleanupAnomaly $anomaly): void
     {
+        $context = [
+            'replacement_relative_path' => $anomaly->context['replacement_relative_path'],
+            'commit_confirmed' => $anomaly->context['commit_confirmed'],
+            'reference_count' => $anomaly->context['reference_count'],
+        ];
+        if ($anomaly->historicalIdentity !== null) {
+            $context['historical_identity'] = $anomaly->historicalIdentity->toArray();
+        }
+
         $this->connection->insert('mp3_cleanup_event', [
             'issue_id' => $issueId,
             'reason' => $anomaly->reason,
             'emission_id' => $anomaly->emissionId,
             'obsolete_relative_path' => $anomaly->obsoleteRelativePath,
-            'context' => json_encode([
-                'replacement_relative_path' => $anomaly->context['replacement_relative_path'],
-                'commit_confirmed' => $anomaly->context['commit_confirmed'],
-                'reference_count' => $anomaly->context['reference_count'],
-            ], JSON_THROW_ON_ERROR),
+            'context' => json_encode($context, JSON_THROW_ON_ERROR),
             'diagnostic' => json_encode([
                 'class' => $anomaly->diagnostic['class'],
                 'code' => $anomaly->diagnostic['code'],

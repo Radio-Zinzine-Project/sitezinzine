@@ -1,0 +1,86 @@
+{% extends 'admin/admin.html.twig' %}
+
+{% block title %}Corbeille MP3{% endblock %}
+
+{% block body %}
+    {% set phases = {
+        SUPPRESSION_PREPAREE: 'Suppression préparée',
+        RETRAIT_PUBLIC_EN_ATTENTE: 'Retrait public en attente',
+        EN_CORBEILLE: 'En corbeille',
+        RESTAURATION_PREPAREE: 'Restauration préparée',
+        RETRAIT_PRIVE_EN_ATTENTE: 'Retrait privé en attente',
+        RESTAUREE: 'Restaurée',
+        ANNULEE: 'Annulée'
+    } %}
+    <h1>Corbeille MP3</h1>
+    <section class="bg-white p-3">
+        <p><a href="{{ path('admin.audio_library.index') }}">Retour à la bibliothèque MP3</a></p>
+        <form method="get" action="{{ path('admin.audio_library.trash.index') }}" class="row g-3 align-items-end mb-3">
+            <div class="col-sm-auto">
+                <label class="form-label" for="trash-phase">Phase</label>
+                <select class="form-select" id="trash-phase" name="phase">
+                    <option value="">Toutes les phases</option>
+                    {% for value, label in phases %}
+                        <option value="{{ value }}"{% if filters.phase == value %} selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-auto">
+                <label class="form-label" for="trash-blocked">Blocage</label>
+                <select class="form-select" id="trash-blocked" name="blocked">
+                    <option value="">Tous les états</option>
+                    <option value="1"{% if filters.blocked is same as('1') %} selected{% endif %}>Bloquée</option>
+                    <option value="0"{% if filters.blocked is same as('0') %} selected{% endif %}>Non bloquée</option>
+                </select>
+            </div>
+            <div class="col-sm-auto"><button class="btn btn-primary" type="submit">Filtrer</button></div>
+        </form>
+        {% if error %}
+            <p role="alert">{{ error }}</p>
+        {% elseif rows is empty %}
+            <p>Aucune opération pour cette page et ces filtres.</p>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table">
+                    <caption>Phases enregistrées dans le journal. La présence des fichiers n’est pas vérifiée sur cette page.</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Opération</th>
+                            <th scope="col">Émission</th>
+                            <th scope="col">Opération ouverte le</th>
+                            <th scope="col">Phase</th>
+                            <th scope="col">Blocage</th>
+                            <th scope="col">Dernier diagnostic</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                            <tr>
+                                <td><a href="{{ path('admin.audio_library.trash.show', filters|merge({page: page, operationId: row.id})) }}"><code>{{ row.id }}</code></a></td>
+                                <td>
+                                    {% if row.current_emission_id is null %}
+                                        Émission introuvable
+                                    {% else %}
+                                        {{ row.emission_title }}
+                                        {% if row.deleted_at is not null %}<br>Émission supprimée{% endif %}
+                                    {% endif %}
+                                    <small class="text-muted">(#{{ row.emission_id }})</small>
+                                </td>
+                                <td><time datetime="{{ row.created_at|date('c', 'Europe/Paris') }}">{{ row.created_at|date('d/m/Y H:i', 'Europe/Paris') }}</time></td>
+                                <td>{{ phases[row.phase] ?? row.phase }}</td>
+                                <td>{{ row.blocked ? 'Bloquée' : 'Non bloquée' }}</td>
+                                <td>{{ row.last_diagnostic_code ?? '—' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        {% if previous or next %}
+            <nav aria-label="Pages de la corbeille MP3">
+                {% if previous %}<a href="{{ path('admin.audio_library.trash.index', filters|merge({page: previous})) }}">Précédent</a>{% endif %}
+                {% if next %}<a href="{{ path('admin.audio_library.trash.index', filters|merge({page: next})) }}">Suivant</a>{% endif %}
+            </nav>
+        {% endif %}
+    </section>
+{% endblock %}

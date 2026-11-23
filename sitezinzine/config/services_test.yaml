@@ -1,9 +1,29 @@
 parameters:
-    app.mp3_base_dir: '%env(MP3_TEST_STORAGE)%'
-    app.mp3_work_dir: '%env(MP3_TEST_STORAGE)%/private'
+    app.mp3_base_dir: '%env(MP3_TEST_STORAGE)%/library'
+    app.mp3_work_dir: '%env(MP3_TEST_STORAGE)%/work'
+    app.mp3_trash_dir: '%env(MP3_TEST_STORAGE)%/trash'
+    app.mp3_replacement.local_url_prefixes: '["https://example.test/uploads/emissionsMp3"]'
     app.mp3_public_base_url: 'https://example.test/uploads/emissionsMp3'
 
 services:
+    test.mp3_trash_cancellation:
+        alias: App\Service\Mp3TrashCancellation
+        public: true
+
+    test.mp3_trash_recovery:
+        alias: App\Service\Mp3TrashRecovery
+        public: true
+
+    test.mp3_restore_service:
+        alias: App\Service\Mp3RestoreService
+        public: true
+
+    test.mp3_trash_service:
+        alias: App\Service\Mp3TrashService
+        public: true
+
+    app.mp3_replacement_storage_lock: '@App\Service\Mp3StorageLock'
+
     Symfony\Component\Mailer\EventListener\MessageLoggerListener: ~
 
     App\Service\GridRebroadcastCoverageService:

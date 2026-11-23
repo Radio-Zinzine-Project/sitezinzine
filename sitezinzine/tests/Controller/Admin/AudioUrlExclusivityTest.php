@@ -6,13 +6,16 @@ namespace App\Tests\Controller\Admin;
 
 use App\Entity\{Categories, Emission, User};
 use App\Tests\Support\{FunctionalTestCase, Mp3TestStorage};
+use App\Tests\Support\WithMp3StorageLock;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DomCrawler\Form;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
-/** RED contracts for audio ownership; all writes are rolled back in the test database. */
+/** Form URL locking and internal upload ownership; fixture writes are rolled back. */
 final class AudioUrlExclusivityTest extends FunctionalTestCase
 {
+    use WithMp3StorageLock;
+
     private User $owner;
     private Categories $category;
     private Emission $first;
@@ -28,8 +31,8 @@ final class AudioUrlExclusivityTest extends FunctionalTestCase
         // Check isolation before connecting or creating fixtures.
         self::assertSame('test', $container->getParameter('kernel.environment'));
         self::assertStringEndsWith('_test', (string) $this->entityManager->getConnection()->getDatabase());
-        self::assertSame(Mp3TestStorage::root(), $container->getParameter('app.mp3_base_dir'));
-        self::assertSame(Mp3TestStorage::root(), $container->getParameter('vich_uploader.mappings')['emissionsMp3']['upload_destination']);
+        self::assertSame(Mp3TestStorage::library(), $container->getParameter('app.mp3_base_dir'));
+        self::assertSame(Mp3TestStorage::library(), $container->getParameter('vich_uploader.mappings')['emissionsMp3']['upload_destination']);
         $this->entityManager->getConnection()->beginTransaction();
         $this->marker = 'exclusive' . bin2hex(random_bytes(8));
         $this->owner = $this->createUser('ROLE_SUPER_ADMIN');
@@ -59,60 +62,71 @@ final class AudioUrlExclusivityTest extends FunctionalTestCase
     }
 
     /** @dataProvider audioKinds */
-    public function testCreationRejectsAnotherEmissionsUrl(bool $local): void
+    public function testCreationIgnoresAnotherEmissionsForgedUrl(bool $local): void
     {
         $this->prepareAudio($local);
         $before = $this->state($this->first);
         $title = $this->marker . ' duplicate';
         $crawler = $this->client->request('GET', '/admin/emission/create');
         self::assertResponseIsSuccessful();
-        $this->client->submit($crawler->selectButton('Sauvegarder')->form([
+        self::assertSelectorNotExists('[name="emission[url]"]');
+        self::assertSelectorNotExists('[name="emission[thumbnailFileMp3]"]');
+        $form = $crawler->selectButton('Sauvegarder')->form([
             'emission[titre]' => $title,
             'emission[duree]' => '60',
             'emission[categorie]' => (string) $this->category->getId(),
+            'emission[theme]' => (string) $this->second->getTheme()->getId(),
             'emission[users]' => [(string) $this->owner->getId()],
-            'emission[url]' => $this->state($this->first)['url'],
-        ]));
-        self::assertSame(0, (int) $this->entityManager->getConnection()->fetchOne(
+        ]);
+        $values = $form->getPhpValues();
+        $values['emission']['url'] = $before['url'];
+        $this->client->request($form->getMethod(), $form->getUri(), $values);
+        self::assertResponseRedirects();
+        self::assertSame(1, (int) $this->entityManager->getConnection()->fetchOne(
             'SELECT COUNT(*) FROM emission WHERE titre = ?', [$title]
-        ), 'A duplicate URL must not create an emission.');
+        ));
+        self::assertSame(['url' => null, 'thumbnail_mp3' => null], $this->entityManager->getConnection()->fetchAssociative(
+            'SELECT url, thumbnail_mp3 FROM emission WHERE titre = ?', [$title]
+        ));
         self::assertSame($before, $this->state($this->first));
-        $this->assertRejectedForm();
     }
 
     /** @dataProvider audioKinds */
-    public function testModificationRejectsAnotherEmissionsUrl(bool $local): void
+    public function testModificationIgnoresAnotherEmissionsForgedUrl(bool $local): void
     {
         $this->prepareAudio($local);
-        $this->client->submit($this->editForm($this->second, $this->state($this->first)['url']));
-        $this->assertRejectedForm();
+        $before = $this->state($this->second);
+        $this->submitForgedEdit($this->second, $this->state($this->first)['url']);
+        self::assertResponseRedirects();
+        self::assertSame($before, $this->state($this->second));
     }
 
     /** @dataProvider audioKinds */
-    public function testRejectedModificationPreservesBothPersistedAssociations(bool $local): void
+    public function testForgedModificationPreservesBothPersistedAssociations(bool $local): void
     {
         $this->prepareAudio($local);
         $before = [$this->state($this->first), $this->state($this->second)];
-        $this->client->submit($this->editForm($this->second, $this->state($this->first)['url']));
+        $this->submitForgedEdit($this->second, $this->state($this->first)['url']);
+        self::assertResponseRedirects();
         // Read SQL directly: a bound form may have changed Doctrine's managed object.
         self::assertSame($before, [$this->state($this->first), $this->state($this->second)],
             'Neither the original owner nor the edited emission may lose its association.');
     }
 
-    public function testModificationRejectsAnotherEmissionsUrlWithDifferentCase(): void
+    public function testModificationIgnoresAnotherEmissionsUrlWithDifferentCase(): void
     {
         $before = [$this->state($this->first), $this->state($this->second)];
         $url = strtoupper($before[0]['url']);
         self::assertNotSame($before[0]['url'], $url);
 
-        $this->client->submit($this->editForm($this->second, $url));
+        $this->submitForgedEdit($this->second, $url);
 
-        $this->assertAudioUrlValidationError();
+        self::assertResponseRedirects();
         self::assertSame($before, [$this->state($this->first), $this->state($this->second)],
             'A case-only conflict must preserve both persisted audio associations.');
     }
 
-    public function testModificationRejectsSoftDeletedEmissionsUrl(): void
+    public function testModificationIgnoresSoftDeletedEmissionsForgedUrl(): void
     {
         $this->first->softDelete();
         $this->entityManager->flush();
@@ -121,9 +135,9 @@ final class AudioUrlExclusivityTest extends FunctionalTestCase
         ));
         $before = [$this->state($this->first), $this->state($this->second)];
 
-        $this->client->submit($this->editForm($this->second, $before[0]['url']));
+        $this->submitForgedEdit($this->second, $before[0]['url']);
 
-        $this->assertAudioUrlValidationError();
+        self::assertResponseRedirects();
         self::assertSame($before, [$this->state($this->first), $this->state($this->second)],
             'A soft-deleted owner must keep its URL and the edited association must remain unchanged.');
     }
@@ -133,7 +147,7 @@ final class AudioUrlExclusivityTest extends FunctionalTestCase
     {
         $this->prepareAudio($local);
         $before = $this->state($this->first);
-        $form = $this->editForm($this->first, $this->state($this->first)['url']);
+        $form = $this->editForm($this->first);
         $form['emission[keyword]'] = 'editorial-change';
         $this->client->submit($form);
         self::assertResponseRedirects();
@@ -151,12 +165,12 @@ final class AudioUrlExclusivityTest extends FunctionalTestCase
         }
         $this->entityManager->flush();
         $first = $this->upload($this->first);
-        $hash = hash_file('sha256', Mp3TestStorage::root() . '/' . $first['thumbnail_mp3']);
+        $hash = hash_file('sha256', Mp3TestStorage::library() . '/' . $first['thumbnail_mp3']);
         $second = $this->upload($this->second);
         self::assertNotSame($first['url'], $second['url']);
         self::assertNotSame($first['thumbnail_mp3'], $second['thumbnail_mp3']);
         self::assertSame($first, $this->state($this->first));
-        self::assertSame($hash, hash_file('sha256', Mp3TestStorage::root() . '/' . $first['thumbnail_mp3']));
+        self::assertSame($hash, hash_file('sha256', Mp3TestStorage::library() . '/' . $first['thumbnail_mp3']));
     }
 
     private function prepareAudio(bool $local): void
@@ -167,47 +181,50 @@ final class AudioUrlExclusivityTest extends FunctionalTestCase
         }
     }
 
-    private function editForm(Emission $emission, ?string $url): Form
+    public function testShowStillLinksToTheStoredAudioUrl(): void
+    {
+        $crawler = $this->client->request('GET', '/admin/emission/' . $this->first->getId());
+        self::assertResponseIsSuccessful();
+        $listen = $crawler->filter('a')->reduce(static fn ($link) => str_contains($link->text(), 'Écouter'));
+        self::assertGreaterThan(0, $listen->count());
+        self::assertSame($this->first->getUrl(), $listen->first()->attr('href'));
+    }
+
+    private function editForm(Emission $emission): Form
     {
         $crawler = $this->client->request('GET', '/admin/emission/' . $emission->getId() . '/edit');
         self::assertResponseIsSuccessful();
-        return $crawler->selectButton('Sauvegarder')->form(['emission[url]' => $url ?? '']);
+        self::assertSelectorExists('#emission_url[disabled]');
+        self::assertSame($this->state($emission)['url'] ?? '', $crawler->filter('#emission_url')->attr('value') ?? '');
+        return $crawler->selectButton('Sauvegarder')->form();
+    }
+
+    private function submitForgedEdit(Emission $emission, ?string $url): void
+    {
+        $form = $this->editForm($emission);
+        $values = $form->getPhpValues();
+        $values['emission']['url'] = $url;
+        $this->client->request($form->getMethod(), $form->getUri(), $values);
     }
 
     private function upload(Emission $emission): array
     {
-        $form = $this->editForm($emission, $this->state($emission)['url']);
+        $form = $this->editForm($emission);
         $path = Mp3TestStorage::root() . '/input-' . bin2hex(random_bytes(12)) . '.mp3';
-        self::assertTrue(copy(dirname(__DIR__, 2) . '/Fixtures/mp3/test.mp3', $path));
+        // A short real MP3 excerpt exercises upload/tagging without copying the full recording.
+        $audio = file_get_contents(dirname(__DIR__, 2) . '/Fixtures/mp3/test.mp3', false, null, 0, 65536);
+        self::assertNotFalse($audio);
+        self::assertSame(65536, file_put_contents($path, $audio));
+        unset($audio);
         $this->client->request($form->getMethod(), $form->getUri(), $form->getPhpValues(), [
             'emission' => ['thumbnailFileMp3' => new UploadedFile($path, 'audio.mp3', 'audio/mpeg', null, true)],
         ]);
         self::assertResponseRedirects();
         $state = $this->state($emission);
         self::assertNotEmpty($state['thumbnail_mp3']);
-        self::assertFileExists(Mp3TestStorage::root() . '/' . $state['thumbnail_mp3']);
+        self::assertFileExists(Mp3TestStorage::library() . '/' . $state['thumbnail_mp3']);
         self::assertSame(self::getContainer()->getParameter('app.mp3_public_base_url') . '/' . $state['thumbnail_mp3'], $state['url']);
         return $state;
-    }
-
-    private function assertRejectedForm(): void
-    {
-        self::assertFalse($this->client->getResponse()->isRedirect(), 'A conflicting URL must be refused.');
-        self::assertContains($this->client->getResponse()->getStatusCode(), [200, 422]);
-        self::assertSelectorExists('form .invalid-feedback, form .form-error-message', 'The refusal must display a validation error.');
-    }
-
-    private function assertAudioUrlValidationError(): void
-    {
-        $this->assertRejectedForm();
-        // Require the UniqueEntity message in the URL field's rendered error container.
-        $errors = $this->client->getCrawler()->filter('#emission_url')->ancestors()->first()
-            ->filter('.invalid-feedback, .form-error-message');
-        self::assertGreaterThan(0, $errors->count());
-        self::assertStringContainsString(
-            'Cette URL audio est déjà associée à une autre émission.',
-            $errors->text(),
-        );
     }
 
     private function state(Emission $emission): array
