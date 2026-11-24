@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.137] - 2026-11-xx
+### Ajouts
+### Corrections
+
+
 ## [1.0.136] - 2026-11-23
 ### Corrections
 - Suppression du mot-clé `final` de l'entité `GridWeekValidationState` pour permettre la génération des proxies Doctrine.
