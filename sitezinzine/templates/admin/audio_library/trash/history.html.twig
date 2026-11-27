@@ -27,17 +27,181 @@
         ANNULEE: 'Annulée'
     } %}
     {% set destination = filters|merge({operationId: operationId}) %}
-    <h1>Historique administratif</h1>
-    <section class="bg-white p-3">
-        <p><a href="{{ path('admin.audio_library.trash.show', destination) }}">Retour au détail de l’opération</a></p>
+    <style>
+    .trash-page {
+        margin-block: 24px;
+        padding-bottom: 24px;
+        font-family: "Montserrat Alternates", sans-serif;
+        overflow-wrap: anywhere;
+    }
+
+    .trash-page .trash-title {
+        margin: 0 0 24px;
+        font-size: 2rem;
+        line-height: 1.2;
+        text-align: start;
+    }
+
+    .trash-page .trash-card {
+        padding: 24px;
+        background: #fff;
+        color: #1c1c1a;
+        border-radius: 14px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10);
+    }
+
+    .trash-page .trash-action {
+        display: inline-block;
+        box-sizing: border-box;
+        max-width: 100%;
+        padding: 8px 12px;
+        border: 0;
+        border-radius: 999px;
+        background: #222;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .trash-page .trash-action:hover {
+        background: #000;
+    }
+
+    .trash-page :focus-visible {
+        outline: 2px solid #e4013a;
+        outline-offset: 2px;
+    }
+
+    .trash-page .trash-message {
+        padding: 14px 16px;
+        margin-block: 16px;
+        border-radius: 10px;
+        background: #f3f3f3;
+        color: #333;
+    }
+
+    .trash-page .trash-message[role="alert"] {
+        background: #ffebee;
+        color: #b71c1c;
+    }
+
+    .trash-page .trash-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #f3f3f3;
+        font-weight: 700;
+    }
+
+    @media (max-width: 768px) {
+        .trash-page {
+            margin-block: 20px;
+            padding-bottom: 20px;
+        }
+
+        .trash-page .trash-title {
+            font-size: 1.45rem;
+            text-align: center;
+        }
+
+        .trash-page .trash-card {
+            padding: 16px;
+        }
+    }
+
+    .trash-page {
+        --admin-width-list: var(--admin-width-list-extra-wide);
+    }
+
+    .trash-page .trash-table-scroll {
+        overflow-x: auto;
+        margin-block: 1rem;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.10);
+    }
+
+    .trash-page .trash-table-scroll:focus-visible {
+        outline-offset: -2px;
+    }
+
+    .trash-page .trash-table {
+        width: 100%;
+        min-width: 1080px;
+        table-layout: fixed;
+        border-collapse: collapse;
+    }
+
+    .trash-page .trash-table caption {
+        padding: 12px 16px;
+        text-align: start;
+    }
+
+    .trash-page .trash-table th,
+    .trash-page .trash-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #ddd;
+        text-align: start;
+        vertical-align: top;
+    }
+
+    .trash-page .trash-table thead th {
+        background: #1c1c1a;
+        color: #fff;
+        font-weight: 800;
+    }
+
+    .trash-page .trash-table tbody tr:nth-child(even) {
+        background: #f9f9f9;
+    }
+
+    .trash-page .trash-table tbody tr:hover {
+        background: #f5f5f5;
+    }
+
+    .trash-page .trash-pagination {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 16px;
+    }
+
+    .trash-page .trash-table .trash-request td {
+        border-top: 2px solid #ddd;
+        background: #f3f3f3;
+        font-weight: 700;
+    }
+
+    .trash-page .trash-badge.text-bg-success {
+        background: #e8f5e9;
+        color: #1b5e20;
+    }
+
+    .trash-page .trash-badge.text-bg-warning {
+        background: #fff3cd;
+        color: #664d03;
+    }
+
+    .trash-page .trash-badge.text-bg-danger {
+        background: #ffebee;
+        color: #b71c1c;
+    }
+    </style>
+    <div class="admin-list-gutters">
+    <div class="trash-page admin-list-container">
+    <h1 class="trash-title">Historique administratif</h1>
+    <section class="trash-card">
+        <p><a class="trash-action" href="{{ path('admin.audio_library.trash.show', destination) }}">Retour au détail de l’opération</a></p>
         <p>Opération <code>{{ operationId }}</code></p>
         {% if error %}
-            <p role="alert">{{ error }}</p>
+            <p class="trash-message" role="alert">{{ error }}</p>
         {% elseif history.rows is empty %}
-            <p>{{ hasCursor ? 'Aucun événement sur cette page.' : 'Aucun événement administratif enregistré pour cette opération.' }}</p>
+            <p class="trash-message">{{ hasCursor ? 'Aucun événement sur cette page.' : 'Aucun événement administratif enregistré pour cette opération.' }}</p>
         {% else %}
-            <div class="table-responsive">
-                <table class="table">
+            <div class="trash-table-scroll" role="region" aria-label="Événements administratifs de corbeille MP3" tabindex="0">
+                <table class="trash-table">
                     <caption>Événements enregistrés, du plus récent au plus ancien.</caption>
                     <thead>
                         <tr>
@@ -56,14 +220,14 @@
                         {% set previousRequest = null %}
                         {% for event in history.rows %}
                             {% if previousRequest != event.request_id %}
-                                <tr class="table-light"><td colspan="9">Demande <code>{{ event.request_id }}</code></td></tr>
+                                <tr class="trash-request"><td colspan="9">Demande <code>{{ event.request_id }}</code></td></tr>
                             {% endif %}
                             {% set previousRequest = event.request_id %}
                             {% set type = eventTypes[event.event_type] ?? [event.event_type, 'text-bg-secondary'] %}
                             <tr>
                                 <th scope="row">#{{ event.id }}</th>
                                 <td><time datetime="{{ event.recorded_at|date('c', 'Europe/Paris') }}">{{ event.recorded_at|date('d/m/Y H:i:s', 'Europe/Paris') }}</time></td>
-                                <td><span class="badge {{ type[1] }}">{{ type[0] }}</span></td>
+                                <td><span class="trash-badge {{ type[1] }}">{{ type[0] }}</span></td>
                                 <td>{{ actions[event.action] ?? event.action }}</td>
                                 <td>{{ event.actor_name ?? 'Compte introuvable' }} <small>(#{{ event.actor_id }})</small></td>
                                 <td>{{ phases[event.expected_phase] ?? event.expected_phase }}</td>
@@ -77,11 +241,13 @@
             </div>
         {% endif %}
         {% if history is not null and (hasCursor or history.newer or history.older) %}
-            <nav aria-label="Pages de l’historique administratif" class="d-flex gap-3">
-                {% if history.newer %}<a href="{{ path('admin.audio_library.trash.history', destination|merge({after: history.newer})) }}">Plus récents</a>{% endif %}
-                {% if history.older %}<a href="{{ path('admin.audio_library.trash.history', destination|merge({before: history.older})) }}">Plus anciens</a>{% endif %}
-                {% if hasCursor %}<a href="{{ path('admin.audio_library.trash.history', destination) }}">Première page</a>{% endif %}
+            <nav aria-label="Pages de l’historique administratif" class="trash-pagination">
+                {% if history.newer %}<a class="trash-action" href="{{ path('admin.audio_library.trash.history', destination|merge({after: history.newer})) }}">Plus récents</a>{% endif %}
+                {% if history.older %}<a class="trash-action" href="{{ path('admin.audio_library.trash.history', destination|merge({before: history.older})) }}">Plus anciens</a>{% endif %}
+                {% if hasCursor %}<a class="trash-action" href="{{ path('admin.audio_library.trash.history', destination) }}">Première page</a>{% endif %}
             </nav>
         {% endif %}
     </section>
+    </div>
+    </div>
 {% endblock %}

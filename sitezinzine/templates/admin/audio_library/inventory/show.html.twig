@@ -1,29 +1,204 @@
 {% extends 'admin/admin.html.twig' %}
 {% block title %}Inventaire MP3 — {{ summary.inventory_id }}{% endblock %}
 {% block body %}
-<h1>Inventaire MP3</h1>
-<section class="bg-white p-3">
-    <p><a href="{{ path('admin.audio_library.inventory.index', {profile: profile}) }}">Retour aux inventaires</a></p>
-    <div role="alert">Inventaire non certifié — aucune conclusion d'absence autorisée.</div>
+<style>
+    .inventory-page {
+        margin-block: 24px;
+        padding-bottom: 24px;
+        font-family: "Montserrat Alternates", sans-serif;
+        overflow-wrap: anywhere;
+    }
+
+    .inventory-page .inventory-title {
+        margin: 0 0 24px;
+        font-size: 2rem;
+        line-height: 1.2;
+        text-align: start;
+    }
+
+    .inventory-page .inventory-card {
+        padding: 24px;
+        background: #fff;
+        color: #1c1c1a;
+        border-radius: 14px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10);
+    }
+
+    .inventory-page .inventory-back {
+        margin: 0 0 16px;
+    }
+
+    .inventory-page .inventory-overview p,
+    .inventory-page .inventory-diagnostics p {
+        margin-block: 8px;
+    }
+
+    .inventory-page .inventory-diagnostics {
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid #ddd;
+    }
+
+    .inventory-page .inventory-card + .inventory-card {
+        margin-top: 16px;
+    }
+
+    .inventory-page h2 {
+        margin: 0 0 14px;
+        font-size: 1.25rem;
+        text-align: start;
+    }
+
+    .inventory-page .inventory-message {
+        padding: 14px 16px;
+        margin-block: 0 16px;
+        border-radius: 10px;
+        background: #f3f3f3;
+        color: #333;
+    }
+
+    .inventory-page .inventory-message[role="alert"] {
+        background: #ffebee;
+        color: #b71c1c;
+    }
+
+    .inventory-page .inventory-action {
+        display: inline-block;
+        box-sizing: border-box;
+        max-width: 100%;
+        padding: 8px 12px;
+        border: 0;
+        border-radius: 999px;
+        background: #222;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .inventory-page .inventory-action:hover {
+        background: #000;
+    }
+
+    .inventory-page :focus-visible {
+        outline: 2px solid #E4013A;
+        outline-offset: 2px;
+    }
+
+    @media (max-width: 768px) {
+        .inventory-page {
+            margin-block: 20px;
+            padding-bottom: 20px;
+        }
+
+        .inventory-page .inventory-title {
+            font-size: 1.45rem;
+            text-align: center;
+        }
+
+        .inventory-page .inventory-card {
+            padding: 16px;
+        }
+    }
+
+    .inventory-page {
+        --admin-width-list: var(--admin-width-list-wide);
+    }
+
+    .inventory-page .inventory-table-scroll {
+        overflow-x: auto;
+        margin-block: 1rem;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.10);
+    }
+
+    .inventory-page .inventory-table-scroll:focus-visible {
+        outline-offset: -2px;
+    }
+
+    .inventory-page .inventory-table {
+        width: 100%;
+        min-width: 640px;
+        table-layout: fixed;
+        border-collapse: collapse;
+    }
+
+    .inventory-page .inventory-table th,
+    .inventory-page .inventory-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+        vertical-align: top;
+    }
+
+    .inventory-page .inventory-table th {
+        background: #1c1c1a;
+        color: #fff;
+        font-weight: 800;
+    }
+
+    .inventory-page .inventory-table tbody tr:nth-child(even) {
+        background: #f9f9f9;
+    }
+
+    .inventory-page .inventory-table tbody tr:hover {
+        background: #f5f5f5;
+    }
+
+    .inventory-page .inventory-table ul {
+        margin: 0;
+        padding-inline-start: 1.25rem;
+    }
+
+    .inventory-page .inventory-classification {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #f3f3f3;
+        font-weight: 700;
+    }
+
+    .inventory-page .inventory-pagination {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 16px;
+    }
+</style>
+<div class="admin-list-gutters">
+<div class="inventory-page admin-list-container">
+    <header><h1 class="inventory-title">Inventaire MP3</h1></header>
+<section class="inventory-card">
+    <p class="inventory-back"><a class="inventory-action" href="{{ path('admin.audio_library.inventory.index', {profile: profile}) }}">Retour aux inventaires</a></p>
+    <div class="inventory-message" role="alert">Inventaire non certifié — aucune conclusion d'absence autorisée.</div>
     <p>Aucune action de suppression ou de modification. Un orphelin potentiel n'est pas un fichier à supprimer.</p>
+    <div class="inventory-overview">
     <h2>{{ summary.inventory_id }}</h2>
     <p>Profil : {{ profile }} — {{ summary.date }} — {{ summary.scope }} — {{ summary.mode }}</p>
     <p>{{ summary.result_count }} résultats ; {{ summary.physical_paths }} chemins physiques ; {{ summary.referenced_paths }} chemins référencés ; {{ summary.association_count }} associations.</p>
     <p>Références complètes : {{ summary.references_complete ? 'oui' : 'non' }} ; collecte physique sans erreur : {{ summary.physical_complete ? 'oui' : 'non' }}. Ces indicateurs ne certifient ni le volume ni sa complétude.</p>
     <ul>{% for class in summary.classes %}<li>{{ class.label }} : {{ class.count }}</li>{% endfor %}</ul>
+    </div>
+    <section class="inventory-diagnostics">
     <h2>Diagnostics de préparation</h2>
     <ul>
         {% for diagnostic in diagnostics.physical %}<li>{{ diagnostic.path }} : {{ diagnostic.reason }}</li>{% endfor %}
         {% for diagnostic in diagnostics.sql %}<li>URL locale incertaine{% if diagnostic.emission_id %} — <a href="{{ path('admin.emission.show', {id: diagnostic.emission_id}) }}">Émission #{{ diagnostic.emission_id }}</a>{% endif %} : {{ diagnostic.reason }}</li>{% endfor %}
     </ul>
     <p>{{ diagnostics.secondary_count }} erreurs secondaires enregistrées. Les messages techniques bruts ne sont pas affichés.</p>
-    <h2>Résultats</h2>
-    {% if results is empty %}<p>Aucun résultat.</p>{% else %}
+    </section>
+</section>
+<section class="inventory-card">
+    <h2 id="inventory-results">Résultats</h2>
+    {% if results is empty %}<p class="inventory-message">Aucun résultat.</p>{% else %}
         <p>Page {{ page }} sur {{ page_count }}</p>
-        <div class="table-responsive"><table class="table">
-            <thead><tr><th>Chemin relatif</th><th>Classification</th><th>Observation</th><th>Associations conservées</th></tr></thead>
+        <div class="inventory-table-scroll" role="region" aria-labelledby="inventory-results" tabindex="0">
+            <table class="inventory-table">
+            <thead><tr><th scope="col">Chemin relatif</th><th scope="col">Classification</th><th scope="col">Observation</th><th scope="col">Associations conservées</th></tr></thead>
             <tbody>{% for result in results %}<tr>
-                <td><code>{{ result.relative_path }}</code></td><td>{{ result.classification }}</td><td>{{ result.presence }}</td>
+                <td><code>{{ result.relative_path }}</code></td><td><span class="inventory-classification">{{ result.classification }}</span></td><td>{{ result.presence }}</td>
                 <td><ul>{% for association in result.associations %}<li>
                     {% if association.emission_id %}<a href="{{ path('admin.emission.show', {id: association.emission_id}) }}">Émission #{{ association.emission_id }}</a>{% else %}Association invalide{% endif %}
                     — {{ association.origin }}{% if association.thumbnail_missing %} — référence thumbnail manquante{% endif %}
@@ -31,9 +206,11 @@
             </tr>{% endfor %}</tbody>
         </table></div>
     {% endif %}
-    <nav aria-label="Pages du rapport">
-        {% if previous %}<a href="{{ path('admin.audio_library.inventory.show', {profile: profile, inventoryId: summary.inventory_id, page: previous}) }}">Précédent</a>{% endif %}
-        {% if next %}<a href="{{ path('admin.audio_library.inventory.show', {profile: profile, inventoryId: summary.inventory_id, page: next}) }}">Suivant</a>{% endif %}
+    <nav class="inventory-pagination" aria-label="Pages du rapport">
+        {% if previous %}<a class="inventory-action" href="{{ path('admin.audio_library.inventory.show', {profile: profile, inventoryId: summary.inventory_id, page: previous}) }}">Précédent</a>{% endif %}
+        {% if next %}<a class="inventory-action" href="{{ path('admin.audio_library.inventory.show', {profile: profile, inventoryId: summary.inventory_id, page: next}) }}">Suivant</a>{% endif %}
     </nav>
 </section>
+</div>
+</div>
 {% endblock %}

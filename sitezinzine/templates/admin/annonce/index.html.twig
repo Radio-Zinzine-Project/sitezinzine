@@ -45,11 +45,7 @@
     align-items: center;
     justify-content: center;
 
-    width: 100%;
-    max-width: 1200px;
-
-    margin: 0 auto;
-    padding: 55px 20px 70px;
+    padding-block: 55px 70px;
 
     text-align: center;
 }
@@ -90,7 +86,7 @@
     max-width: 100%;
     min-width: 0;
 
-    padding: 25px 20px 50px;
+    padding-block: 25px 50px;
 
     background: white;
 }
@@ -106,11 +102,8 @@
 
     gap: 24px;
 
-    width: 100%;
-    max-width: 1400px;
+    --admin-width-list: var(--admin-width-list-wide);
     min-width: 0;
-
-    margin: 0 auto;
     padding: 0;
 }
 
@@ -699,7 +692,7 @@
     .annonce-list {
         grid-template-columns: minmax(0, 1fr);
 
-        max-width: 1000px;
+        --admin-width-list: 1000px;
     }
 
     .annonce-card {
@@ -725,10 +718,7 @@
 @media screen and (max-width: 768px) {
 
     .annonce-hero__content {
-        padding:
-            45px
-            20px
-            60px;
+        padding-block: 45px 60px;
     }
 
     .annonce-hero h1 {
@@ -736,10 +726,7 @@
     }
 
     .annonce-content-wrapper {
-        padding:
-            25px
-            16px
-            45px;
+        padding-block: 25px 45px;
     }
 
     .annonce-card {
@@ -801,10 +788,7 @@
     }
 
     .annonce-hero__content {
-        padding:
-            38px
-            14px
-            52px;
+        padding-block: 38px 52px;
     }
 
     .annonce-hero h1 {
@@ -816,18 +800,11 @@
         max-width: 100%;
         min-width: 0;
 
-        padding:
-            22px
-            12px
-            40px;
+        padding-block: 22px 40px;
     }
 
     .annonce-list {
         grid-template-columns: minmax(0, 1fr);
-
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
 
         gap: 16px;
 
@@ -991,18 +968,8 @@
 
 @media screen and (max-width: 380px) {
 
-    .annonce-hero__content {
-        padding-left: 10px;
-        padding-right: 10px;
-    }
-
     .annonce-hero h1 {
         font-size: 25px;
-    }
-
-    .annonce-content-wrapper {
-        padding-left: 10px;
-        padding-right: 10px;
     }
 
     .annonce-card .annonce-actions {
@@ -1038,7 +1005,7 @@
             BANDEAU ROUGE
         ========================================================= #}
         <div class="annonce-hero">
-            <div class="annonce-hero__content">
+            <div class="annonce-hero__content admin-list-container admin-list-gutters">
                 <h1>
                     Validation des annonces
                 </h1>
@@ -1047,13 +1014,13 @@
             {# =========================================================
                 ZONE BLANCHE
             ========================================================= #}
-            <div class="annonce-content-wrapper">
+            <div class="annonce-content-wrapper admin-list-gutters">
                 {% if annonces.pageCount > 1 %}
                     <div class="annonce-pagination">
                         {{ knp_pagination_render(annonces) }}
                     </div>
                 {% endif %}
-                <article class="annonce-list">
+                <article class="annonce-list admin-list-container">
                     {% for annonce in annonces %}
                         {% set annonceEndDate = annonce.dateFin ?? annonce.dateDebut %}
                         {% set isFinished =

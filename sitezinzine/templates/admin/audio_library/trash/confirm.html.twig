@@ -19,14 +19,122 @@
         RESTAUREE: 'Restaurée',
         ANNULEE: 'Annulée'
     } %}
-    <h1>Confirmation administrative MP3</h1>
-    <section class="bg-white p-3">
-        <p><a href="{{ path('admin.audio_library.trash.show', filters|merge({operationId: operationId})) }}">Retour au détail de l’opération</a></p>
+    <style>
+    .trash-response {
+        --admin-content-width: 800px;
+        margin-block: 24px;
+        padding-bottom: 24px;
+        font-family: "Montserrat Alternates", sans-serif;
+        overflow-wrap: anywhere;
+    }
+
+    .trash-response .trash-response-title {
+        margin: 0 0 24px;
+        font-size: 2rem;
+        line-height: 1.2;
+        text-align: start;
+    }
+
+    .trash-response .trash-response-card {
+        padding: 24px;
+        border-radius: 14px;
+        background: #fff;
+        color: #1c1c1a;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10);
+    }
+
+    .trash-response p {
+        margin-block: 0 12px;
+    }
+
+    .trash-response .trash-response-notice {
+        padding: 14px 16px;
+        border-radius: 10px;
+        background: #fff3cd;
+        color: #664d03;
+        line-height: 1.4;
+    }
+
+    .trash-response .trash-response-link {
+        display: inline-block;
+        box-sizing: border-box;
+        max-width: 100%;
+        padding: 8px 12px;
+        border: 0;
+        border-radius: 999px;
+        background: #222;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .trash-response .trash-response-link:hover {
+        background: #000;
+    }
+
+    .trash-response :focus-visible {
+        outline: 2px solid #e4013a;
+        outline-offset: 2px;
+    }
+
+    @media (max-width: 768px) {
+        .trash-response {
+            margin-block: 20px;
+            padding-bottom: 20px;
+        }
+
+        .trash-response .trash-response-title {
+            font-size: 1.45rem;
+            text-align: center;
+        }
+
+        .trash-response .trash-response-card {
+            padding: 16px;
+        }
+    }
+
+    .trash-response h2 {
+        margin: 16px 0 12px;
+        font-size: 1.25rem;
+        text-align: start;
+    }
+
+    .trash-response .trash-response-context,
+    .trash-response .trash-response-effects {
+        margin-block: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #ddd;
+    }
+
+    .trash-response dt {
+        font-weight: 800;
+    }
+
+    .trash-response dd {
+        margin: 4px 0 12px;
+    }
+
+    .trash-response .trash-response-submit {
+        padding: 10px 18px;
+        background: #c62828;
+    }
+
+    .trash-response .trash-response-submit:hover {
+        background: #8e0000;
+    }
+    </style>
+    <div class="admin-content-gutters">
+    <div class="trash-response admin-content-container">
+    <h1 class="trash-response-title">Confirmation administrative MP3</h1>
+    <section class="trash-response-card">
+        <p><a class="trash-response-link" href="{{ path('admin.audio_library.trash.show', filters|merge({operationId: operationId})) }}">Retour au détail de l’opération</a></p>
         <h2>{{ actions[action][0] }}</h2>
         <p>Opération <code>{{ operationId }}</code></p>
-        {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+        {% if error %}<p class="trash-response-notice" role="alert">{{ error }}</p>{% endif %}
         {% if inspection %}
-            <dl>
+            <dl class="trash-response-context">
                 {% if action == 'restore' and inspection.journal.emission_id is defined %}<dt>Émission historique</dt><dd>#{{ inspection.journal.emission_id }}</dd>{% endif %}
                 <dt>Phase observée</dt><dd>{{ phases[inspection.journal.phase] ?? inspection.journal.phase }}</dd>
                 {% if inspection.journal.last_attempt_id is defined and inspection.journal.last_attempt_id is not null %}
@@ -40,17 +148,21 @@
                 {% endif %}
             </dl>
             {% if inspection.diagnostic.status == 'indeterminate' %}
-                <p role="alert">Inspection indéterminée. Les observations disponibles ne permettent pas de conclure.</p>
+                <p class="trash-response-notice" role="alert">Inspection indéterminée. Les observations disponibles ne permettent pas de conclure.</p>
             {% endif %}
-            <p>{{ actions[action][1] }}</p>
-            <p>Toute action exige une nouvelle vérification sous verrou.</p>
+            <div class="trash-response-effects">
+                <p>{{ actions[action][1] }}</p>
+                <p>Toute action exige une nouvelle vérification sous verrou.</p>
+            </div>
             {% if submission %}
                 <form method="post" action="{{ path(submissionRoute, filters|merge({operationId: operationId, action: action})) }}">
                     <input type="hidden" name="request_id" value="{{ submission.request_id }}">
                     <input type="hidden" name="_token" value="{{ submission.csrf_token }}">
-                    <button type="submit" class="btn btn-primary">{{ actions[action][0] }}</button>
+                    <button type="submit" class="trash-response-link trash-response-submit">{{ actions[action][0] }}</button>
                 </form>
             {% endif %}
         {% endif %}
     </section>
+    </div>
+    </div>
 {% endblock %}

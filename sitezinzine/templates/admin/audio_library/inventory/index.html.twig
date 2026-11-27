@@ -1,33 +1,150 @@
 {% extends 'admin/admin.html.twig' %}
 {% block title %}Inventaire MP3{% endblock %}
 {% block body %}
-<h1>Inventaire MP3</h1>
-<section class="bg-white p-3">
+<style>
+    .inventory-page {
+        margin-block: 24px;
+        padding-bottom: 24px;
+        font-family: "Montserrat Alternates", sans-serif;
+        overflow-wrap: anywhere;
+    }
+
+    .inventory-page .inventory-title {
+        margin: 0 0 24px;
+        font-size: 2rem;
+        line-height: 1.2;
+        text-align: start;
+    }
+
+    .inventory-page .inventory-card {
+        padding: 24px;
+        background: #fff;
+        color: #1c1c1a;
+        border-radius: 14px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10);
+    }
+
+    .inventory-page .inventory-card + .inventory-card {
+        margin-top: 16px;
+    }
+
+    .inventory-page h2 {
+        margin: 0 0 14px;
+        font-size: 1.25rem;
+        text-align: start;
+    }
+
+    .inventory-page .inventory-message {
+        padding: 14px 16px;
+        margin-block: 0 16px;
+        border-radius: 10px;
+        background: #f3f3f3;
+        color: #333;
+    }
+
+    .inventory-page .inventory-message[role="alert"] {
+        background: #ffebee;
+        color: #b71c1c;
+    }
+
+    .inventory-page .inventory-action {
+        display: inline-block;
+        box-sizing: border-box;
+        max-width: 100%;
+        padding: 8px 12px;
+        border: 0;
+        border-radius: 999px;
+        background: #222;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .inventory-page .inventory-action:hover {
+        background: #000;
+    }
+
+    .inventory-page :focus-visible {
+        outline: 2px solid #E4013A;
+        outline-offset: 2px;
+    }
+
+    @media (max-width: 768px) {
+        .inventory-page {
+            margin-block: 20px;
+            padding-bottom: 20px;
+        }
+
+        .inventory-page .inventory-title {
+            font-size: 1.45rem;
+            text-align: center;
+        }
+
+        .inventory-page .inventory-card {
+            padding: 16px;
+        }
+    }
+
+    .inventory-page .inventory-filter {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .inventory-page .inventory-filter label {
+        font-weight: 800;
+    }
+
+    .inventory-page .inventory-filter select {
+        box-sizing: border-box;
+        min-width: 0;
+        max-width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #fff;
+        font: inherit;
+    }
+
+    .inventory-page .inventory-report {
+        margin-block: 16px;
+        border: 1px solid #ddd;
+        box-shadow: none;
+    }
+</style>
+<div class="admin-list-gutters">
+<div class="inventory-page admin-list-container">
+    <header><h1 class="inventory-title">Inventaire MP3</h1></header>
+<section class="inventory-card">
     {% if error is defined %}
-        <p role="alert">{{ error }}</p>
+        <p class="inventory-message" role="alert">{{ error }}</p>
     {% elseif profiles is empty %}
-        <p>Aucun profil de consultation configuré.</p>
+        <p class="inventory-message">Aucun profil de consultation configuré.</p>
     {% else %}
-        <form method="get">
+        <form method="get" class="inventory-filter">
             <label for="inventory-profile">Profil autorisé</label>
             <select id="inventory-profile" name="profile">
                 {% for name in profiles %}<option value="{{ name }}" {% if name == profile %}selected{% endif %}>{{ name }}</option>{% endfor %}
             </select>
-            <button type="submit">Consulter</button>
+            <button type="submit" class="inventory-action">Consulter</button>
         </form>
         {% if discovery %}
-            {% if discovery.partial %}<p role="alert">Liste partielle : elle ne représente pas tous les rapports disponibles.</p>{% endif %}
-            {% if discovery.status == 'unavailable' %}<p role="alert">Stockage des rapports indisponible.</p>{% endif %}
+            {% if discovery.partial %}<p class="inventory-message" role="alert">Liste partielle : elle ne représente pas tous les rapports disponibles.</p>{% endif %}
+            {% if discovery.status == 'unavailable' %}<p class="inventory-message" role="alert">Stockage des rapports indisponible.</p>{% endif %}
             <p>{{ discovery.entries_examined }} entrées examinées ; {{ discovery.unpublished_count }} rapports provisoires ignorés.</p>
-            <div role="note">Inventaire non certifié — aucune conclusion d'absence autorisée. Aucun résultat ne constitue une permission de suppression.</div>
+            <div class="inventory-message" role="note">Inventaire non certifié — aucune conclusion d'absence autorisée. Aucun résultat ne constitue une permission de suppression.</div>
             {% for report in discovery.reports %}
-                <article class="border p-2 my-2">
-                    <h2><a href="{{ path('admin.audio_library.inventory.show', {profile: profile, inventoryId: report.inventory_id}) }}">{{ report.inventory_id }}</a></h2>
+                <article class="inventory-card inventory-report">
+                    <h2><a class="inventory-action" href="{{ path('admin.audio_library.inventory.show', {profile: profile, inventoryId: report.inventory_id}) }}">{{ report.inventory_id }}</a></h2>
                     <p>Profil : {{ profile }} — {{ report.date }} — {{ report.scope }} — {{ report.mode }}</p>
                     <p>{{ report.result_count }} résultats. Références complètes : {{ report.references_complete ? 'oui' : 'non' }} ; collecte physique sans erreur : {{ report.physical_complete ? 'oui' : 'non' }}.</p>
                     <ul>{% for class in report.classes %}<li>{{ class.label }} : {{ class.count }}</li>{% endfor %}</ul>
                 </article>
-            {% else %}<p>Aucun rapport publié valide dans les entrées examinées.</p>{% endfor %}
+            {% else %}<p class="inventory-message">Aucun rapport publié valide dans les entrées examinées.</p>{% endfor %}
             {% if discovery.anomalies %}
                 <h2>Anomalies de découverte</h2>
                 <ul>{% for anomaly in discovery.anomalies %}<li>{{ anomaly.inventory_id }} : {{ anomaly.status }} ({{ anomaly.reason }})</li>{% endfor %}</ul>
@@ -35,4 +152,6 @@
         {% endif %}
     {% endif %}
 </section>
+</div>
+</div>
 {% endblock %}

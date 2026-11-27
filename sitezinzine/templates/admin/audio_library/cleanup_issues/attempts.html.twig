@@ -1,19 +1,19 @@
-<section aria-labelledby="cleanup-attempts-title">
+<section class="cleanup-card" aria-labelledby="cleanup-attempts-title">
     <h2 id="cleanup-attempts-title">Tentatives de nettoyage</h2>
     {% if attemptNotFound %}
-        <p role="alert">Tentative introuvable pour cet incident.</p>
+        <p class="cleanup-message" role="alert">Tentative introuvable pour cet incident.</p>
     {% elseif cleanup is null %}
-        <p role="alert">Le journal des tentatives de nettoyage est indisponible.</p>
+        <p class="cleanup-message" role="alert">Le journal des tentatives de nettoyage est indisponible.</p>
     {% else %}
         {% set detailParameters = {issueId: issue.id} | merge(hasCursor ? {before: detailCursor, last: last} : {}) %}
         {% if cleanup.active is not null %}
-            <p role="alert">Une tentative en attente ou indéterminée bloque toute nouvelle demande.
-                <a href="{{ path('admin.audio_library.cleanup_issues.show', detailParameters | merge({attempt: cleanup.active})) }}">Consulter son diagnostic</a>.
+            <p class="cleanup-message" role="alert">Une tentative en attente ou indéterminée bloque toute nouvelle demande.
+                <a class="cleanup-action" href="{{ path('admin.audio_library.cleanup_issues.show', detailParameters | merge({attempt: cleanup.active})) }}">Consulter son diagnostic</a>.
             </p>
         {% endif %}
         {% if cleanup.diagnostic is not null %}
             {% set observation = cleanup.diagnostic.observation %}
-            <p><strong>Diagnostic consultatif</strong>
+            <p class="cleanup-diagnostic"><strong>Diagnostic consultatif</strong>
                 {{ observation is null ? 'Aucune observation supplémentaire pour cette tentative.' : (cleanupResults[observation] ?? 'Observation indéterminée.') }}
             </p>
         {% endif %}
@@ -21,14 +21,14 @@
             <p>Aucune tentative enregistrée.</p>
         {% else %}
             <p>Jusqu’aux 20 tentatives les plus récentes.</p>
-            <div class="table-responsive">
-                <table class="table">
+            <div class="cleanup-table-scroll cleanup-table-scroll--attempts" role="region" aria-label="Tentatives de nettoyage" tabindex="0">
+                <table class="cleanup-table">
                     <thead><tr><th scope="col">Demandée le</th><th scope="col">État</th><th scope="col">Résultat</th><th scope="col">Consultation</th></tr></thead>
                     <tbody>
                     {% for attempt in cleanup.attempts %}
                         <tr>
                             <td>{{ date(attempt.requested_at, 'UTC')|date('d/m/Y H:i:s', 'Europe/Paris') }}</td>
-                            <td>{{ attempt.state == 'pending' ? 'En attente' : (attempt.state == 'finished' ? 'Terminée' : 'Inconnu') }}</td>
+                            <td><span class="cleanup-badge">{{ attempt.state == 'pending' ? 'En attente' : (attempt.state == 'finished' ? 'Terminée' : 'Inconnu') }}</span></td>
                             <td>{{ cleanupResults[attempt.result_code ?? ''] ?? (attempt.state == 'pending' ? 'Résultat non confirmé.' : 'Résultat inconnu.') }}</td>
                             <td><a href="{{ path('admin.audio_library.cleanup_issues.show', detailParameters | merge({attempt: attempt.request_id})) }}">Diagnostic de la tentative</a></td>
                         </tr>
@@ -41,24 +41,26 @@
             <p>Le retrait est indisponible tant que les préfixes d’URL audio locaux n’ont pas été configurés.</p>
         {% endif %}
         {% if cleanupForm is not null %}
-            <form method="post" action="{{ path('admin.audio_library.cleanup_issues.cleanup', {issueId: issue.id}) }}">
+            <form class="cleanup-form" method="post" action="{{ path('admin.audio_library.cleanup_issues.cleanup', {issueId: issue.id}) }}">
+                <h3>Retrait définitif</h3>
                 <input type="hidden" name="request_id" value="{{ cleanupForm.request_id }}">
                 <input type="hidden" name="event_id" value="{{ cleanupForm.event_id }}">
                 <input type="hidden" name="_token" value="{{ csrf_token(cleanupForm.csrf_id) }}">
-                <label><input type="checkbox" name="confirmed" value="1" required>
-                    Je confirme le retrait définitif de l’ancien MP3 si les contrôles de sécurité l’autorisent.
+                <label class="cleanup-check"><input type="checkbox" name="confirmed" value="1" required>
+                    <span>Je confirme le retrait définitif de l’ancien MP3 si les contrôles de sécurité l’autorisent.</span>
                 </label>
-                <button type="submit" class="btn btn-danger">Demander le nettoyage</button>
+                <button type="submit" class="cleanup-action cleanup-action--danger">Demander le nettoyage</button>
             </form>
-            <form method="post" action="{{ path('admin.audio_library.cleanup_issues.close', {issueId: issue.id}) }}" class="mt-3">
+            <form class="cleanup-form" method="post" action="{{ path('admin.audio_library.cleanup_issues.close', {issueId: issue.id}) }}">
+                <h3>Clôture administrative</h3>
                 <input type="hidden" name="request_id" value="{{ cleanupForm.request_id }}">
                 <input type="hidden" name="event_id" value="{{ cleanupForm.event_id }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('mp3-cleanup-issue-close') }}">
                 <label>Motif de clôture <input type="text" name="reason" maxlength="500" required></label>
-                <label><input type="checkbox" name="confirmed" value="1" required>
-                    Je confirme la clôture si le sort du fichier est établi.
+                <label class="cleanup-check"><input type="checkbox" name="confirmed" value="1" required>
+                    <span>Je confirme la clôture si le sort du fichier est établi.</span>
                 </label>
-                <button type="submit" class="btn btn-secondary">Clôturer l’incident</button>
+                <button type="submit" class="cleanup-action">Clôturer l’incident</button>
             </form>
         {% endif %}
     {% endif %}

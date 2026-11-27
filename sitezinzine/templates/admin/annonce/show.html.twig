@@ -19,7 +19,7 @@
 .annonce-show-page {
     width: 100%;
     min-width: 0;
-    padding: 40px 20px 60px;
+    padding-block: 40px 60px;
 
     font-family: "Montserrat", sans-serif;
 }
@@ -30,10 +30,9 @@
    ========================================================= */
 
 .annonce-show-container {
-    width: min(100%, 800px);
+    --admin-content-width: 800px;
     min-width: 0;
-
-    margin: 0 auto;
+    overflow-wrap: anywhere;
     padding: 24px;
 
     background: #f9f9f9;
@@ -378,10 +377,7 @@
 @media screen and (max-width: 768px) {
 
     .annonce-show-page {
-        padding:
-            30px
-            16px
-            45px;
+        padding-block: 30px 45px;
     }
 
     .annonce-show-container {
@@ -413,10 +409,7 @@
 @media screen and (max-width: 560px) {
 
     .annonce-show-page {
-        padding:
-            20px
-            12px
-            35px;
+        padding-block: 20px 35px;
     }
 
     .annonce-show-container {
@@ -521,9 +514,9 @@
 </style>
 
 
-<div class="annonce-show-page">
+<div class="annonce-show-page admin-content-gutters">
 
-    <article class="annonce-show-container">
+    <article class="annonce-show-container admin-content-container">
 
         {# =====================================================
            IMAGE

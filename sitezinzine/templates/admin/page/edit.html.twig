@@ -15,7 +15,6 @@
    on protège TinyMCE des styles généraux.
    ========================================================= */
 
-.main-content .page-form,
 .main-content .page-form *:not(.tox):not(.tox *) {
     box-sizing: border-box;
 }
@@ -49,16 +48,9 @@
    ========================================================= */
 
 .main-content .page-form {
-    /*
-     * Desktop :
-     * on exploite presque toute la largeur disponible,
-     * tout en conservant une limite confortable pour
-     * les très grands écrans.
-     */
-    width: calc(100% - 36px);
-    max-width: 1280px;
+    --admin-content-width: var(--admin-width-editorial-form);
 
-    margin: 18px auto 28px;
+    margin-block: 18px 28px;
     padding: 20px 24px;
 
     background: #fff;
@@ -294,7 +286,7 @@
 
     grid-template-columns:
         minmax(0, 1fr)
-        auto;
+        fit-content(50%);
 
     gap: 16px;
 
@@ -410,6 +402,12 @@
 /* =========================================================
    ERREURS
    ========================================================= */
+
+.main-content .page-form .form-errors,
+.main-content .page-form .field ul,
+.main-content .page-form .tinymce-wrap > div > ul {
+    overflow-wrap: anywhere;
+}
 
 .main-content .page-form .form-errors {
     padding: 10px 12px;
@@ -528,17 +526,8 @@
 
 @media screen and (max-width: 960px) {
 
-    /*
-     * Important :
-     * on annule explicitement la largeur desktop afin
-     * de conserver exactement le comportement responsive
-     * déjà validé.
-     */
     .main-content .page-form {
-        width: auto;
-        max-width: none;
-
-        margin: 14px 12px 22px;
+        margin-block: 14px 22px;
         padding: 14px 12px;
     }
 
@@ -565,7 +554,7 @@
 @media screen and (max-width: 600px) {
 
     .main-content .page-form {
-        margin: 12px 10px 18px;
+        margin-block: 12px 18px;
 
         padding: 13px 11px;
     }
@@ -619,7 +608,7 @@
 @media screen and (max-width: 420px) {
 
     .main-content .page-form {
-        margin: 10px 8px 16px;
+        margin-block: 10px 16px;
 
         padding: 12px 10px;
 
@@ -652,9 +641,6 @@
 @media screen and (max-width: 350px) {
 
     .main-content .page-form {
-        margin-left: 6px;
-        margin-right: 6px;
-
         padding-left: 8px;
         padding-right: 8px;
     }
@@ -672,7 +658,7 @@
 @media screen and (max-height: 520px) and (orientation: landscape) {
 
     .main-content .page-form {
-        margin: 10px 12px 14px;
+        margin-block: 10px 14px;
 
         padding: 12px;
     }
@@ -690,7 +676,8 @@
 </style>
 
 
-<div class="page-form">
+<div class="admin-content-gutters">
+<div class="page-form admin-content-container">
 
     <h1>
         Modifier {{ page.title }}
@@ -869,6 +856,7 @@
 
     {{ form_end(form) }}
 
+</div>
 </div>
 
 {% endblock %}

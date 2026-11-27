@@ -10,13 +10,11 @@
        ========================================================= */
 
     .evenement-container {
-        width: calc(100% - 40px);
-        max-width: 800px;
-
-        margin: 40px auto;
+        --admin-content-width: 800px;
+        margin-block: 40px;
+        overflow-wrap: anywhere;
         padding: 25px;
 
-        box-sizing: border-box;
 
         background: #f9f9f9;
         color: #1C1C1A;
@@ -347,9 +345,7 @@
     @media screen and (max-width: 768px) {
 
         .evenement-container {
-            width: calc(100% - 30px);
-
-            margin: 25px auto;
+            margin-block: 25px;
             padding: 20px;
         }
 
@@ -380,9 +376,7 @@
     @media screen and (max-width: 500px) {
 
         .evenement-container {
-            width: calc(100% - 20px);
-
-            margin: 15px auto;
+            margin-block: 15px;
             padding: 15px;
         }
 
@@ -432,7 +426,8 @@
         }
     }
 </style>
-    <div class="evenement-container">
+    <div class="admin-content-gutters">
+    <div class="evenement-container admin-content-container">
         {# =========================================================
             IMAGE
         ========================================================= #}
@@ -613,6 +608,7 @@
                         </form>
                     </div>
                 </div>
+    </div>
                 {# =============================================================
                     MODAL IMAGE
                 ============================================================= #}

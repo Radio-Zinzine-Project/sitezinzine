@@ -6,10 +6,16 @@ namespace App\Tests\Service;
 
 use App\Entity\Categories;
 use App\Entity\Diffusion;
+use App\Entity\DiffusionDraft;
 use App\Entity\Emission;
+use App\Entity\GridSlotArbitration;
+use App\Entity\ProgrammationRuleSlot;
+use App\Repository\DiffusionDraftRepository;
 use App\Repository\DiffusionRepository;
+use App\Repository\GridSlotArbitrationRepository;
 use App\Service\GridOccurrenceProjectionService;
 use App\Service\ProgrammationGridBuilder;
+use App\Service\PublicDailyScheduleBuilder;
 use App\Service\PublicScheduleBuilder;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -39,7 +45,8 @@ final class PublicScheduleBuilderTest extends TestCase
         $this->builder = new PublicScheduleBuilder(
             $this->diffusionRepository,
             $this->programmationGridBuilder,
-            $this->projectionService
+            $this->projectionService,
+            $this->createMock(DiffusionDraftRepository::class)
         );
     }
 
@@ -557,6 +564,310 @@ final class PublicScheduleBuilderTest extends TestCase
             '2026-09-14 23:00:00',
             $result['days'][6]['items'][0]['startsAt']
                 ->format('Y-m-d H:i:s')
+        );
+    }
+
+    public function testPublishedDraftLinkWinsWhenTheRegularStartHasDrifted(): void
+    {
+        [$builder, $diffusion] = $this->scheduleWithDriftedRegularStart();
+        $week = $builder->build(new \DateTimeImmutable('2026-09-08', new \DateTimeZone('Europe/Paris')));
+        $items = $week['days'][0]['items'];
+
+        self::assertSame([
+            ['diffusion', true, $diffusion->getId(), '09:45:00', '10:30:00'],
+        ], array_map(static fn (array $item): array => [
+            $item['type'], $item['isRegular'], $item['diffusion']?->getId(),
+            $item['startsAt']->format('H:i:s'), $item['endsAt']->format('H:i:s'),
+        ], $items));
+        self::assertSame($diffusion->getEmission(), $items[0]['emission']);
+    }
+
+    public function testPublishedDraftLinkSurvivesAChangeToThePublishedRank(): void
+    {
+        $slot = new ProgrammationRuleSlot();
+        (new \ReflectionProperty($slot, 'id'))->setValue($slot, 31);
+        $published = $this->publishedDiffusion(101, '10:00');
+        $draft = $this->publishedDraft($slot, $published);
+        $published->setNombreDiffusion(2);
+        $segments = $this->emptyWeek();
+        $segments[0][] = $this->createRegularSegment(
+            '2026-09-08 10:00:00', '2026-09-08 10:30:00', new Categories()
+        ) + ['slotId' => 31];
+        $builder = $this->scheduleWithPublishedFixtures($segments, [$published], [$draft]);
+
+        $items = $builder->build(new \DateTimeImmutable('2026-09-08 Europe/Paris'))['days'][0]['items'];
+
+        self::assertSame(['diffusion'], array_column($items, 'type'));
+        self::assertTrue($items[0]['isRegular']);
+        self::assertSame($published, $items[0]['diffusion']);
+        self::assertSame($published->getEmission(), $items[0]['emission']);
+        self::assertSame('2026-09-08 10:00:00', $items[0]['startsAt']->format('Y-m-d H:i:s'));
+        self::assertSame('2026-09-08 10:30:00', $items[0]['endsAt']->format('Y-m-d H:i:s'));
+        self::assertSame(2, $published->getNombreDiffusion());
+        self::assertSame(1, $draft->getNombreDiffusion());
+    }
+
+    public function testAWeeklyOccurrenceMovedOntoTheNextOccurrenceOfTheSameSlotIsAmbiguous(): void
+    {
+        $slot = new ProgrammationRuleSlot();
+        (new \ReflectionProperty($slot, 'id'))->setValue($slot, 31);
+        $published = $this->publishedDiffusion(101, '10:00');
+        $draft = $this->publishedDraft($slot, $published);
+        $segments = $this->emptyWeek();
+        $segments[0][] = $this->createRegularSegment('2026-09-08 10:00:00', '2026-09-08 10:30:00', new Categories())
+            + ['slotId' => 31];
+        $arbitration = (new GridSlotArbitration())
+            ->setSlot($slot)
+            ->setOriginalStartsAt(new \DateTimeImmutable('2026-09-01 10:00:00 Europe/Paris'))
+            ->setOriginalEndsAt(new \DateTimeImmutable('2026-09-01 10:30:00 Europe/Paris'))
+            ->setRescheduledStartsAt(new \DateTimeImmutable('2026-09-08 10:00:00 Europe/Paris'))
+            ->setRescheduledEndsAt(new \DateTimeImmutable('2026-09-08 10:30:00 Europe/Paris'))
+            ->setAction(GridSlotArbitration::ACTION_RESCHEDULE_CUSTOM);
+        $arbitration->markResolved();
+        $builder = $this->scheduleWithPublishedFixtures($segments, [$published], [$draft], [$arbitration]);
+
+        $items = $builder->build(new \DateTimeImmutable('2026-09-08 Europe/Paris'))['days'][0]['items'];
+        $diffusions = array_values(array_filter($items, static fn (array $item): bool => $item['type'] === 'diffusion'));
+        $fallbacks = array_values(array_filter($items, static fn (array $item): bool => $item['type'] === 'empty_regular'));
+
+        self::assertCount(3, $items);
+        self::assertCount(1, $diffusions);
+        self::assertSame($published, $diffusions[0]['diffusion']);
+        self::assertFalse($diffusions[0]['isRegular']);
+        self::assertCount(2, $fallbacks);
+        self::assertSame([null, null], array_column($fallbacks, 'diffusion'));
+        self::assertSame(['10:00', '10:00'], array_map(
+            static fn (array $item): string => $item['startsAt']->format('H:i'),
+            $fallbacks,
+        ));
+    }
+
+    public function testCarouselKeepsThePublishedEmissionCurrentDespiteTheDrift(): void
+    {
+        [$builder, $diffusion] = $this->scheduleWithDriftedRegularStart();
+        $day = (new PublicDailyScheduleBuilder($builder))->build(
+            new \DateTimeImmutable('2026-09-08 00:00:00 Europe/Paris'),
+            new \DateTimeImmutable('2026-09-08 10:05:00 Europe/Paris'),
+        );
+
+        self::assertSame([
+            'currentTypes' => ['diffusion'],
+            'activeTitle' => $diffusion->getEmission()->getTitre(),
+        ], [
+            'currentTypes' => array_column(array_filter(
+                $day['items'], static fn (array $item): bool => $item['isCurrent'],
+            ), 'type'),
+            'activeTitle' => $day['items'][$day['activeIndex']]['emission']?->getTitre(),
+        ]);
+    }
+
+    public function testPublishedDiffusionsAtTheSameTimeAreBothKept(): void
+    {
+        $first = $this->publishedDiffusion(101, '10:00');
+        $second = $this->publishedDiffusion(102, '10:00');
+        $builder = $this->scheduleWithPublishedFixtures($this->emptyWeek(), [$first, $second], []);
+        $week = $builder->build(new \DateTimeImmutable('2026-09-08 Europe/Paris'));
+
+        self::assertEqualsCanonicalizing([101, 102], array_map(
+            static fn (array $item): ?int => $item['diffusion']?->getId(),
+            $week['days'][0]['items'],
+        ));
+        self::assertSame([false, false], array_column($week['days'][0]['items'], 'isRegular'));
+    }
+
+    /** @dataProvider rescheduledDraftTimes */
+    public function testRescheduledPublishedRebroadcastDoesNotFillAnotherSlotAtItsDestination(string $draftTime): void
+    {
+        $slot = new ProgrammationRuleSlot();
+        (new \ReflectionProperty($slot, 'id'))->setValue($slot, 31);
+        $slot->setBroadcastRank(2);
+        $published = $this->publishedDiffusion(103, '10:00')->setNombreDiffusion(2)
+            ->setAssignmentGroupKey('regular-group');
+        $draft = $this->publishedDraft($slot, $published);
+        $draft->setSchedule(new \DateTimeImmutable("2026-09-08 $draftTime Europe/Paris"), 30);
+        $otherCategory = (new Categories())->setTitre('Créneau indépendant');
+        $rebroadcastCategory = (new Categories())->setTitre('Créneau de la rediffusion');
+        $published->getEmission()->setCategorie($rebroadcastCategory);
+        $segments = $this->emptyWeek();
+        $segments[0] = [
+            $this->createRegularSegment('2026-09-08 10:00:00', '2026-09-08 10:30:00', $otherCategory) + ['slotId' => 32],
+            $this->createRegularSegment('2026-09-08 12:00:00', '2026-09-08 12:30:00', $rebroadcastCategory)
+                + ['slotId' => 31, 'broadcastRank' => 2],
+        ];
+        $arbitration = (new GridSlotArbitration())
+            ->setSlot($slot)
+            ->setOriginalStartsAt(new \DateTimeImmutable('2026-09-08 12:00:00 Europe/Paris'))
+            ->setOriginalEndsAt(new \DateTimeImmutable('2026-09-08 12:30:00 Europe/Paris'))
+            ->setRescheduledStartsAt(new \DateTimeImmutable('2026-09-08 10:00:00 Europe/Paris'))
+            ->setRescheduledEndsAt(new \DateTimeImmutable('2026-09-08 10:30:00 Europe/Paris'))
+            ->setAction(GridSlotArbitration::ACTION_RESCHEDULE_CUSTOM);
+        $arbitration->markResolved();
+
+        $builder = $this->scheduleWithPublishedFixtures($segments, [$published], [$draft], [$arbitration]);
+        $items = $builder->build(new \DateTimeImmutable('2026-09-08 Europe/Paris'))['days'][0]['items'];
+        self::assertCount(2, $items);
+        self::assertSame(['10:00', '10:00'], array_map(static fn (array $item): string => $item['startsAt']->format('H:i'), $items));
+        $byType = array_column($items, null, 'type');
+        self::assertSame($published, $byType['diffusion']['diffusion']);
+        self::assertTrue($byType['diffusion']['isRegular']);
+        self::assertSame('Créneau indépendant', $byType['empty_regular']['category']->getTitre());
+    }
+
+    public static function rescheduledDraftTimes(): iterable
+    {
+        yield 'projected time' => ['10:00'];
+        yield 'original time' => ['12:00'];
+    }
+
+    /** @dataProvider fallbackTimezones */
+    public function testFallbackAndPublishedDiffusionUseTheSameParisInstants(
+        string $defaultTimezone,
+        string $date,
+        string $offset,
+    ): void {
+        $previousTimezone = date_default_timezone_get();
+        date_default_timezone_set($defaultTimezone);
+        try {
+            $start = new \DateTimeImmutable("$date 10:00:00 Europe/Paris");
+            $published = (new Diffusion())->setEmission(new Emission())->setNombreDiffusion(1)->setSchedule($start, 30);
+            // Leave both entries visible without relying on their order.
+            $segments = $this->emptyWeek();
+            $segments[0][] = $this->createRegularSegment("$date 10:00:00", "$date 10:30:00", new Categories()) + ['slotId' => 31];
+            $slot = new ProgrammationRuleSlot();
+            (new \ReflectionProperty($slot, 'id'))->setValue($slot, 31);
+            (new \ReflectionProperty($published, 'id'))->setValue($published, 101);
+            $draft = $this->publishedDraft($slot, $published)->setDeletedAt($start);
+            $builder = $this->scheduleWithPublishedFixtures($segments, [$published], [$draft]);
+
+            $items = $builder->build($start)['days'][0]['items'];
+            self::assertCount(2, $items);
+            $byType = array_column($items, null, 'type');
+            $fallback = $byType['empty_regular'];
+            $diffusion = $byType['diffusion'];
+            self::assertSame("$date 10:00:00 $offset Europe/Paris", $fallback['startsAt']->format('Y-m-d H:i:s P e'));
+            self::assertSame("$date 10:30:00 $offset Europe/Paris", $fallback['endsAt']->format('Y-m-d H:i:s P e'));
+            self::assertSame($diffusion['startsAt']->getTimestamp(), $fallback['startsAt']->getTimestamp());
+            self::assertSame($diffusion['endsAt']->getTimestamp(), $fallback['endsAt']->getTimestamp());
+        } finally {
+            date_default_timezone_set($previousTimezone);
+        }
+    }
+
+    public static function fallbackTimezones(): iterable
+    {
+        foreach (['UTC', 'Europe/Paris'] as $timezone) {
+            yield "$timezone summer" => [$timezone, '2026-09-08', '+02:00'];
+            yield "$timezone winter" => [$timezone, '2026-01-13', '+01:00'];
+        }
+    }
+
+    public function testAmbiguousHistoricalTimeDoesNotAssignTheDiffusionToEitherSlot(): void
+    {
+        $segments = $this->emptyWeek();
+        $segment = $this->createRegularSegment('2026-09-08 10:00:00', '2026-09-08 10:30:00', null);
+        $segments[0] = [$segment + ['slotId' => 31], $segment + ['slotId' => 32]];
+        $published = $this->publishedDiffusion(101, '10:00');
+        $builder = $this->scheduleWithPublishedFixtures($segments, [$published], []);
+
+        $items = $builder->build(new \DateTimeImmutable('2026-09-08 Europe/Paris'))['days'][0]['items'];
+        self::assertEqualsCanonicalizing(['empty_regular', 'empty_regular', 'diffusion'], array_column($items, 'type'));
+        $diffusion = array_column($items, null, 'type')['diffusion'];
+        self::assertFalse($diffusion['isRegular']);
+        self::assertSame($published, $diffusion['diffusion']);
+    }
+
+    public function testDeletedDraftCannotPromoteItsDiffusionByHistoricalTime(): void
+    {
+        $slot = new ProgrammationRuleSlot();
+        (new \ReflectionProperty($slot, 'id'))->setValue($slot, 31);
+        $published = $this->publishedDiffusion(101, '10:00');
+        $draft = $this->publishedDraft($slot, $published)->setDeletedAt(new \DateTimeImmutable('2026-09-08 Europe/Paris'));
+        $segments = $this->emptyWeek();
+        $segments[0][] = $this->createRegularSegment('2026-09-08 10:00:00', '2026-09-08 10:30:00', null)
+            + ['slotId' => 31];
+        $builder = $this->scheduleWithPublishedFixtures($segments, [$published], [$draft]);
+
+        $items = $builder->build(new \DateTimeImmutable('2026-09-08 Europe/Paris'))['days'][0]['items'];
+        self::assertEqualsCanonicalizing(['empty_regular', 'diffusion'], array_column($items, 'type'));
+        $diffusion = array_column($items, null, 'type')['diffusion'];
+        self::assertFalse($diffusion['isRegular']);
+        self::assertSame($published, $diffusion['diffusion']);
+    }
+
+    public function testUnpublishedDraftDoesNotReplaceThePublicFallback(): void
+    {
+        $slot = new ProgrammationRuleSlot();
+        (new \ReflectionProperty($slot, 'id'))->setValue($slot, 31);
+        $draft = (new DiffusionDraft())->setSlot($slot)->setEmission((new Emission())->setTitre('Brouillon'))
+            ->setSchedule(new \DateTimeImmutable('2026-09-08 10:00:00 Europe/Paris'), 30);
+        $category = new Categories();
+        $segments = $this->emptyWeek();
+        $segments[0][] = $this->createRegularSegment('2026-09-08 10:00:00', '2026-09-08 10:30:00', $category)
+            + ['slotId' => 31];
+
+        $builder = $this->scheduleWithPublishedFixtures($segments, [], [$draft]);
+        $items = $builder->build(new \DateTimeImmutable('2026-09-08 Europe/Paris'))['days'][0]['items'];
+
+        self::assertSame(['empty_regular'], array_column($items, 'type'));
+        self::assertNull($items[0]['emission']);
+        self::assertSame($category, $items[0]['category']);
+    }
+
+    /** @return array{PublicScheduleBuilder, Diffusion} */
+    private function scheduleWithDriftedRegularStart(): array
+    {
+        $slot = new ProgrammationRuleSlot();
+        (new \ReflectionProperty($slot, 'id'))->setValue($slot, 31);
+        $slot->setStartTime(new \DateTimeImmutable('2026-09-08 10:00:00 Europe/Paris'));
+        $published = $this->publishedDiffusion(101, '10:00');
+        $draft = $this->publishedDraft($slot, $published);
+        // The direct diffusion edit form updates the start on Diffusion alone.
+        $published->setHoraireDiffusion(new \DateTimeImmutable('2026-09-08 09:45:00 Europe/Paris'));
+        $segments = $this->emptyWeek();
+        $segments[0][] = $this->createRegularSegment(
+            '2026-09-08 10:00:00', '2026-09-08 10:30:00', new Categories()
+        ) + ['slotId' => 31];
+
+        return [$this->scheduleWithPublishedFixtures($segments, [$published], [$draft]), $published];
+    }
+
+    private function publishedDiffusion(int $id, string $time): Diffusion
+    {
+        $diffusion = (new Diffusion())->setEmission((new Emission())->setTitre('Émission ' . $id))
+            ->setNombreDiffusion(1)
+            ->setSchedule(new \DateTimeImmutable("2026-09-08 $time Europe/Paris"), 30);
+        (new \ReflectionProperty($diffusion, 'id'))->setValue($diffusion, $id);
+
+        return $diffusion;
+    }
+
+    private function publishedDraft(ProgrammationRuleSlot $slot, Diffusion $diffusion): DiffusionDraft
+    {
+        return (new DiffusionDraft())->setSlot($slot)->setEmission($diffusion->getEmission())
+            ->setSchedule(\DateTimeImmutable::createFromInterface($diffusion->getHoraireDiffusion()), 30)
+            ->setNombreDiffusion($diffusion->getNombreDiffusion())
+            ->setAssignmentGroupKey($diffusion->getAssignmentGroupKey())
+            ->markAsPublished($diffusion);
+    }
+
+    private function scheduleWithPublishedFixtures(array $segments, array $diffusions, array $drafts, array $arbitrations = []): PublicScheduleBuilder
+    {
+        $this->programmationGridBuilder->method('buildForWeek')->willReturn($segments);
+        $this->diffusionRepository->method('findPublishedByWeek')->willReturn($diffusions);
+        $arbitrationRepository = $this->createMock(GridSlotArbitrationRepository::class);
+        $arbitrationRepository->method('findRelevantForWeek')->willReturn($arbitrations);
+        $draftRepository = $this->createMock(DiffusionDraftRepository::class);
+        $draftRepository->method('findByPublishedDiffusionIds')->willReturnCallback(
+            static fn (array $ids): array => array_values(array_filter($drafts, static fn (DiffusionDraft $draft): bool =>
+                in_array($draft->getPublishedDiffusion()?->getId(), $ids, true)
+            )),
+        );
+
+        return new PublicScheduleBuilder(
+            $this->diffusionRepository,
+            $this->programmationGridBuilder,
+            new GridOccurrenceProjectionService($arbitrationRepository),
+            $draftRepository,
         );
     }
 

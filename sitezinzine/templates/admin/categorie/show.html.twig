@@ -4,15 +4,6 @@
 {% block body %}
 <style>
   /* ✅ Spécifique admin : force full-width malgré le padding du layout */
-  .admin-fullbleed{
-    width: 100vw;
-    position: relative;
-    left: 50%;
-    right: 50%;
-    margin-left: -50vw;
-    margin-right: -50vw;
-  }
-
   /* ====== Layout global ====== */
   .catblock,
   .catblock *{
@@ -40,9 +31,7 @@
 
   /* ====== Fiche catégorie ====== */
   .fiche-emission{
-    max-width: 900px;
-    width: calc(100% - 32px);
-    margin: 2rem auto;
+    margin-block: 2rem;
     background-color: #fff;
     color: #1C1C1A;
     border-radius: 12px;
@@ -112,16 +101,20 @@
     padding: 24px 0 10px;
   }
 
+  .emissionsdelacategorie .emission-list .invites,
+  .emissionsdelacategorie .emission-list .cat {
+    overflow-wrap: anywhere;
+  }
+
   .emissionsdelacategorie .results{
     background: transparent;
     padding: 0;
   }
 
-  .emissionsdelacategorie .results-inner{
-    max-width: 1200px;
-    width: 100%;
-    margin: 0 auto;
-    padding: 0 16px;
+  .emissionsdelacategorie > .results > .results-inner{
+    box-sizing: border-box;
+    max-width: var(--admin-width-list);
+    padding-inline: var(--admin-list-gutter);
   }
 
   .more-link{
@@ -143,9 +136,8 @@
   /* ====== Responsive ====== */
   @media (max-width: 768px){
     .fiche-emission{
-      width: calc(100% - 24px);
       padding: 1rem;
-      margin: 1rem auto;
+      margin-block: 1rem;
     }
 
     .bloc-haut{
@@ -174,10 +166,10 @@
   }
 </style>
 
-{# ✅ Full-width pour compenser le layout admin #}
-<div class="admin-fullbleed">
+<div>
   <div class="catblock">
-    <div class="fiche-emission">
+    <div class="admin-content-gutters">
+    <div class="fiche-emission admin-content-container">
       <a href="{{ app.request.headers.get('referer') ?? path('admin.categorie.index') }}" class="btn-back">← Retour</a>
 
       <div class="bloc-haut">
@@ -197,7 +189,7 @@
         </div>
       </div>
     </div>
-
+    </div>
     <div class="bottom">
       <img src="/images/top-content-dechire-D.gif" alt="">
     </div>

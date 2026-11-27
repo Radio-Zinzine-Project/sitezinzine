@@ -25,8 +25,8 @@
 
     .main-content .cat-form{
       font-family:"Montserrat Alternates",sans-serif;
-      max-width:1080px;
-      margin:18px auto 28px;
+      --admin-content-width: var(--admin-width-editorial-form);
+      margin-block: 18px 28px;
       padding:16px 16px;
       background:#fff;
       border-radius:12px;
@@ -82,6 +82,7 @@
       display:flex;
       flex-direction:column;
       min-width:0;
+      overflow-wrap: anywhere;
     }
 
     .main-content .cat-form label{
@@ -186,6 +187,7 @@
     }
 
     .main-content .cat-form .form-errors{
+      overflow-wrap: anywhere;
       padding:10px 12px;
       border:1px solid #e11d48;
       background:rgba(225, 29, 72, 0.08);
@@ -210,7 +212,7 @@
 
     @media (max-width:960px){
       .main-content .cat-form{
-        margin:14px 12px 22px;
+        margin-block: 14px 22px;
         padding:14px 12px;
       }
       .main-content .cat-form .grid{ grid-template-columns:1fr; }
@@ -227,7 +229,7 @@
 
     @media (max-width:420px){
       .main-content .cat-form{
-        margin:10px 8px 16px;
+        margin-block: 10px 16px;
         padding:12px 10px;
         border-radius:10px;
       }
@@ -250,7 +252,7 @@
 
     @media (max-height:520px) and (orientation: landscape){
       .main-content .cat-form{
-        margin:10px 12px 14px;
+        margin-block: 10px 14px;
         padding:12px 12px;
       }
       .main-content .cat-form .preview{ margin:6px 0 10px; }
@@ -265,7 +267,8 @@
     }
   </style>
 
-  <div class="cat-form">
+  <div class="admin-content-gutters">
+  <div class="cat-form admin-content-container">
     <h1>{{ "Modifier " ~ categorie.titre }}</h1>
 
     {% if categorie.thumbnail %}
@@ -375,5 +378,6 @@
     </div>
 
     {{ form_end(form) }}
+  </div>
   </div>
 {% endblock %}

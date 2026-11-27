@@ -11,7 +11,6 @@
    SCOPE
    ========================================================= */
 
-.main-content .editeur-form,
 .main-content .editeur-form * {
     box-sizing: border-box;
 }
@@ -22,10 +21,10 @@
    ========================================================= */
 
 .main-content .editeur-form {
-    width: calc(100% - 32px);
-    max-width: 1080px;
+    --admin-content-width: var(--admin-width-profile);
+    overflow-wrap: anywhere;
 
-    margin: 18px auto 28px;
+    margin-block: 18px 28px;
     padding: 16px;
 
     background: #fff;
@@ -276,9 +275,7 @@
 @media screen and (max-width: 960px) {
 
     .main-content .editeur-form {
-        width: auto;
-
-        margin: 14px 12px 22px;
+        margin-block: 14px 22px;
         padding: 14px 12px;
     }
 }
@@ -289,11 +286,6 @@
    ========================================================= */
 
 @media screen and (max-width: 600px) {
-
-    .main-content .editeur-form {
-        margin-left: 10px;
-        margin-right: 10px;
-    }
 
     .main-content .editeur-form h1 {
         font-size: 20px;
@@ -316,7 +308,7 @@
 @media screen and (max-width: 420px) {
 
     .main-content .editeur-form {
-        margin: 10px 8px 16px;
+        margin-block: 10px 16px;
         padding: 12px 10px;
 
         border-radius: 10px;
@@ -363,8 +355,6 @@
 @media screen and (max-width: 350px) {
 
     .main-content .editeur-form {
-        margin-left: 6px;
-        margin-right: 6px;
 
         padding-left: 8px;
         padding-right: 8px;
@@ -379,7 +369,7 @@
 @media screen and (max-height: 520px) and (orientation: landscape) {
 
     .main-content .editeur-form {
-        margin: 10px 12px 14px;
+        margin-block: 10px 14px;
         padding: 12px;
     }
 
@@ -401,22 +391,24 @@
 </style>
 
 
-<div class="editeur-form">
+<div class="admin-content-gutters">
+  <div class="editeur-form admin-content-container">
 
-    <h1>
-        Modifier {{ editeur.name }}
-    </h1>
+      <h1>
+          Modifier {{ editeur.name }}
+      </h1>
 
-    {{ form_start(form, {
-        attr: {
-            'data-turbo': 'false'
-        }
-    }) }}
+      {{ form_start(form, {
+          attr: {
+              'data-turbo': 'false'
+          }
+      }) }}
 
-    {{ form_widget(form) }}
+      {{ form_widget(form) }}
 
-    {{ form_end(form) }}
+      {{ form_end(form) }}
 
+  </div>
 </div>
 
 {% endblock %}

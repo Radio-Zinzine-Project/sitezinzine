@@ -540,9 +540,7 @@ function buildPendingRebroadcastCard(controller, item) {
         ? String(emissionId)
         : ''
 
-    const safeDuration = Number.isNaN(duration)
-        ? 15
-        : Math.max(1, duration)
+    const safeDuration = Number.isSafeInteger(duration) && duration > 0 ? String(duration) : ''
 
     const title = controller.escapeHtml(
         item.title || 'Émission sans titre'

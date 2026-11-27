@@ -4,7 +4,6 @@
 {% block body %}
 <style>
 /* scope strict */
-.main-content .invite-form,
 .main-content .invite-form *{
   box-sizing: border-box;
 }
@@ -12,8 +11,9 @@
 /* card blanche */
 .main-content .invite-form{
   font-family: "Montserrat Alternates", sans-serif;
-  max-width: 1080px;
-  margin: 18px auto 28px;
+  --admin-content-width: var(--admin-width-editorial-form);
+  overflow-wrap: anywhere;
+  margin-block: 18px 28px;
   padding: 16px 16px;
   background: #fff;
   border-radius: 12px;
@@ -130,7 +130,7 @@
 /* Responsive */
 @media (max-width: 960px){
   .main-content .invite-form{
-    margin: 14px 12px 22px;
+    margin-block: 14px 22px;
     padding: 14px 12px;
   }
   .main-content .invite-form .grid{
@@ -141,7 +141,7 @@
 /* Très petits écrans */
 @media (max-width: 420px){
   .main-content .invite-form{
-    margin: 10px 8px 16px;
+    margin-block: 10px 16px;
     padding: 12px 10px;
     border-radius: 10px;
   }
@@ -162,7 +162,7 @@
 /* Landscape faible hauteur */
 @media (max-height: 520px) and (orientation: landscape){
   .main-content .invite-form{
-    margin: 10px 12px 14px;
+    margin-block: 10px 14px;
     padding: 12px 12px;
   }
 
@@ -174,56 +174,58 @@
 }
 </style>
 
-<div class="invite-form">
-  <h1>Créer un·e invité·e / ancien·ne animateur·rice</h1>
+<div class="admin-content-gutters">
+  <div class="invite-form admin-content-container">
+    <h1>Créer un·e invité·e / ancien·ne animateur·rice</h1>
 
-  {{ form_start(form) }}
+    {{ form_start(form) }}
 
-  <div class="grid">
-    <div class="field">
-      {{ form_label(form.firstName) }}
-      {{ form_widget(form.firstName) }}
-      {{ form_errors(form.firstName) }}
+    <div class="grid">
+      <div class="field">
+        {{ form_label(form.firstName) }}
+        {{ form_widget(form.firstName) }}
+        {{ form_errors(form.firstName) }}
+      </div>
+
+      <div class="field">
+        {{ form_label(form.lastName) }}
+        {{ form_widget(form.lastName) }}
+        {{ form_errors(form.lastName) }}
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="field">
+        {{ form_label(form.mail) }}
+        {{ form_widget(form.mail) }}
+        {{ form_errors(form.mail) }}
+      </div>
+
+      <div class="field">
+        {{ form_label(form.phoneNumber) }}
+        {{ form_widget(form.phoneNumber, {'attr': {'inputmode': 'tel'}}) }}
+        {{ form_errors(form.phoneNumber) }}
+      </div>
     </div>
 
     <div class="field">
-      {{ form_label(form.lastName) }}
-      {{ form_widget(form.lastName) }}
-      {{ form_errors(form.lastName) }}
+      <div class="checkline">
+        {{ form_widget(form.ancienanimateur) }}
+        {{ form_label(form.ancienanimateur) }}
+      </div>
+      {{ form_errors(form.ancienanimateur) }}
     </div>
+
+  {# CSRF hidden uniquement (sans row) #}
+  {{ form_widget(form._token) }}
+
+  {# bouton submit (champ "Sauvegarder") #}
+  {{ form_widget(form.Sauvegarder) }}
+  {{ form_rest(form) }}
+  {{ form_end(form, { render_rest: false }) }}
+
+
+
   </div>
-
-  <div class="grid">
-    <div class="field">
-      {{ form_label(form.mail) }}
-      {{ form_widget(form.mail) }}
-      {{ form_errors(form.mail) }}
-    </div>
-
-    <div class="field">
-      {{ form_label(form.phoneNumber) }}
-      {{ form_widget(form.phoneNumber, {'attr': {'inputmode': 'tel'}}) }}
-      {{ form_errors(form.phoneNumber) }}
-    </div>
-  </div>
-
-  <div class="field">
-    <div class="checkline">
-      {{ form_widget(form.ancienanimateur) }}
-      {{ form_label(form.ancienanimateur) }}
-    </div>
-    {{ form_errors(form.ancienanimateur) }}
-  </div>
-
-{# CSRF hidden uniquement (sans row) #}
-{{ form_widget(form._token) }}
-
-{# bouton submit (champ "Sauvegarder") #}
-{{ form_widget(form.Sauvegarder) }}
-{{ form_rest(form) }}
-{{ form_end(form, { render_rest: false }) }}
-
-
-
 </div>
 {% endblock %}

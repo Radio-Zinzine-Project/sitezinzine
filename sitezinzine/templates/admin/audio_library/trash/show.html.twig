@@ -32,35 +32,208 @@
         RESTAUREE: 'Restaurée',
         ANNULEE: 'Annulée'
     } %}
-    <h1>Détail de la corbeille MP3</h1>
-    <section class="bg-white p-3">
-        <p><a href="{{ path('admin.audio_library.trash.index', filters) }}">Retour à la corbeille MP3</a></p>
+    <style>
+    .trash-page {
+        margin-block: 24px;
+        padding-bottom: 24px;
+        font-family: "Montserrat Alternates", sans-serif;
+        overflow-wrap: anywhere;
+    }
+
+    .trash-page .trash-title {
+        margin: 0 0 24px;
+        font-size: 2rem;
+        line-height: 1.2;
+        text-align: start;
+    }
+
+    .trash-page .trash-card {
+        padding: 24px;
+        background: #fff;
+        color: #1c1c1a;
+        border-radius: 14px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10);
+    }
+
+    .trash-page .trash-action {
+        display: inline-block;
+        box-sizing: border-box;
+        max-width: 100%;
+        padding: 8px 12px;
+        border: 0;
+        border-radius: 999px;
+        background: #222;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .trash-page .trash-action:hover {
+        background: #000;
+    }
+
+    .trash-page :focus-visible {
+        outline: 2px solid #e4013a;
+        outline-offset: 2px;
+    }
+
+    .trash-page .trash-message {
+        padding: 14px 16px;
+        margin-block: 16px;
+        border-radius: 10px;
+        background: #f3f3f3;
+        color: #333;
+    }
+
+    .trash-page .trash-message[role="alert"] {
+        background: #ffebee;
+        color: #b71c1c;
+    }
+
+    .trash-page .trash-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #f3f3f3;
+        font-weight: 700;
+    }
+
+    @media (max-width: 768px) {
+        .trash-page {
+            margin-block: 20px;
+            padding-bottom: 20px;
+        }
+
+        .trash-page .trash-title {
+            font-size: 1.45rem;
+            text-align: center;
+        }
+
+        .trash-page .trash-card {
+            padding: 16px;
+        }
+    }
+
+    .trash-page {
+        --admin-content-width: var(--admin-width-detail);
+    }
+
+    .trash-page .trash-card > p,
+    .trash-page .trash-section > p {
+        margin-block: 0 12px;
+    }
+
+    .trash-page .trash-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 16px;
+    }
+
+    .trash-page .trash-actions p {
+        margin: 0;
+        min-width: 0;
+    }
+
+    .trash-page .trash-action--primary {
+        background: #e4013a;
+    }
+
+    .trash-page .trash-action--primary:hover {
+        background: #b8002e;
+    }
+
+    .trash-page .trash-section {
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid #ddd;
+    }
+
+    .trash-page .trash-section h2,
+    .trash-page .trash-section h3 {
+        margin: 0 0 14px;
+        font-size: 1.25rem;
+        text-align: start;
+    }
+
+    .trash-page dt {
+        font-weight: 800;
+    }
+
+    .trash-page dd {
+        margin: 4px 0 12px;
+    }
+
+    .trash-page .trash-observations {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin-block: 16px;
+    }
+
+    .trash-page .trash-observation {
+        min-width: 0;
+        padding: 14px 16px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        background: #f9f9f9;
+    }
+
+    .trash-page details {
+        margin-top: 16px;
+    }
+
+    .trash-page summary {
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    .trash-page details dl {
+        margin-top: 12px;
+    }
+
+    @media (max-width: 600px) {
+        .trash-page .trash-observations {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+    </style>
+    <div class="admin-content-gutters">
+    <div class="trash-page admin-content-container">
+    <h1 class="trash-title">Détail de la corbeille MP3</h1>
+    <section class="trash-card">
+        <p><a class="trash-action" href="{{ path('admin.audio_library.trash.index', filters) }}">Retour à la corbeille MP3</a></p>
         <p>Opération <code>{{ operationId }}</code></p>
         {% if unavailable %}
-            <p role="alert">Inspection indéterminée. Le journal de la corbeille MP3 ne peut pas être consulté de façon fiable.</p>
+            <p class="trash-message" role="alert">Inspection indéterminée. Le journal de la corbeille MP3 ne peut pas être consulté de façon fiable.</p>
         {% elseif detail is null %}
-            <p role="alert">Opération de corbeille introuvable.</p>
+            <p class="trash-message" role="alert">Opération de corbeille introuvable.</p>
         {% else %}
             {% set observation = detail.inspection %}
             {% set journal = observation.journal %}
             {% set emission = observation.emission %}
             {% set disk = observation.disk %}
-            <p><a href="{{ path('admin.audio_library.trash.history', filters|merge({operationId: operationId})) }}">Historique administratif</a></p>
+            <div class="trash-actions">
+            <p><a class="trash-action" href="{{ path('admin.audio_library.trash.history', filters|merge({operationId: operationId})) }}">Historique administratif</a></p>
             {% if not is_granted('IS_IMPERSONATOR') %}
                 {% if canPrepareRestore %}
-                    <p><a href="{{ path('admin.audio_library.trash.confirm', filters|merge({operationId: operationId, action: 'restore'})) }}">Restaurer</a></p>
+                    <p><a class="trash-action trash-action--primary" href="{{ path('admin.audio_library.trash.confirm', filters|merge({operationId: operationId, action: 'restore'})) }}">Restaurer</a></p>
                 {% elseif journal.phase in ['SUPPRESSION_PREPAREE', 'RETRAIT_PUBLIC_EN_ATTENTE'] %}
-                    <p><a href="{{ path('admin.audio_library.trash.confirm', filters|merge({operationId: operationId, action: 'resume-deletion'})) }}">Préparer la reprise de suppression</a></p>
+                    <p><a class="trash-action trash-action--primary" href="{{ path('admin.audio_library.trash.confirm', filters|merge({operationId: operationId, action: 'resume-deletion'})) }}">Préparer la reprise de suppression</a></p>
                     {% if journal.phase == 'SUPPRESSION_PREPAREE' %}
-                        <p><a href="{{ path('admin.audio_library.trash.confirm', filters|merge({operationId: operationId, action: 'cancel-deletion'})) }}">Préparer l’annulation de suppression</a></p>
+                        <p><a class="trash-action trash-action--primary" href="{{ path('admin.audio_library.trash.confirm', filters|merge({operationId: operationId, action: 'cancel-deletion'})) }}">Préparer l’annulation de suppression</a></p>
                     {% endif %}
                 {% elseif journal.phase in ['RESTAURATION_PREPAREE', 'RETRAIT_PRIVE_EN_ATTENTE'] and journal.last_attempt.outcome|default(null) == 'pending' %}
-                    <p><a href="{{ path('admin.audio_library.trash.confirm', filters|merge({operationId: operationId, action: 'resume-restoration'})) }}">Préparer la reprise de restauration</a></p>
+                    <p><a class="trash-action trash-action--primary" href="{{ path('admin.audio_library.trash.confirm', filters|merge({operationId: operationId, action: 'resume-restoration'})) }}">Préparer la reprise de restauration</a></p>
                     {% if journal.phase == 'RESTAURATION_PREPAREE' %}
-                        <p><a href="{{ path('admin.audio_library.trash.confirm', filters|merge({operationId: operationId, action: 'cancel-restoration'})) }}">Préparer l’annulation de restauration</a></p>
+                        <p><a class="trash-action trash-action--primary" href="{{ path('admin.audio_library.trash.confirm', filters|merge({operationId: operationId, action: 'cancel-restoration'})) }}">Préparer l’annulation de restauration</a></p>
                     {% endif %}
                 {% endif %}
             {% endif %}
+            </div>
+            <section class="trash-section">
             <h2>État enregistré</h2>
             <dl>
                 <dt>Phase</dt><dd>{{ phases[journal.phase] ?? journal.phase }}</dd>
@@ -75,6 +248,8 @@
                 </dd>
                 <dt>Dernière tentative de restauration</dt><dd>{{ journal.last_attempt_id ?? 'Aucune tentative enregistrée' }}</dd>
             </dl>
+            </section>
+            <section class="trash-section">
             <h2>Références audio</h2>
             <dl>
                 <dt>Fichier d’origine</dt><dd>{{ journal.original_thumbnail_mp3 }}</dd>
@@ -86,19 +261,21 @@
                 <dt>Références concurrentes</dt><dd>{{ emission.reference_count }}</dd>
                 <dt>Réservations concurrentes</dt><dd>{{ emission.reservation_count }}</dd>
             </dl>
+            </section>
+            <section class="trash-section">
             <h2>Inspection</h2>
             <p><strong>{{ statuses[observation.diagnostic.status] ?? observation.diagnostic.status }}</strong></p>
             <p>L’état observé peut évoluer. Une éventuelle action exige une nouvelle vérification sous verrou.</p>
             {% if observation.diagnostic.status == 'indeterminate' %}
-                <p role="alert">Les observations disponibles ne permettent pas de conclure.</p>
+                <p class="trash-message" role="alert">Les observations disponibles ne permettent pas de conclure.</p>
             {% endif %}
-            <div class="row">
-                <div class="col-md-6"><h3>Nom public</h3>{{ file_state(disk.public) }}</div>
-                <div class="col-md-6"><h3>Nom privé</h3>{{ file_state(disk.private) }}</div>
+            <div class="trash-observations">
+                <div class="trash-observation"><h3>Nom public</h3>{{ file_state(disk.public) }}</div>
+                <div class="trash-observation"><h3>Nom privé</h3>{{ file_state(disk.private) }}</div>
             </div>
             <details>
                 <summary>Diagnostic technique</summary>
-                <dl class="mt-2">
+                <dl>
                     <dt>Motif</dt><dd><code>{{ observation.diagnostic.reason }}</code></dd>
                     {% if journal.block_version is not null %}<dt>Version du blocage (UTC)</dt><dd><code>{{ journal.block_version }}</code></dd>{% endif %}
                     <dt>SHA‑256 de référence</dt><dd><code>{{ journal.sha256 }}</code></dd>
@@ -111,6 +288,9 @@
                     {% if disk.pair_error is not null %}<dt>Vérification des deux noms</dt><dd><code>{{ disk.pair_error }}</code></dd>{% endif %}
                 </dl>
             </details>
+            </section>
         {% endif %}
     </section>
+    </div>
+    </div>
 {% endblock %}

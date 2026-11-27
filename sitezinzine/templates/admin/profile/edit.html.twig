@@ -4,15 +4,15 @@
 {% endblock %}
 {% block body %}
   <style>
-.main-content .profile-form,
 .main-content .profile-form * {
   box-sizing: border-box;
 }
 
 .main-content .profile-form {
   font-family: "Montserrat Alternates", sans-serif;
-  max-width: 620px;
-  margin: 18px auto 28px;
+  --admin-content-width: var(--admin-width-profile);
+  margin-block: 18px 28px;
+  overflow-wrap: anywhere;
   padding: 24px;
   background: #fff;
   border-radius: 12px;
@@ -133,7 +133,7 @@
 
 @media (max-width: 680px) {
   .main-content .profile-form {
-    margin: 14px 12px 22px;
+    margin-block: 14px 22px;
     padding: 18px 14px;
   }
 
@@ -144,7 +144,7 @@
 
 @media (max-width: 420px) {
   .main-content .profile-form {
-    margin: 10px 8px 16px;
+    margin-block: 10px 16px;
     padding: 16px 12px;
     border-radius: 10px;
   }
@@ -169,40 +169,42 @@
   }
 }
 </style>
-  <div class="profile-form">
-    <h1>
-      Mon profil
-    </h1>
-    {% for msg in app.flashes('success') %}
-      <div class="flash-success">
-        {{ msg }}
+  <div class="admin-content-gutters">
+    <div class="profile-form admin-content-container">
+      <h1>
+        Mon profil
+      </h1>
+      {% for msg in app.flashes('success') %}
+        <div class="flash-success">
+          {{ msg }}
+        </div>
+      {% endfor %}
+      {{ form_start(form, { attr: { 'data-turbo': 'false' } }) }}
+      <div class="field">
+        {{ form_label(form.pseudo) }}
+        {{ form_widget(form.pseudo) }}
+        {{ form_errors(form.pseudo) }}
       </div>
-    {% endfor %}
-    {{ form_start(form, { attr: { 'data-turbo': 'false' } }) }}
-    <div class="field">
-      {{ form_label(form.pseudo) }}
-      {{ form_widget(form.pseudo) }}
-      {{ form_errors(form.pseudo) }}
-    </div>
-    <div class="field">
-      {{ form_label(form.newEmail) }}
-      {{ form_widget(form.newEmail) }}
-      {{ form_errors(form.newEmail) }}
-    </div>
-    <button type="submit">
-      Enregistrer
-    </button>
-    {{ form_end(form) }}
-    <div class="profile-actions">
-      <a href="{{ path('app_profile_change_password') }}">
-        Modifier mon mot de passe
-      </a>
-      <span class="profile-actions__separator">
-        •
-      </span>
-      <a href="{{ path('admin.index') }}">
-        Retour à l'accueil
-      </a>
+      <div class="field">
+        {{ form_label(form.newEmail) }}
+        {{ form_widget(form.newEmail) }}
+        {{ form_errors(form.newEmail) }}
+      </div>
+      <button type="submit">
+        Enregistrer
+      </button>
+      {{ form_end(form) }}
+      <div class="profile-actions">
+        <a href="{{ path('app_profile_change_password') }}">
+          Modifier mon mot de passe
+        </a>
+        <span class="profile-actions__separator">
+          •
+        </span>
+        <a href="{{ path('admin.index') }}">
+          Retour à l'accueil
+        </a>
+      </div>
     </div>
   </div>
 {% endblock %}

@@ -3,28 +3,43 @@
 {% block title %}Diffusion{% endblock %}
 
 {% block body %}
-    <h1>Diffusion</h1>
+    <style>
+        .diffusion-detail {
+            --admin-content-width: 620px;
+            overflow-wrap: anywhere;
+        }
 
-    <table class="table">
-        <tbody>
-            <tr>
-                <th>Id</th>
-                <td>{{ diffusion.id }}</td>
-            </tr>
-            <tr>
-                <th>HoraireDiffusion</th>
-                <td>{{ diffusion.horaireDiffusion ? diffusion.horaireDiffusion|date('Y-m-d H:i:s') : '' }}</td>
-            </tr>
-            <tr>
-                <th>NombreDiffusion</th>
-                <td>{{ diffusion.nombreDiffusion }}</td>
-            </tr>
-        </tbody>
-    </table>
+        .diffusion-detail .table {
+            max-width: 100%;
+        }
+    </style>
 
-    <a href="{{ path('admin.diffusion.index') }}">back to list</a>
+    <div class="admin-content-gutters">
+        <div class="diffusion-detail admin-content-container">
+            <h1>Diffusion</h1>
 
-    <a href="{{ path('admin.diffusion.edit', {'id': diffusion.id}) }}">edit</a>
+            <table class="table">
+                <tbody>
+                    <tr>
+                        <th>Id</th>
+                        <td>{{ diffusion.id }}</td>
+                    </tr>
+                    <tr>
+                        <th>HoraireDiffusion</th>
+                        <td>{{ diffusion.horaireDiffusion ? diffusion.horaireDiffusion|date('Y-m-d H:i:s') : '' }}</td>
+                    </tr>
+                    <tr>
+                        <th>NombreDiffusion</th>
+                        <td>{{ diffusion.nombreDiffusion }}</td>
+                    </tr>
+                </tbody>
+            </table>
 
-    {{ include('admin/diffusion/_delete_form.html.twig') }}
+            <a href="{{ path('admin.diffusion.index') }}">back to list</a>
+
+            <a href="{{ path('admin.diffusion.edit', {'id': diffusion.id}) }}">edit</a>
+
+            {{ include('admin/diffusion/_delete_form.html.twig') }}
+        </div>
+    </div>
 {% endblock %}

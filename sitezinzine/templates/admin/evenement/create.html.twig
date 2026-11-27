@@ -7,7 +7,6 @@
      On limite tous les styles à ce formulaire.
      TinyMCE est volontairement exclu.
      ============================================================ */
-  .main-content .event-form,
   .main-content .event-form *:not(.tox):not(.tox *) {
     box-sizing: border-box;
   }
@@ -34,8 +33,8 @@
      ============================================================ */
   .main-content .event-form {
     font-family: "Montserrat Alternates", sans-serif;
-    max-width: 1080px;
-    margin: 18px auto 28px;
+    --admin-content-width: var(--admin-width-editorial-form);
+    margin-block: 18px 28px;
     padding: 16px;
     background: #fff;
     border-radius: 12px;
@@ -89,6 +88,7 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   /* ============================================================
@@ -188,7 +188,7 @@
      ============================================================ */
   @media (max-width: 960px) {
     .main-content .event-form {
-      margin: 14px 12px 22px;
+      margin-block: 14px 22px;
       padding: 14px 12px;
     }
 
@@ -204,7 +204,7 @@
      ============================================================ */
   @media (max-width: 420px) {
     .main-content .event-form {
-      margin: 10px 8px 16px;
+      margin-block: 10px 16px;
       padding: 12px 10px;
       border-radius: 10px;
     }
@@ -234,7 +234,7 @@
      ============================================================ */
   @media (max-height: 520px) and (orientation: landscape) {
     .main-content .event-form {
-      margin: 10px 12px 14px;
+      margin-block: 10px 14px;
       padding: 12px;
     }
 
@@ -249,7 +249,8 @@
     }
   }
 </style>
-  <div class="event-form">
+  <div class="admin-content-gutters">
+  <div class="event-form admin-content-container">
     <h1>
       Créer un nouvel évènement
     </h1>
@@ -329,6 +330,7 @@
       {{ form_row(form.contact) }}
     </div>
     {{ form_end(form) }}
+  </div>
   </div>
 <script>
   document.addEventListener('DOMContentLoaded', function () {

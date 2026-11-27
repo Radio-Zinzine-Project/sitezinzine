@@ -33,10 +33,7 @@
        ========================================================= */
 
     .mes-emissions .create-wrapper {
-        width: 100%;
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px 50px 0;
+        padding-block: 20px 0;
         box-sizing: border-box;
     }
 
@@ -71,10 +68,7 @@
        ========================================================= */
 
     .mes-emissions .form {
-        width: 100%;
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 30px 50px 50px;
+        padding-block: 30px 50px;
         box-sizing: border-box;
     }
 
@@ -270,11 +264,11 @@
         }
 
         .mes-emissions .create-wrapper {
-            padding: 16px 20px 0;
+            padding-block: 16px 0;
         }
 
         .mes-emissions .form {
-            padding: 25px 20px 35px;
+            padding-block: 25px 35px;
         }
 
         .mes-emissions .search-row {
@@ -310,7 +304,7 @@
         }
 
         .mes-emissions .create-wrapper {
-            padding: 14px 14px 0;
+            padding-block: 14px 0;
         }
 
         .mes-emissions .btn-create {
@@ -319,7 +313,7 @@
         }
 
         .mes-emissions .form {
-            padding: 20px 14px 30px;
+            padding-block: 20px 30px;
         }
 
         .mes-emissions label {
@@ -369,9 +363,18 @@
             padding-bottom: 25px;
         }
     }
+.admin-emission-results > .results {
+    padding-inline: 0;
+}
+
+.admin-emission-results > .results > .results-inner {
+    max-width: var(--admin-width-list);
+    padding-inline: var(--admin-list-gutter);
+}
+
 </style>
     <div class="mes-emissions">
-        <div class="create-wrapper">
+        <div class="create-wrapper admin-list-container admin-list-gutters">
             <a class="btn-create" href="{{ path('admin.emission.create') }}">
                 Créer une nouvelle émission
             </a>
@@ -379,7 +382,7 @@
         <h1>
             Mes émissions
         </h1>
-        <form method="get" action="{{ path('admin.emission.index') }}" class="form">
+        <form method="get" action="{{ path('admin.emission.index') }}" class="form admin-list-container admin-list-gutters">
             <div class="search-row">
                 <div>
                     <label for="emission-search">

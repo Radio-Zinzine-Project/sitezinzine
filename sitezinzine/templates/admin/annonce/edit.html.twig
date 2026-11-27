@@ -18,7 +18,7 @@
     width: 100%;
     min-width: 0;
 
-    padding: 24px 16px 40px;
+    padding-block: 24px 40px;
 
     font-family: "Montserrat Alternates", sans-serif;
 }
@@ -29,11 +29,8 @@
    ========================================================= */
 
 .annonce-form-card {
-    width: 100%;
-    max-width: 980px;
+    --admin-content-width: 980px;
     min-width: 0;
-
-    margin: 0 auto;
 
     overflow: hidden;
 
@@ -101,6 +98,7 @@
 
 .annonce-form-body {
     padding: 18px 20px 22px;
+    overflow-wrap: anywhere;
 }
 
 
@@ -279,10 +277,7 @@
 @media screen and (max-width: 560px) {
 
     .annonce-form-page {
-        padding:
-            18px
-            10px
-            32px;
+        padding-block: 18px 32px;
     }
 
     .annonce-form-card {
@@ -331,11 +326,6 @@
 
 @media screen and (max-width: 380px) {
 
-    .annonce-form-page {
-        padding-left: 8px;
-        padding-right: 8px;
-    }
-
     .annonce-form-body {
         padding-left: 10px;
         padding-right: 10px;
@@ -360,8 +350,8 @@
 }
 
 </style>
-  <div class="annonce-form-page" data-controller="annonce-form">
-    <article class="annonce-form-card">
+  <div class="annonce-form-page admin-content-gutters" data-controller="annonce-form">
+    <article class="annonce-form-card admin-content-container">
       {# =====================================================
         EN-TÊTE
       ===================================================== #}

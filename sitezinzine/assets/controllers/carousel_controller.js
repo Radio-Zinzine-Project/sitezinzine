@@ -32,9 +32,9 @@ export default class extends Controller {
 this.glide = new Glide(this.element, {
   type: 'slider',
   startAt: startIndex,
-  focusAt: 1,
+  focusAt: 'center',
   gap: 12,
-  perView: 4,
+  perView: 3,
   animationDuration: 600,
   autoplay: false,
   hoverpause: true,
@@ -42,11 +42,6 @@ this.glide = new Glide(this.element, {
   rewind: false,
 
   breakpoints: {
-    1400: {
-      perView: 3,
-      focusAt: 'center'
-    },
-
     1024: {
       perView: 2,
       focusAt: 0

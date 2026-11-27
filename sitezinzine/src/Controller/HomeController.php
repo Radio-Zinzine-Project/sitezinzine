@@ -13,6 +13,8 @@ use App\Entity\Evenement;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use App\Service\PublicScheduleBuilder;
+use App\Service\RadioWeek;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -77,16 +79,10 @@ class HomeController extends AbstractController
 
     #[Route('/programme', name: 'programme')]
     public function programme(
-        PublicScheduleBuilder $publicScheduleBuilder
+        PublicScheduleBuilder $publicScheduleBuilder,
+        ClockInterface $clock,
     ): Response {
-        $today = new \DateTimeImmutable('today');
-
-        $dayOfWeek = (int) $today->format('N');
-
-        // Notre semaine radio commence le mardi.
-        $daysSinceTuesday = ($dayOfWeek + 5) % 7;
-
-        $startOfWeek = $today->modify(sprintf('-%d days', $daysSinceTuesday));
+        $startOfWeek = RadioWeek::start($clock->now()->setTimezone(new \DateTimeZone('Europe/Paris')));
 
         $programme = $publicScheduleBuilder->build($startOfWeek);
 

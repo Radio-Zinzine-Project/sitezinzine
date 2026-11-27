@@ -45,11 +45,7 @@
     align-items: center;
     justify-content: center;
 
-    width: 100%;
-    max-width: 1200px;
-
-    margin: 0 auto;
-    padding: 55px 20px 70px;
+    padding-block: 55px 70px;
 
     text-align: center;
 }
@@ -121,7 +117,7 @@
 .evenement-content-wrapper {
     width: 100%;
 
-    padding: 30px 20px 50px;
+    padding-block: 30px 50px;
 
     background: white;
 }
@@ -137,10 +133,6 @@
 
     gap: 20px;
 
-    width: 100%;
-    max-width: 1200px;
-
-    margin: 0 auto;
     padding: 0;
 }
 
@@ -511,10 +503,7 @@
 @media screen and (max-width: 900px) {
 
     .evenement-hero__content {
-        padding:
-            45px
-            20px
-            60px;
+        padding-block: 45px 60px;
     }
 
     .evenement-hero h1 {
@@ -558,6 +547,10 @@
         width: 150px;
     }
 
+    .evenement-actions > a {
+        min-width: 0;
+    }
+
     .evenement-actions > form > button {
         width: 100%;
     }
@@ -571,17 +564,11 @@
 @media screen and (max-width: 600px) {
 
     .evenement-content-wrapper {
-        padding:
-            22px
-            12px
-            40px;
+        padding-block: 22px 40px;
     }
 
     .evenement-hero__content {
-        padding:
-            38px
-            15px
-            52px;
+        padding-block: 38px 52px;
     }
 
     .evenement-hero h1 {
@@ -693,10 +680,7 @@
 @media screen and (max-height: 500px) and (orientation: landscape) {
 
     .evenement-hero__content {
-        padding:
-            25px
-            20px
-            38px;
+        padding-block: 25px 38px;
     }
 
     .evenement-hero h1 {
@@ -711,7 +695,7 @@
             BANDEAU ROUGE
         ========================================================= #}
         <div class="evenement-hero">
-            <div class="evenement-hero__content">
+            <div class="evenement-hero__content admin-list-container admin-list-gutters">
                 <h1>
                     Liste des événements
                 </h1>
@@ -723,8 +707,8 @@
             {# =========================================================
                 ZONE BLANCHE
             ========================================================= #}
-            <div class="evenement-content-wrapper">
-                <article class="evenement-list">
+            <div class="evenement-content-wrapper admin-list-gutters">
+                <article class="evenement-list admin-list-container">
                     {% for evenement in evenements %}
                         <section class="
                                 evenement-card

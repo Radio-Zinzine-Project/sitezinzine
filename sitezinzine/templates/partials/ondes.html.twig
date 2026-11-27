@@ -11,9 +11,10 @@
     }
 
     .bodyondes {
-        width: min(100%, 1900px);
+        width: 100%;
+        max-width: var(--site-chrome-max-width);
         margin: 0 auto;
-        padding: 0 20px 40px;
+        padding: 0 var(--site-chrome-gutter) 40px;
         position: relative;
     }
 
@@ -324,7 +325,7 @@
 
     @media (max-width: 1200px) {
         .bodyondes {
-            padding: 0 42px 34px;
+            padding-bottom: 34px;
         }
 
         .bodyondes .glide {
@@ -341,9 +342,15 @@
         }
     }
 
+    @media (max-width: 900px) {
+        .bodyondes {
+            padding-inline: var(--site-chrome-mobile-gutter);
+        }
+    }
+
     @media (max-width: 768px) {
         .bodyondes {
-            padding: 0 16px 28px;
+            padding-bottom: 28px;
         }
 
         .bodyondes .ondestitres {

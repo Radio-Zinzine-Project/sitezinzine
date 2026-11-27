@@ -44,14 +44,14 @@ final class LibraryAccessTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Bibliothèque MP3');
         self::assertTrue($client->getResponse()->headers->hasCacheControlDirective('no-store'));
-        self::assertCount(1, $crawler->filter('nav a.active[href="/admin/audio-library"]'));
-        self::assertCount(0, $crawler->filter('nav a[href="/admin/audio-library/inventory"]'));
+        self::assertCount(1, $crawler->filter('nav.admin-nav a.active[href="/admin/audio-library"]'));
+        self::assertCount(0, $crawler->filter('nav.admin-nav a[href="/admin/audio-library/inventory"]'));
         $inventoryLink = $crawler->selectLink('Inventaire MP3');
         self::assertCount(1, $inventoryLink);
         $crawler = $client->click($inventoryLink->link());
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Inventaire MP3');
-        self::assertCount(1, $crawler->filter('nav a.active[href="/admin/audio-library"]'));
+        self::assertCount(1, $crawler->filter('nav.admin-nav a.active[href="/admin/audio-library"]'));
         self::assertFalse($db->isConnected());
     }
 

@@ -46,11 +46,7 @@
 
     gap: 12px;
 
-    width: 100%;
-    max-width: 1200px;
-
-    margin: 0 auto;
-    padding: 50px 20px 65px;
+    padding-block: 50px 65px;
 
     text-align: center;
 }
@@ -109,16 +105,18 @@
 
     min-height: calc(100vh - 260px);
 
-    padding: 28px 20px 50px;
+    padding-block: 28px 50px;
 
     background: #fff;
 }
 
-.admin-invite-show .invite-show-emissions {
-    width: 100%;
-    max-width: 1200px;
+.admin-invite-show .invite-show-emissions .emission-list .invites,
+.admin-invite-show .invite-show-emissions .emission-list .cat {
+  overflow-wrap: anywhere;
+}
 
-    margin: 0 auto;
+.admin-invite-show .invite-show-emissions > .results {
+    padding-inline: 0;
 }
 
 /* =========================================================
@@ -178,7 +176,7 @@
 @media screen and (max-width: 900px) {
 
     .admin-invite-show .invite-show-hero__content {
-        padding: 42px 18px 56px;
+        padding-block: 42px 56px;
     }
 
     .admin-invite-show .invite-show-hero h1 {
@@ -186,7 +184,7 @@
     }
 
     .admin-invite-show .invite-show-content {
-        padding: 24px 16px 45px;
+        padding-block: 24px 45px;
     }
 }
 
@@ -199,7 +197,7 @@
     .admin-invite-show .invite-show-hero__content {
         gap: 10px;
 
-        padding: 30px 14px 42px;
+        padding-block: 30px 42px;
     }
 
     .admin-invite-show .invite-show-hero h1 {
@@ -213,7 +211,7 @@
     }
 
     .admin-invite-show .invite-show-content {
-        padding: 20px 10px 40px;
+        padding-block: 20px 40px;
     }
 
     .admin-invite-show .alphabet-pagination {
@@ -237,16 +235,11 @@
 @media screen and (max-width: 420px) {
 
     .admin-invite-show .invite-show-hero__content {
-        padding: 24px 10px 36px;
+        padding-block: 24px 36px;
     }
 
     .admin-invite-show .invite-show-hero h1 {
         font-size: 23px;
-    }
-
-    .admin-invite-show .invite-show-content {
-        padding-left: 8px;
-        padding-right: 8px;
     }
 }
 
@@ -255,11 +248,6 @@
    ========================================================= */
 
 @media screen and (max-width: 350px) {
-
-    .admin-invite-show .invite-show-hero__content {
-        padding-left: 8px;
-        padding-right: 8px;
-    }
 
     .admin-invite-show .invite-show-hero h1 {
         font-size: 21px;
@@ -274,11 +262,6 @@
         font-size: 11px;
 
         text-align: center;
-    }
-
-    .admin-invite-show .invite-show-content {
-        padding-left: 6px;
-        padding-right: 6px;
     }
 }
 
@@ -310,7 +293,7 @@
 
     <header class="invite-show-hero">
 
-        <div class="invite-show-hero__content">
+        <div class="invite-show-hero__content admin-content-container admin-content-gutters">
 
             <h1>
                 {{ InviteOldAnimateur.lastName }}
@@ -338,7 +321,7 @@
 
     <main class="invite-show-content">
 
-        <div class="invite-show-emissions">
+        <div class="invite-show-emissions admin-list-container admin-list-gutters">
 
             <nav
                 class="alphabet-pagination"

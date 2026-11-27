@@ -1,4 +1,29 @@
-<div class="schedule-grid">
+{% set geometry = {
+    slotMinutes: 15,
+    slotHeight: 14,
+    daySlots: 96,
+    breakStart: 4,
+    breakEnd: 26,
+    breakHeight: 28,
+} %}
+{% set hiddenSlots = geometry.breakEnd - geometry.breakStart %}
+{% set breakTop = geometry.breakStart * geometry.slotHeight %}
+{% set compression = hiddenSlots * geometry.slotHeight - geometry.breakHeight %}
+{% set timeHeight = geometry.daySlots * geometry.slotHeight - compression %}
+{% set slotsPerHour = 60 / geometry.slotMinutes %}
+{% set indices = range(0, geometry.breakStart - 1)|merge(range(geometry.breakEnd, geometry.daySlots - 1)) %}
+{%- macro timePosition(index, breakEnd) -%}
+    --time-index:{{ index }};--after-break:{{ index >= breakEnd ? 1 : 0 }};
+{%- endmacro -%}
+{%- macro timeLabel(index, slotMinutes) -%}
+    {%- set minutes = index * slotMinutes -%}
+    {{- '%02d:%02d'|format(minutes // 60, minutes % 60) -}}
+{%- endmacro -%}
+<div class="schedule-grid"
+     data-slot-minutes="{{ geometry.slotMinutes }}" data-slot-height="{{ geometry.slotHeight }}"
+     data-day-slots="{{ geometry.daySlots }}" data-break-start="{{ geometry.breakStart }}"
+     data-break-end="{{ geometry.breakEnd }}" data-break-height="{{ geometry.breakHeight }}"
+     style="--slot-h:{{ geometry.slotHeight }}px;--slots-per-hour:{{ slotsPerHour }};--break-top:{{ breakTop }}px;--break-h:{{ geometry.breakHeight }}px;--compression:{{ compression }}px;--time-h:{{ timeHeight }}px;">
     <div class="head hour" style="grid-column:1;grid-row:1;">
         Heure
     </div>
@@ -14,23 +39,25 @@
         </div>
     {% endfor %}
     <div class="hours-col">
-        {% for i in 0..95 %}
-            <div class="h-slot {{ i % 4 == 0 ? 'hour-start' : '' }} {{ i % 4 == 2 ? 'half-hour' : '' }}" style="top:calc({{ i }} * var(--slot-h));"></div>
-        {% endfor %}
-        {% for h in 0..23 %}
-            <div class="hour-label" style="top:calc({{ h * 4 }} * var(--slot-h));">
-                {{ "%02d:00"|format(h) }}
-            </div>
+        {% for i in indices %}
+            <div class="h-slot time-position {{ i % slotsPerHour == 0 ? 'hour-start' : '' }} {{ i % slotsPerHour == slotsPerHour / 2 ? 'half-hour' : '' }}"
+                 style="{{ _self.timePosition(i, geometry.breakEnd) }}"></div>
+            {% if i % slotsPerHour == 0 %}
+                <div class="hour-label time-position" style="{{ _self.timePosition(i, geometry.breakEnd) }}">
+                    {{ _self.timeLabel(i, geometry.slotMinutes) }}
+                </div>
+            {% endif %}
         {% endfor %}
     </div>
     {% for dayIndex in 0..6 %}
         <div class="day-col" data-grid-target="day" data-day-index="{{ dayIndex }}" style="grid-column:{{ 2 + dayIndex }};">
-            {% for i in 0..95 %}
-                <div class="day-slot {{ i % 4 == 0 ? 'hour-start' : '' }} {{ i % 4 == 2 ? 'half-hour' : '' }}" style="top:calc({{ i }} * var(--slot-h));"></div>
+            {% for i in indices %}
+                <div class="day-slot time-position {{ i % slotsPerHour == 0 ? 'hour-start' : '' }} {{ i % slotsPerHour == slotsPerHour / 2 ? 'half-hour' : '' }}"
+                     data-start-index="{{ i }}" style="{{ _self.timePosition(i, geometry.breakEnd) }}"></div>
             {% endfor %}
             {# Créneaux réguliers #}
             {% for seg in (daySegments[dayIndex] ?? []) %}
-                {% set slots = (seg.duration / 15)|round(0, 'ceil') %}
+                {% set slots = (seg.duration / geometry.slotMinutes)|round(0, 'ceil') %}
                 {% set categoryTitle = seg.categoryTitle|default('Catégorie inconnue') %}
                 {% set categorySlug = seg.categorySlug|default('') %}
                 {% set assignedEmissionTitle = seg.emissionTitle|default('') %}
@@ -72,7 +99,7 @@
                     )
             ) %}
                 <div class="
-                    postit
+                    postit time-position
                     {{ variantClass }}
                     {{ isAssigned ? 'assigned' : '' }}
                     {{ hasConflict ? 'postit--conflict' : '' }}
@@ -80,8 +107,8 @@
                     {{ isRescheduledOrigin ? 'postit--rescheduled-origin' : '' }}
                     {{ not isBlocking ? 'postit--non-blocking' : '' }}
                     {{ hasCoveredGhost ? 'postit--has-exception' : '' }}
-                " style="
-                    top:calc({{ seg.startIndex }} * var(--slot-h));
+                " data-start-index="{{ seg.startIndex }}" style="
+                    {{ _self.timePosition(seg.startIndex, geometry.breakEnd) }}
                     height:calc({{ slots }} * var(--slot-h) - 2px);
                 " data-segment-key="{{ seg.segmentKey|default('') }}" data-slot-id="{{ seg.slotId|default('') }}" data-draft-id="{{ seg.draftId|default('') }}" data-diffusion-id="{{ seg.diffusionId|default('') }}" data-rule-id="{{ seg.ruleId|default('') }}" data-slots="{{ slots }}" data-duration="{{ seg.duration }}" data-broadcast-rank="{{ broadcastRank }}" data-starts-at="{{ seg.startsAt|default('') }}" data-ends-at="{{ seg.endsAt|default('') }}" data-category-title="{{ categoryTitle }}" data-category-slug="{{ categorySlug }}" data-assigned-emission-id="{{ seg.emissionId|default('') }}" data-assigned-emission-title="{{ assignedEmissionTitle }}" data-emission-is-auto-generated="{{ isLive ? 'true' : 'false' }}" data-slot-locked="{{ isRebroadcast or isGhost ? 'true' : 'false' }}" data-has-conflict="{{ hasConflict ? 'true' : 'false' }}" data-conflict-type="{{ seg.conflictType|default('') }}" data-conflict-severity="{{ seg.conflictSeverity|default('') }}" data-conflict-count="{{ seg.conflictCount|default(0) }}" data-conflict-with="{{ seg.conflictWith|default([])|json_encode|e('html_attr') }}" data-can-reschedule="{{ seg.canBeRescheduled|default(false) ? 'true' : 'false' }}" data-is-projected-override="{{ isProjectedOverride ? 'true' : 'false' }}" data-original-starts-at="{{ seg.originalStartsAt|default('') }}" data-projection-type="{{ seg.projectionType|default('') }}" data-is-cancelled="{{ isCancelled ? 'true' : 'false' }}" data-can-restore="{{ canRestore ? 'true' : 'false' }}" data-is-blocking="{{ isBlocking ? 'true' : 'false' }}" data-is-rescheduled-origin="{{ isRescheduledOrigin ? 'true' : 'false' }}" data-has-covered-ghost="{{ hasCoveredGhost ? 'true' : 'false' }}" data-covered-ghost="{{ coveredGhost ? coveredGhost|json_encode|e('html_attr') : '' }}" data-action="click->grid#selectSlot" draggable="{{ isRebroadcast or isGhost ? 'false' : 'true' }}" {% if isRebroadcast or isGhost %} aria-disabled="true" {% endif %}>
                     <div class="postit__content">
@@ -160,7 +187,7 @@
             {% endfor %}
             {# Drafts manuels #}
             {% for draft in (manualDraftsByDay[dayIndex] ?? []) %}
-                {% set slots = (draft.duration / 15)|round(0, 'ceil') %}
+                {% set slots = (draft.duration / geometry.slotMinutes)|round(0, 'ceil') %}
                 {% set isManualLive = draft.emissionIsAutoGenerated|default(false) %}
                 {% set draftType = draft.draftType|default('') %}
                 {% set nombreDiffusion = draft.nombreDiffusion|default(1) %}
@@ -168,11 +195,11 @@
                 {% set draftCategorySlug = draft.categorySlug|default('') %}
                 {% set displayDraftCategory = draft.assigned|default(true) and draftCategorySlug ? draftCategorySlug : draft.categoryTitle %}
                 <div class="
-                    postit
+                    postit time-position
                     {{ isManualRebroadcast ? 'postit--manual-rebroadcast' : (isManualLive ? 'postit--live' : 'postit--override') }}
                     assigned
-                " style="
-                    top:calc({{ draft.startIndex }} * var(--slot-h));
+                " data-start-index="{{ draft.startIndex }}" style="
+                    {{ _self.timePosition(draft.startIndex, geometry.breakEnd) }}
                     height:calc({{ slots }} * var(--slot-h) - 2px);
                 " data-is-manual-draft="true" data-draft-id="{{ draft.diffusionId|default(null) ? '' : draft.id }}" data-diffusion-id="{{ draft.diffusionId|default('') }}" data-slots="{{ slots }}" data-duration="{{ draft.duration }}" data-starts-at="{{ draft.startsAt }}" data-ends-at="{{ draft.endsAt|default('') }}" data-category-title="{{ draft.categoryTitle }}" data-category-slug="{{ draftCategorySlug }}" data-assigned-emission-id="{{ draft.emissionId|default('') }}" data-assigned-emission-title="{{ draft.title }}" data-emission-is-auto-generated="{{ isManualLive ? 'true' : 'false' }}" data-draft-type="{{ draftType }}" data-nombre-diffusion="{{ nombreDiffusion }}" data-broadcast-rank="{{ nombreDiffusion }}" data-assignment-group-key="{{ draft.assignmentGroupKey|default('') }}" data-slot-locked="false" data-has-conflict="false" data-is-blocking="true" data-action="click->grid#selectSlot">
                     <div class="postit__content">
@@ -221,4 +248,11 @@
             {% endfor %}
         </div>
     {% endfor %}
+    <div class="schedule-break">
+        <span class="schedule-break__label">
+            {{ _self.timeLabel(geometry.breakStart, geometry.slotMinutes) }} —
+            {{ _self.timeLabel(geometry.breakEnd, geometry.slotMinutes) }}
+            <span>Plage sans programmation</span>
+        </span>
+    </div>
 </div>

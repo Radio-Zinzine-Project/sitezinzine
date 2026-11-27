@@ -12,6 +12,23 @@ function context() {
 }
 
 describe('Arbitrages et restauration d’occurrences', () => {
+    test('le refus nocturne Symfony conserve la page et affiche son message', async () => {
+        const navigation = mockNavigation()
+        const originalHref = navigation.href
+        const ctx = context()
+        const error = 'Cette programmation empiète sur la plage sans programmation de 01:00 à 06:30.'
+        ctx.arbitrationActionsTarget.innerHTML = '<input data-grid-custom-date value="2026-10-08"><input data-grid-custom-time value="20:00">'
+        ctx.askRebroadcastStrategy.mockResolvedValue({ strategy: 'move', targets: [] })
+        fetch.mockResolvedValue({ ...jsonResponse({ success: false, error }, false), status: 422 })
+
+        await arbitration.submitCustomReschedule.call(ctx)
+
+        expect(fetch).toHaveBeenCalledOnce()
+        expect(window.alert).toHaveBeenCalledWith(expect.stringContaining(error))
+        expect(ctx.saveScrollTarget).not.toHaveBeenCalled()
+        expect(navigation.reload).not.toHaveBeenCalled()
+        expect(navigation.href).toBe(originalHref)
+    })
     test('un déplacement utilise l’origine et transmet la stratégie des rediffusions', async () => {
         const navigation = mockNavigation()
         const ctx = context()

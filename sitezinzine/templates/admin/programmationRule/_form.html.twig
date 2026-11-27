@@ -1,13 +1,12 @@
 <style>
-.main-content .programmation-rule-form,
 .main-content .programmation-rule-form *{
   box-sizing: border-box;
 }
 
 .main-content .programmation-rule-form{
   font-family: "Montserrat Alternates", sans-serif;
-  max-width: 1080px;
-  margin: 18px auto 28px;
+  --admin-content-width: var(--admin-width-editorial-form);
+  margin-block: 18px 28px;
   padding: 16px 16px;
   background: #fff;
   border-radius: 12px;
@@ -44,6 +43,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .main-content .programmation-rule-form label{
@@ -57,6 +57,7 @@
 .main-content .programmation-rule-form input[type="date"],
 .main-content .programmation-rule-form select{
   width: 100%;
+  min-width: 0;
   padding: 10px 12px;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -200,7 +201,7 @@
 
 @media (max-width: 960px){
   .main-content .programmation-rule-form{
-    margin: 14px 12px 22px;
+    margin-block: 14px 22px;
     padding: 14px 12px;
   }
 
@@ -211,7 +212,7 @@
 
 @media (max-width: 420px){
   .main-content .programmation-rule-form{
-    margin: 10px 8px 16px;
+    margin-block: 10px 16px;
     padding: 12px 10px;
     border-radius: 10px;
   }
@@ -238,7 +239,8 @@
   }
 }
 </style>
-<div class="programmation-rule-form">
+<div class="admin-content-gutters">
+<div class="programmation-rule-form admin-content-container">
   <h1>
     {{ form_title }}
   </h1>
@@ -315,4 +317,5 @@
     </a>
   </div>
   {{ form_end(form, { render_rest: false }) }}
+</div>
 </div>

@@ -6,6 +6,7 @@ namespace App\Service;
 
 use App\Entity\Diffusion;
 use App\Entity\Emission;
+use App\Repository\DiffusionDraftRepository;
 use App\Repository\DiffusionRepository;
 
 final class PublicScheduleBuilder
@@ -14,12 +15,14 @@ final class PublicScheduleBuilder
         private readonly DiffusionRepository $diffusionRepository,
         private readonly ProgrammationGridBuilder $programmationGridBuilder,
         private readonly GridOccurrenceProjectionService $gridOccurrenceProjectionService,
+        private readonly DiffusionDraftRepository $draftRepository,
     ) {
     }
 
     public function build(\DateTimeImmutable $startOfWeek): array
     {
-        $start = $startOfWeek->setTime(0, 0);
+        $radioTimezone = new \DateTimeZone('Europe/Paris');
+        $start = $startOfWeek->setTimezone($radioTimezone)->setTime(0, 0);
         $end = $start->modify('+7 days');
 
         /*
@@ -51,46 +54,38 @@ final class PublicScheduleBuilder
             $end
         );
 
-        /*
-         * Index chronologique des diffusions.
-         *
-         * C'est le même principe que dans GridViewBuilder :
-         * une diffusion régulière est rattachée à son occurrence par
-         * son horaire de diffusion.
-         */
-        $diffusionIndex = [];
-
+        $published = [];
+        $publishedIndexById = [];
         foreach ($diffusions as $diffusion) {
-            if (!$diffusion instanceof Diffusion) {
+            if (!$diffusion instanceof Diffusion || !$diffusion->getEmission() instanceof Emission) {
                 continue;
             }
 
-            $startsAt = $diffusion->getHoraireDiffusion();
-
-            if (!$startsAt instanceof \DateTimeInterface) {
+            $startsAt = $this->toImmutableDate($diffusion->getHoraireDiffusion(), $radioTimezone);
+            $dayIndex = null === $startsAt ? null : $this->getDayIndex($startsAt, $start, $end);
+            if (null === $dayIndex) {
                 continue;
             }
 
-            $key = $startsAt->format('Y-m-d H:i:s');
+            $id = $diffusion->getId();
+            if (null !== $id) {
+                if (isset($publishedIndexById[$id])) {
+                    continue;
+                }
+                $publishedIndexById[$id] = \count($published);
+            }
 
-            $diffusionIndex[$key] = $diffusion;
+            $published[] = [
+                'day' => $dayIndex,
+                'startsAt' => $startsAt,
+                'diffusion' => $diffusion,
+            ];
         }
 
-        $itemsByDay = array_fill(0, 7, []);
-
-        /*
-         * 4. Construction des éléments issus de la programmation régulière.
-         */
+        $occurrences = [];
+        $occurrencesByIdentity = [];
         foreach ($daySegments as $segments) {
             foreach ($segments as $segment) {
-                /*
-                 * Une occurrence annulée ne doit jamais apparaître
-                 * sur le programme public.
-                 *
-                 * De même, lorsqu'une occurrence est déplacée, son ancienne
-                 * position reste utile à l'administration mais ne doit pas
-                 * être visible publiquement.
-                 */
                 if (
                     ($segment['isBlocking'] ?? true) === false
                     || ($segment['isCancelled'] ?? false) === true
@@ -99,123 +94,139 @@ final class PublicScheduleBuilder
                     continue;
                 }
 
-                $startsAt = $this->toImmutableDate(
-                    $segment['startsAt'] ?? null
-                );
-
-                if (!$startsAt instanceof \DateTimeImmutable) {
+                $startsAt = $this->toImmutableDate($segment['startsAt'] ?? null, $radioTimezone);
+                $dayIndex = null === $startsAt ? null : $this->getDayIndex($startsAt, $start, $end);
+                if (null === $dayIndex) {
                     continue;
                 }
 
-                $dayIndex = $this->getDayIndex(
-                    $startsAt,
-                    $start,
-                    $end
-                );
-
-                if ($dayIndex === null) {
-                    continue;
-                }
-
-                $endsAt = $this->toImmutableDate(
-                    $segment['endsAt'] ?? null
-                );
-
-                $key = $startsAt->format('Y-m-d H:i:s');
-                $diffusion = $diffusionIndex[$key] ?? null;
-
-                if ($diffusion instanceof Diffusion) {
-                    $emission = $diffusion->getEmission();
-
-                    if ($emission instanceof Emission) {
-                        $itemsByDay[$dayIndex][] = [
-                            'type' => 'diffusion',
-                            'startsAt' => $startsAt,
-                            'endsAt' => $endsAt,
-                            'emission' => $emission,
-                            'category' => $emission->getCategorie(),
-                            'diffusion' => $diffusion,
-                            'isRegular' => true,
-                        ];
-
-                        unset($diffusionIndex[$key]);
-
-                        continue;
+                $slotId = (int) ($segment['slotId'] ?? 0);
+                if ($slotId > 0) {
+                    $index = \count($occurrences);
+                    $effective = $startsAt->format('Y-m-d H:i:s');
+                    $original = $this->toImmutableDate($segment['originalStartsAt'] ?? null, $radioTimezone)?->format('Y-m-d H:i:s') ?? $effective;
+                    foreach (array_unique([$effective, $original]) as $time) {
+                        $key = $slotId . '|' . $time;
+                        $occurrencesByIdentity[$key][] = $index;
                     }
                 }
 
-                /*
-                 * Aucun contenu publié n'est affecté à ce créneau :
-                 * le créneau régulier reste néanmoins visible publiquement.
-                 */
-                $itemsByDay[$dayIndex][] = [
-                    'type' => 'empty_regular',
+                $occurrences[] = [
+                    'day' => $dayIndex,
                     'startsAt' => $startsAt,
-                    'endsAt' => $endsAt,
-                    'emission' => null,
+                    'endsAt' => $this->toImmutableDate($segment['endsAt'] ?? null, $radioTimezone),
                     'category' => $segment['category'] ?? null,
-                    'diffusion' => null,
-                    'isRegular' => true,
                 ];
             }
         }
 
-        /*
-         * 5. Les diffusions encore présentes dans l'index ne correspondent
-         * à aucune occurrence régulière visible.
-         *
-         * Ce sont notamment les émissions ponctuelles/manuelles publiées.
-         */
-        foreach ($diffusionIndex as $diffusion) {
-            if (!$diffusion instanceof Diffusion) {
+        $matches = [];
+        $consumed = [];
+        $withDraftLink = [];
+        $claims = [];
+        $claimedIdentities = [];
+        $drafts = [] === $publishedIndexById ? [] : $this->draftRepository->findByPublishedDiffusionIds(array_keys($publishedIndexById));
+        foreach ($drafts as $draft) {
+            $id = $draft->getPublishedDiffusion()?->getId();
+            if (null === $id || !isset($publishedIndexById[$id])) {
                 continue;
             }
 
-            $startsAtInterface = $diffusion->getHoraireDiffusion();
+            $diffusionIndex = $publishedIndexById[$id];
+            // Even an obsolete or manual link prevents matching by time to another slot.
+            $withDraftLink[$diffusionIndex] = ($withDraftLink[$diffusionIndex] ?? 0) + 1;
 
-            if (!$startsAtInterface instanceof \DateTimeInterface) {
+            $diffusion = $published[$diffusionIndex]['diffusion'];
+            $slotId = $draft->getSlot()?->getId();
+            $startsAt = $draft->getHoraireDiffusion();
+            if (!$draft->isPublished() || $draft->isDeleted() || !$draft->isRegular()
+                || $draft->getEmission() !== $diffusion->getEmission()
+                || null === $slotId || null === $startsAt) {
                 continue;
             }
 
-            $startsAt = \DateTimeImmutable::createFromInterface(
-                $startsAtInterface
-            );
+            $key = $slotId . '|' . $startsAt->format('Y-m-d H:i:s');
+            $claimedIdentities[$key] = true;
+            $candidates = $occurrencesByIdentity[$key] ?? [];
+            if (1 === \count($candidates)) {
+                $claims[$diffusionIndex] = $candidates[0];
+            }
+        }
 
-            $dayIndex = $this->getDayIndex(
-                $startsAt,
-                $start,
-                $end
-            );
+        $claimsByOccurrence = [];
+        foreach ($claims as $diffusionIndex => $occurrenceIndex) {
+            if (1 === $withDraftLink[$diffusionIndex]) {
+                $claimsByOccurrence[$occurrenceIndex][] = $diffusionIndex;
+            }
+        }
+        foreach ($claimsByOccurrence as $occurrenceIndex => $candidates) {
+            if (1 === \count($candidates)) {
+                $matches[$occurrenceIndex] = $candidates[0];
+                $consumed[$candidates[0]] = $occurrenceIndex;
+            }
+        }
 
-            if ($dayIndex === null) {
+        // Legacy rows without a draft link can only fill an unambiguous remaining slot.
+        $reservedOccurrences = [];
+        foreach ($claimedIdentities as $key => $_) {
+            foreach ($occurrencesByIdentity[$key] ?? [] as $index) {
+                $reservedOccurrences[$index] = true;
+            }
+        }
+        $historicalByTime = [];
+        foreach ($published as $index => $item) {
+            if (!isset($withDraftLink[$index])) {
+                $historicalByTime[$item['startsAt']->format('Y-m-d H:i:s')][] = $index;
+            }
+        }
+        $unmatchedByTime = [];
+        foreach ($occurrences as $index => $occurrence) {
+            if (!isset($matches[$index]) && !isset($reservedOccurrences[$index])) {
+                $unmatchedByTime[$occurrence['startsAt']->format('Y-m-d H:i:s')][] = $index;
+            }
+        }
+        foreach ($unmatchedByTime as $time => $indices) {
+            $candidates = $historicalByTime[$time] ?? [];
+            if (1 === \count($indices) && 1 === \count($candidates)) {
+                $matches[$indices[0]] = $candidates[0];
+                $consumed[$candidates[0]] = $indices[0];
+            }
+        }
+
+        $itemsByDay = array_fill(0, 7, []);
+        foreach ($occurrences as $index => $occurrence) {
+            if (isset($matches[$index])) {
                 continue;
             }
 
+            $itemsByDay[$occurrence['day']][] = [
+                'type' => 'empty_regular',
+                'startsAt' => $occurrence['startsAt'],
+                'endsAt' => $occurrence['endsAt'],
+                'emission' => null,
+                'category' => $occurrence['category'],
+                'diffusion' => null,
+                'isRegular' => true,
+            ];
+        }
+        foreach ($published as $index => $item) {
+            $diffusion = $item['diffusion'];
             $emission = $diffusion->getEmission();
-
-            if (!$emission instanceof Emission) {
-                continue;
+            $endsAt = $this->toImmutableDate($diffusion->getEndsAt(), $radioTimezone);
+            if (null === $endsAt && null === $diffusion->getDurationMinutes()
+                && isset($consumed[$index]) && !isset($withDraftLink[$index])) {
+                // Preserve the slot end for historical rows without their own schedule length.
+                $endsAt = $occurrences[$consumed[$index]]['endsAt'];
             }
-
-            $endsAtInterface = $diffusion->getEndsAt();
-
-            $endsAt = $endsAtInterface instanceof \DateTimeInterface
-                ? \DateTimeImmutable::createFromInterface($endsAtInterface)
-                : $startsAt->modify(
-                    sprintf(
-                        '+%d minutes',
-                        $this->resolveDiffusionDuration($diffusion)
-                    )
-                );
-
-            $itemsByDay[$dayIndex][] = [
+            $endsAt ??= $item['startsAt']->modify(sprintf('+%d minutes', $this->resolveDiffusionDuration($diffusion)));
+            $itemsByDay[$item['day']][] = [
                 'type' => 'diffusion',
-                'startsAt' => $startsAt,
+                'startsAt' => $item['startsAt'],
                 'endsAt' => $endsAt,
                 'emission' => $emission,
                 'category' => $emission->getCategorie(),
                 'diffusion' => $diffusion,
-                'isRegular' => false,
+                'isRegular' => isset($consumed[$index]),
             ];
         }
 
@@ -265,7 +276,7 @@ final class PublicScheduleBuilder
             return null;
         }
 
-        $dayStart = $startsAt->setTime(0, 0, 0);
+        $dayStart = $startsAt->setTimezone($start->getTimezone())->setTime(0, 0, 0);
         $diffDays = $start->diff($dayStart)->days;
 
         if (
@@ -280,7 +291,8 @@ final class PublicScheduleBuilder
     }
 
     private function toImmutableDate(
-        mixed $value
+        mixed $value,
+        \DateTimeZone $radioTimezone,
     ): ?\DateTimeImmutable {
         if ($value instanceof \DateTimeImmutable) {
             return $value;
@@ -291,7 +303,7 @@ final class PublicScheduleBuilder
         }
 
         if (is_string($value) && $value !== '') {
-            return new \DateTimeImmutable($value);
+            return new \DateTimeImmutable($value, $radioTimezone);
         }
 
         return null;

@@ -13,6 +13,7 @@ import * as sidebar from './grid/sidebar'
 import * as postitRenderer from './grid/postitRenderer'
 import * as dragDrop from './grid/dragDrop'
 import * as pendingRebroadcasts from './grid/pendingRebroadcasts'
+import { createTimeGeometry } from './grid/timeGeometry'
 import { escapeHtml } from './grid/utils'
 
 export default class extends Controller {
@@ -68,8 +69,16 @@ export default class extends Controller {
     console.log('weekStartValue =', this.weekStartValue)
     console.log('dataset =', this.element.dataset)
 
-    this.CELL_MIN = 15
-    this.CELL_H = this.getSlotHeight()
+    const { dataset } = this.element.querySelector('.schedule-grid')
+    const config = Object.fromEntries(
+      ['slotMinutes', 'slotHeight', 'daySlots', 'breakStart', 'breakEnd', 'breakHeight']
+        .map(key => [key, Number(dataset[key])])
+    )
+    this.timeGeometry = createTimeGeometry(config)
+    this.CELL_MIN = config.slotMinutes
+    this.CELL_H = config.slotHeight
+    this.daySlots = config.daySlots
+    this.breakEnd = config.breakEnd
 
     this.dragged = null
     this.fromDay = null
@@ -110,8 +119,7 @@ export default class extends Controller {
       day.addEventListener('dragover', (e) => {
         if (this.isReadonly()) return
 
-        e.preventDefault()
-        day.classList.add('drag-over')
+        dragDrop.dragOverDay.call(this, e, day)
       }, listenerOptions)
 
       day.addEventListener('dragleave', () => {
@@ -124,48 +132,6 @@ export default class extends Controller {
         this.dropOnDay(e, day)
       }, listenerOptions)
     })
-
-    const regularPool = this.element.querySelector('#emissions-pool')
-
-    if (regularPool) {
-      regularPool.addEventListener('dragover', (e) => {
-        if (this.isReadonly()) return
-
-        e.preventDefault()
-        regularPool.classList.add('drop-pool-hover')
-      }, listenerOptions)
-
-      regularPool.addEventListener('dragleave', () => {
-        regularPool.classList.remove('drop-pool-hover')
-      }, listenerOptions)
-
-      regularPool.addEventListener('drop', (e) => {
-        if (this.isReadonly()) return
-
-        this.dropBackToPool(e, regularPool)
-      }, listenerOptions)
-    }
-
-    const specialPool = this.element.querySelector('#emissions-pool-special')
-
-    if (specialPool) {
-      specialPool.addEventListener('dragover', (e) => {
-        if (this.isReadonly()) return
-
-        e.preventDefault()
-        specialPool.classList.add('drop-pool-hover')
-      }, listenerOptions)
-
-      specialPool.addEventListener('dragleave', () => {
-        specialPool.classList.remove('drop-pool-hover')
-      }, listenerOptions)
-
-      specialPool.addEventListener('drop', (e) => {
-        if (this.isReadonly()) return
-
-        this.dropBackToPool(e, specialPool)
-      }, listenerOptions)
-    }
 
     if (this.hasTrashZoneTarget) {
       this.trashZoneTarget.addEventListener('dragover', (e) => {
@@ -215,6 +181,7 @@ export default class extends Controller {
 
     this.syncSidebarHeight()
     window.addEventListener('resize', this.syncSidebarHeight)
+    this.element.querySelector('.grid-area')?.removeAttribute('inert')
   }
 
   saveScrollTarget(startsAt) {
@@ -261,6 +228,9 @@ export default class extends Controller {
   }
 
   disconnect() {
+    if (!this.isReadonly()) {
+      this.element.querySelector('.grid-area')?.setAttribute('inert', '')
+    }
     clearTimeout(this.regularSearchTimeout)
     clearTimeout(this.specialSearchTimeout)
 
@@ -318,18 +288,6 @@ export default class extends Controller {
     }
 
     await this.loadCandidatesForSelectedPostit()
-  }
-
-  getSlotHeight() {
-    const rootStyles = getComputedStyle(document.documentElement)
-    const rawValue = rootStyles.getPropertyValue('--slot-h').trim()
-
-    if (!rawValue) {
-      return 14
-    }
-
-    const parsed = parseFloat(rawValue.replace('px', ''))
-    return Number.isNaN(parsed) ? 14 : parsed
   }
 
   getWeekStart() {
@@ -685,14 +643,6 @@ export default class extends Controller {
       this,
       dayEl,
       startIndex
-    )
-  }
-
-  dropBackToPool(e, pool) {
-    return dragDrop.dropBackToPool.call(
-      this,
-      e,
-      pool
     )
   }
 

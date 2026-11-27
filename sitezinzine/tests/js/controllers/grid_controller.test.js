@@ -18,13 +18,107 @@ function gridMarkup(readonly = false) {
             <div data-grid-target="specialStatus"></div><div data-grid-target="specialEmptyState"></div>
             <div data-grid-target="specialSidebarPanel"></div><div data-grid-target="emissionsList"></div>
         </div>
-        <div class="day-col" data-grid-target="day" data-day-index="0">
-            <div class="postit" data-is-manual-draft="true" draggable="true"></div>
+        <div class="grid-area" inert>
+          <div class="schedule-grid" data-slot-minutes="15" data-slot-height="14" data-day-slots="96"
+               data-break-start="4" data-break-end="26" data-break-height="28">
+            <div class="day-col" data-grid-target="day" data-day-index="0">
+                <div class="postit" data-is-manual-draft="true" draggable="true"></div>
+            </div>
+          </div>
         </div>
+        <aside class="sidebar"></aside>
     </div>`
 }
 
 describe('Grille avec un vrai cycle Stimulus', () => {
+    test.each([
+        ['liste régulière remplie', '#emissions-pool', true],
+        ['liste ponctuelle remplie', '#emissions-pool-special', true],
+        ['liste régulière vide', '#emissions-pool', false],
+        ['liste ponctuelle vide', '#emissions-pool-special', false],
+        ['parc', '.pending-rebroadcast-list', true],
+        ['fond du panneau', '.sidebar', false],
+    ])('refuse un post-it déposé dans la zone %s', async (_, selector, populated) => {
+        const poolIds = ['emissions-pool', 'emissions-pool-special']
+        const markup = gridMarkup()
+            .replaceAll('<div data-grid-target="emissionsList">', () =>
+                `<div id="${poolIds.shift()}" data-grid-target="emissionsList">`)
+            .replace('<aside class="sidebar"></aside>', `<aside class="sidebar">
+                <div class="pending-rebroadcast-list" data-grid-target="pendingRebroadcastList"></div>
+                <div class="trash-zone" data-grid-target="trashZone"></div>
+            </aside>`)
+        const { root, controller } = await mountController('grid', GridController, markup)
+        const day = root.querySelector('.day-col')
+        const postit = day.querySelector('.postit')
+        Object.assign(postit.dataset, {
+            draftId: '42', assignmentGroupKey: 'manual_42', startIndex: '26',
+            startsAt: '2026-10-06 06:30:00', endsAt: '2026-10-06 07:00:00', duration: '30',
+        })
+        postit.classList.add('time-position')
+        postit.style.cssText = '--time-index: 26; --after-break: 1; height: 26px;'
+        const target = root.querySelector(selector)
+        if (populated) {
+            const card = document.createElement('div')
+            card.className = 'emission-card'
+            card.textContent = 'Émission disponible'
+            if (selector === '.pending-rebroadcast-list') {
+                card.dataset.pendingRebroadcastId = '7'
+            }
+            target.append(card)
+        }
+        const lists = [...root.querySelectorAll('#emissions-pool, #emissions-pool-special, .pending-rebroadcast-list')]
+        const listContents = lists.map(list => list.innerHTML)
+        const originalStyle = postit.getAttribute('style')
+        const originalData = { ...postit.dataset }
+
+        postit.dispatchEvent(new Event('dragstart', { bubbles: true }))
+        expect(controller.dragged).toBe(postit)
+        const hover = new Event('dragover', { bubbles: true, cancelable: true })
+        target.dispatchEvent(hover)
+        expect.soft(hover.defaultPrevented).toBe(false)
+        expect.soft(target.classList.contains('drop-pool-hover')).toBe(false)
+        const drop = new Event('drop', { bubbles: true, cancelable: true })
+        target.dispatchEvent(drop)
+        expect.soft(drop.defaultPrevented).toBe(false)
+        expect.soft(postit.parentElement).toBe(day)
+        expect.soft(postit.getAttribute('style')).toBe(originalStyle)
+        expect.soft({ ...postit.dataset }).toEqual(originalData)
+        expect.soft(postit.classList.contains('postit')).toBe(true)
+        expect.soft(lists.map(list => list.innerHTML)).toEqual(listContents)
+        expect(fetch).not.toHaveBeenCalled()
+
+        day.classList.add('drag-over')
+        controller.trashZoneTarget.classList.add('is-active')
+        postit.dispatchEvent(new Event('dragend', { bubbles: true }))
+        expect(controller.dragged).toBeNull()
+        expect(controller.fromDay).toBeNull()
+        expect(controller.fromStartIndex).toBeNull()
+        expect(root.querySelector('.drag-over, .drop-pool-hover, .trash-zone.is-active')).toBeNull()
+        expect(fetch).not.toHaveBeenCalled()
+    })
+
+    test('recharge la géométrie et ajuste le panneau à chaque connexion', async () => {
+        const { root, controller } = await mountController('grid', GridController, gridMarkup())
+        const area = root.querySelector('.grid-area')
+        const grid = root.querySelector('.schedule-grid')
+        let height = 1130
+        vi.spyOn(grid, 'offsetHeight', 'get').mockImplementation(() => height)
+        expect(area.hasAttribute('inert')).toBe(false)
+        expect(controller.timeGeometry.positionToIndex(84)).toEqual({ kind: 'slot', index: 26 })
+        window.dispatchEvent(new Event('resize'))
+        expect(root.querySelector('.sidebar').style.height).toBe('1130px')
+        root.remove()
+        await flushDom()
+        expect(area.hasAttribute('inert')).toBe(true)
+        grid.dataset.breakHeight = '30'
+        height = 1132
+        document.body.append(root)
+        await flushDom()
+        expect(area.hasAttribute('inert')).toBe(false)
+        expect(controller.timeGeometry.positionToIndex(84)).toEqual({ kind: 'break' })
+        expect(controller.timeGeometry.positionToIndex(86)).toEqual({ kind: 'slot', index: 26 })
+        expect(root.querySelector('.sidebar').style.height).toBe('1132px')
+    })
     test('changer la valeur Stimulus de semaine recharge le parc ouvert une seule fois', async () => {
         fetch.mockImplementation(async () => jsonResponse({ success: true, count: 0, items: [] }))
         const markup = gridMarkup().replace('<div class="day-col"', `

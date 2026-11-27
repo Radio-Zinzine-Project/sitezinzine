@@ -24,12 +24,14 @@ use App\Service\GridOccurrenceProjectionService;
 use App\Service\GridPublicationService;
 use App\Service\GridUnpublicationService;
 use App\Service\GridViewBuilder;
+use App\Service\GridWeekValidation;
 use App\Service\LiveEmissionCreator;
 use App\Service\ProgrammationGridBuilder;
 use App\Service\WeeklyAnnouncementPrintBuilder;
 use App\Service\PendingRebroadcastPopulatorInterface;
 use Psr\Clock\ClockInterface;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -3211,6 +3213,112 @@ class GrilleControllerTest extends KernelTestCase
         );
     }
 
+    /** @dataProvider nocturnalRescheduleCases */
+    public function testRescheduleChecksAllDestinationsBeforeMutating(
+        string $action,
+        string $strategy,
+        string $origin,
+        int $duration,
+        string $targetTime,
+        ?string $linkedTime,
+        bool $accepted,
+        ?string $expectedDestination = null,
+    ): void {
+        $rule = $this->createRule(10);
+        $primary = $this->createMock(ProgrammationRuleSlot::class);
+        $primary->method('getId')->willReturn(123);
+        $primary->method('isActive')->willReturn(true);
+        $primary->method('getRule')->willReturn($rule);
+        $primary->method('getBroadcastRank')->willReturn(1);
+        $primary->method('getDurationMinutes')->willReturn($duration);
+
+        $linked = $this->createMock(ProgrammationRuleSlot::class);
+        $linked->method('getId')->willReturn(456);
+        $linked->method('getDayOfWeek')->willReturn(2);
+        $linked->method('getBroadcastRank')->willReturn(2);
+        $linked->method('getDurationMinutes')->willReturn(30);
+        $linked->method('getStartTime')->willReturn(new \DateTimeImmutable($linkedTime ?? '20:00'));
+
+        $slots = $this->createMock(ProgrammationRuleSlotRepository::class);
+        $slots->method('find')->with(123)->willReturn($primary);
+        $slots->method('findActiveByRule')->with($rule)->willReturn([$primary, $linked]);
+
+        $originalDate = new \DateTimeImmutable($origin . ' Europe/Paris');
+        $linkedDate = new \DateTimeImmutable('2026-09-15 ' . ($linkedTime ?? '20:00') . ' Europe/Paris');
+        $first = (new GridSlotArbitration())->setSlot($primary)->setOriginalStartsAt($originalDate)
+            ->setArbitrationGroupKey('existing_primary');
+        $second = (new GridSlotArbitration())->setSlot($linked)->setOriginalStartsAt($linkedDate)
+            ->setArbitrationGroupKey('existing_linked');
+        $firstBefore = clone $first;
+        $secondBefore = clone $second;
+        $arbitrations = $this->createMock(GridSlotArbitrationRepository::class);
+        $arbitrations->method('findOneActiveForOccurrence')
+            ->willReturnCallback(static fn ($slot) => $slot === $primary ? $first : $second);
+
+        $builder = $this->createMock(ProgrammationGridBuilder::class);
+        $builder->method('buildForWeek')->willReturn([[
+            ['slotId' => 123, 'startsAt' => $originalDate->format('Y-m-d H:i:s')],
+            ['slotId' => 456, 'startsAt' => $linkedDate->format('Y-m-d H:i:s')],
+        ]]);
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->expects($accepted ? self::once() : self::never())->method('persist');
+        $manager->expects($accepted ? self::once() : self::never())->method('flush');
+        $request = Request::create('/admin/grille/reschedule-' . $action, 'POST', [
+            'slotId' => 123,
+            'startsAt' => $origin . ' Europe/Paris',
+            'direction' => 'next',
+            'newDate' => '2026-09-15',
+            'newTime' => $targetTime,
+            'rebroadcastStrategy' => $strategy,
+            'rebroadcastTargets' => json_encode([
+                ['slotId' => 456, 'newDate' => '2026-09-16', 'newTime' => '03:00'],
+            ]),
+        ]);
+        $previousTimezone = date_default_timezone_get();
+        date_default_timezone_set('Europe/Paris');
+        try {
+            $response = 'week' === $action
+                ? $this->controller->rescheduleWeek($request, $slots, $arbitrations, $manager, $builder)
+                : $this->controller->rescheduleCustom($request, $slots, $arbitrations, $manager, $builder);
+        } finally {
+            date_default_timezone_set($previousTimezone);
+        }
+
+        if ($accepted) {
+            self::assertSame(200, $response->getStatusCode());
+            self::assertTrue($this->json($response)['success']);
+            self::assertSame($expectedDestination, $first->getRescheduledStartsAt()?->format('Y-m-d H:i:s P'));
+
+            return;
+        }
+
+        self::assertEquals($firstBefore, $first);
+        self::assertEquals($secondBefore, $second);
+        self::assertSame(422, $response->getStatusCode());
+        self::assertSame([
+            'success' => false,
+            'error' => 'Cette programmation empiète sur la plage sans programmation de 01:00 à 06:30.',
+        ], $this->json($response));
+    }
+
+    public static function nocturnalRescheduleCases(): iterable
+    {
+        $origin = '2026-09-15 12:00:00';
+        yield 'destination principale nocturne, keep' => ['custom', 'keep', $origin, 15, '03:00', null, false];
+        yield 'aucune annulation liée, cancel' => ['custom', 'cancel', $origin, 15, '03:00', null, false];
+        yield 'propagation de 20 heures à 4 heures, move' => ['custom', 'move', $origin, 15, '20:00', '20:00', false];
+        yield 'cible individuelle nocturne, custom' => ['custom', 'custom', $origin, 15, '20:00', '20:00', false];
+        yield 'fin exacte à 1 heure' => ['custom', 'keep', $origin, 15, '00:45', null, true, '2026-09-15 00:45:00 +02:00'];
+        yield 'fin après 1 heure' => ['custom', 'keep', $origin, 16, '00:45', null, false];
+        yield 'début exact à 6 h 30' => ['custom', 'keep', $origin, 30, '06:30', null, true, '2026-09-15 06:30:00 +02:00'];
+        yield 'minuit traversé, fin exacte à 1 heure' => ['custom', 'keep', $origin, 90, '23:30', null, true, '2026-09-15 23:30:00 +02:00'];
+        yield 'minuit traversé, fin après 1 heure' => ['custom', 'keep', $origin, 91, '23:30', null, false];
+        yield 'heure civile conservée au passage à l’heure d’été' => [
+            'week', 'keep', '2026-03-22 12:00:00', 30, '', null, true, '2026-03-29 12:00:00 +02:00',
+        ];
+        yield 'destination hebdomadaire liée nocturne' => ['week', 'move', $origin, 15, '', '03:00', false];
+    }
+
     public function testRescheduleCustomMovesLinkedRebroadcasts(): void
     {
         $rule = $this->createRule(10);
@@ -4935,6 +5043,20 @@ class GrilleControllerTest extends KernelTestCase
         yield 'dévalidation' => ['unpublish'];
     }
 
+    private function weekValidationForAction(bool $succeeds): GridWeekValidation
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->expects(self::once())->method('transactional')->willReturnCallback(
+            static fn (callable $work) => $work($connection)
+        );
+        // The transaction reserves the week first and records validation only on success.
+        $connection->expects(self::exactly($succeeds ? 2 : 1))
+            ->method('executeStatement')
+            ->willReturn(1);
+
+        return new GridWeekValidation($connection);
+    }
+
     /** @dataProvider publicationActions */
     public function testPublicationActionsReportCountsAndRedirectToNormalizedWeek(string $action): void
     {
@@ -5039,7 +5161,8 @@ class GrilleControllerTest extends KernelTestCase
         $response = $this->controller->$method(
             '2026-09-17',
             $request,
-            $service
+            $service,
+            $this->weekValidationForAction(true)
         );
 
         self::assertTrue(
@@ -5130,7 +5253,8 @@ class GrilleControllerTest extends KernelTestCase
         $response = $this->controller->$method(
             '2026-09-17',
             $request,
-            $service
+            $service,
+            $this->weekValidationForAction(false)
         );
 
         self::assertTrue(

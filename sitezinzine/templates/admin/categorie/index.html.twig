@@ -44,11 +44,7 @@
             align-items: center;
             justify-content: center;
 
-            width: 100%;
-            max-width: 1200px;
-
-            margin: 0 auto;
-            padding: 55px 20px 70px;
+            padding-block: 55px 70px;
 
             text-align: center;
         }
@@ -119,7 +115,7 @@
         .categorie-content-wrapper {
             width: 100%;
 
-            padding: 25px 20px 50px;
+            padding-block: 25px 50px;
 
             background: white;
         }
@@ -137,10 +133,7 @@
 
             gap: 4px;
 
-            width: 100%;
-            max-width: 1200px;
-
-            margin: 0 auto 22px;
+            margin-bottom: 22px;
             padding: 0;
         }
 
@@ -290,10 +283,6 @@
 
             gap: 20px;
 
-            width: 100%;
-            max-width: 1200px;
-
-            margin: 0 auto;
             padding: 0;
         }
 
@@ -590,17 +579,12 @@
     @media screen and (max-width: 900px) {
 
         .categorie-hero__content {
-            padding: 42px 20px 55px;
+            padding-block: 42px 55px;
         }
 
         .categorie-hero h1 {
             margin-bottom: 25px;
             font-size: 32px;
-        }
-
-        .categorie-content-wrapper {
-            padding-left: 16px;
-            padding-right: 16px;
         }
 
         .categorie-list {
@@ -672,7 +656,7 @@
         --------------------------------------------------------- */
 
         .categorie-hero__content {
-            padding: 30px 14px 42px;
+            padding-block: 30px 42px;
         }
 
         .categorie-hero h1 {
@@ -698,7 +682,7 @@
         --------------------------------------------------------- */
 
         .categorie-content-wrapper {
-            padding: 18px 10px 40px;
+            padding-block: 18px 40px;
         }
 
 
@@ -908,7 +892,7 @@
     @media screen and (max-width: 420px) {
 
         .categorie-hero__content {
-            padding: 24px 10px 36px;
+            padding-block: 24px 36px;
         }
 
         .categorie-hero h1 {
@@ -917,11 +901,6 @@
 
         .categorie-hero .btn-create {
             width: 100%;
-        }
-
-        .categorie-content-wrapper {
-            padding-left: 8px;
-            padding-right: 8px;
         }
 
         .categorie-card {
@@ -1051,7 +1030,7 @@
             BANDEAU ROUGE
         ========================================================= #}
         <div class="categorie-hero">
-            <div class="categorie-hero__content">
+            <div class="categorie-hero__content admin-list-container admin-list-gutters">
                 <h1>
                     Liste des catégories
                 </h1>
@@ -1067,11 +1046,11 @@
             {# =========================================================
                 ZONE BLANCHE
             ========================================================= #}
-            <div class="categorie-content-wrapper">
+            <div class="categorie-content-wrapper admin-list-gutters">
                 {# =====================================================
                     PAGINATION ALPHABÉTIQUE
                 ===================================================== #}
-                <nav class="alphabet-pagination" aria-label="Navigation alphabétique">
+                <nav class="alphabet-pagination admin-list-container" aria-label="Navigation alphabétique">
                     <a href="{{ path(
                         'admin.categorie.index',
                         app.request.query.all|merge({
@@ -1119,7 +1098,7 @@
                 {# =====================================================
                     CATÉGORIES
                 ===================================================== #}
-                <article class="categorie-list">
+                <article class="categorie-list admin-list-container">
                     {% for row in categories %}
                         {% set categorie = row[0] %}
                         {% set total = row.total %}

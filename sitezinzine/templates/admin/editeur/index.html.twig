@@ -51,11 +51,7 @@
     align-items: center;
     justify-content: center;
 
-    width: 100%;
-    max-width: 1200px;
-
-    margin: 0 auto;
-    padding: 55px 20px 70px;
+    padding-block: 55px 70px;
 
     text-align: center;
 }
@@ -136,7 +132,7 @@
 
     min-height: calc(100vh - 300px);
 
-    padding: 30px 20px 50px;
+    padding-block: 30px 50px;
 
     background: white;
 }
@@ -154,10 +150,6 @@
 
     gap: 18px;
 
-    width: 100%;
-    max-width: 1200px;
-
-    margin: 0 auto;
     padding: 0;
 }
 
@@ -327,7 +319,7 @@
 @media screen and (max-width: 900px) {
 
     .admin-editeur-page .editeur-hero__content {
-        padding: 45px 20px 60px;
+        padding-block: 45px 60px;
     }
 
     .admin-editeur-page .editeur-hero h1 {
@@ -349,7 +341,7 @@
 @media screen and (max-width: 600px) {
 
     .admin-editeur-page .editeur-hero__content {
-        padding: 30px 14px 42px;
+        padding-block: 30px 42px;
     }
 
     .admin-editeur-page .editeur-hero h1 {
@@ -370,7 +362,7 @@
     }
 
     .admin-editeur-page .editeur-content {
-        padding: 20px 10px 40px;
+        padding-block: 20px 40px;
     }
 
     .admin-editeur-page .editeur-list {
@@ -411,7 +403,7 @@
 @media screen and (max-width: 420px) {
 
     .admin-editeur-page .editeur-hero__content {
-        padding: 24px 10px 36px;
+        padding-block: 24px 36px;
     }
 
     .admin-editeur-page .editeur-hero h1 {
@@ -420,11 +412,6 @@
 
     .admin-editeur-page .btn-create {
         width: 100%;
-    }
-
-    .admin-editeur-page .editeur-content {
-        padding-left: 8px;
-        padding-right: 8px;
     }
 
     .admin-editeur-page .editeur-card {
@@ -457,11 +444,6 @@
    ========================================================= */
 
 @media screen and (max-width: 350px) {
-
-    .admin-editeur-page .editeur-content {
-        padding-left: 6px;
-        padding-right: 6px;
-    }
 
     .admin-editeur-page .editeur-card {
         padding: 10px;
@@ -512,7 +494,7 @@
 
     <header class="editeur-hero">
 
-        <div class="editeur-hero__content">
+        <div class="editeur-hero__content admin-list-container admin-list-gutters">
 
             <h1>
                 Liste des éditeurs
@@ -536,9 +518,9 @@
     </header>
 
 
-    <main class="editeur-content">
+    <main class="editeur-content admin-list-gutters">
 
-        <article class="editeur-list">
+        <article class="editeur-list admin-list-container">
 
             {% for editeur in editeurs %}
 
