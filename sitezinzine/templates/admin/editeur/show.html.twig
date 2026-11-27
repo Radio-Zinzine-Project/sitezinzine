@@ -50,11 +50,7 @@
     align-items: center;
     justify-content: center;
 
-    width: 100%;
-    max-width: 1200px;
-
-    margin: 0 auto;
-    padding: 55px 20px 70px;
+    padding-block: 55px 70px;
 
     text-align: center;
 }
@@ -100,7 +96,7 @@
 
     min-height: calc(100vh - 260px);
 
-    padding: 28px 20px 50px;
+    padding-block: 28px 50px;
 
     background: #fff;
 }
@@ -110,11 +106,13 @@
    CONTENEUR DES ÉMISSIONS
    ========================================================= */
 
-.admin-editeur-show .editeur-show-emissions {
-    width: 100%;
-    max-width: 1200px;
+.admin-editeur-show .editeur-show-emissions .emission-list .invites,
+.admin-editeur-show .editeur-show-emissions .emission-list .cat {
+  overflow-wrap: anywhere;
+}
 
-    margin: 0 auto;
+.admin-editeur-show .editeur-show-emissions > .results {
+    padding-inline: 0;
 }
 
 
@@ -145,7 +143,7 @@
 @media screen and (max-width: 900px) {
 
     .admin-editeur-show .editeur-show-hero__content {
-        padding: 45px 20px 60px;
+        padding-block: 45px 60px;
     }
 
     .admin-editeur-show .editeur-show-hero h1 {
@@ -153,7 +151,7 @@
     }
 
     .admin-editeur-show .editeur-show-content {
-        padding: 24px 16px 45px;
+        padding-block: 24px 45px;
     }
 
     .admin-editeur-show .editeur-show-section-title {
@@ -169,7 +167,7 @@
 @media screen and (max-width: 600px) {
 
     .admin-editeur-show .editeur-show-hero__content {
-        padding: 30px 14px 42px;
+        padding-block: 30px 42px;
     }
 
     .admin-editeur-show .editeur-show-hero h1 {
@@ -177,7 +175,7 @@
     }
 
     .admin-editeur-show .editeur-show-content {
-        padding: 20px 10px 40px;
+        padding-block: 20px 40px;
     }
 
     .admin-editeur-show .editeur-show-section-title {
@@ -195,16 +193,11 @@
 @media screen and (max-width: 420px) {
 
     .admin-editeur-show .editeur-show-hero__content {
-        padding: 24px 10px 36px;
+        padding-block: 24px 36px;
     }
 
     .admin-editeur-show .editeur-show-hero h1 {
         font-size: 23px;
-    }
-
-    .admin-editeur-show .editeur-show-content {
-        padding-left: 8px;
-        padding-right: 8px;
     }
 
     .admin-editeur-show .editeur-show-section-title {
@@ -218,11 +211,6 @@
    ========================================================= */
 
 @media screen and (max-width: 350px) {
-
-    .admin-editeur-show .editeur-show-content {
-        padding-left: 6px;
-        padding-right: 6px;
-    }
 
     .admin-editeur-show .editeur-show-hero h1 {
         font-size: 21px;
@@ -256,7 +244,7 @@
 
     <header class="editeur-show-hero">
 
-        <div class="editeur-show-hero__content">
+        <div class="editeur-show-hero__content admin-content-container admin-content-gutters">
 
             <h1>
                 {{ editeur.name }}
@@ -275,7 +263,7 @@
 
 <main class="editeur-show-content">
 
-    <div class="editeur-show-emissions">
+    <div class="editeur-show-emissions admin-list-container admin-list-gutters">
 
         {# =====================================================
            PAGINATION ALPHABÉTIQUE SPÉCIFIQUE À L'ÉDITEUR

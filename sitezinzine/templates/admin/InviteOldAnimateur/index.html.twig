@@ -10,7 +10,7 @@
 
 .admin-invite-page {
     width: 100%;
-    padding: 0 24px 40px;
+    padding-block: 0 40px;
     box-sizing: border-box;
 
     font-family: "Montserrat Alternates", sans-serif;
@@ -71,10 +71,7 @@
    ========================================================= */
 
 .admin-invite-page .invite-filters {
-    width: 100%;
-    max-width: 1200px;
-
-    margin: 0 auto 18px;
+    margin-bottom: 18px;
 
     display: flex;
     flex-direction: column;
@@ -185,12 +182,7 @@
    ========================================================= */
 
 .admin-invite-page .table-responsive {
-    width: 100%;
-    max-width: 1200px;
-
-    margin: 0 auto;
-
-    overflow: hidden;
+    overflow-x: auto;
 
     background: white;
 
@@ -342,11 +334,6 @@
 
 @media screen and (max-width: 900px) {
 
-    .admin-invite-page {
-        padding-left: 16px;
-        padding-right: 16px;
-    }
-
     .admin-invite-page h1 {
         font-size: 1.9rem;
     }
@@ -369,11 +356,6 @@
    ========================================================= */
 
 @media screen and (max-width: 700px) {
-
-    .admin-invite-page {
-        padding-left: 12px;
-        padding-right: 12px;
-    }
 
     .admin-invite-page h1 {
         margin: 16px 0 20px;
@@ -547,11 +529,6 @@
 
 @media screen and (max-width: 480px) {
 
-    .admin-invite-page {
-        padding-left: 8px;
-        padding-right: 8px;
-    }
-
     .admin-invite-page h1 {
         font-size: 1.4rem;
     }
@@ -698,7 +675,7 @@
     }
 }
 </style>
-    <div class="admin-invite-page">
+    <div class="admin-invite-page admin-list-gutters">
         <p class="create">
             <a class="btn-create" href="{{ path('admin.InviteOldAnimateur.create') }}">
                 Créer un nouvel invité ou ancien·ne animateurice
@@ -707,7 +684,7 @@
         <h1>
             Invité·es et ancien·nes animateurices
         </h1>
-        <div class="invite-filters">
+        <div class="invite-filters admin-list-container">
             <nav class="alphabet-filter" aria-label="Filtrer par initiale">
                 <a href="{{ path('admin.InviteOldAnimateur.index', app.request.query.all|merge({
                 initiale: null
@@ -745,7 +722,7 @@
                 </a>
             </div>
         </div>
-        <div class="table-responsive">
+        <div class="table-responsive admin-list-container" role="region" aria-label="Tableau des invités et anciens animateurs" tabindex="0">
             <table>
                 <thead>
                     <tr>

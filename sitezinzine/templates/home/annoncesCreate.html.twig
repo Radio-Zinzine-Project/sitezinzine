@@ -9,20 +9,19 @@
 
   .annonce-form-page{
     width: 100%;
-    padding: 28px 16px 48px;
+    padding: 28px var(--site-chrome-gutter) 48px;
     font-family: "Montserrat Alternates", sans-serif;
     color: #fff;
   }
 
   .annonce-form-card{
     width: 100%;
-    max-width: 980px;
+    max-width: 800px;
     margin: 0 auto;
     background: rgba(249,249,249,0.98);
     color: #1C1C1A;
     border-radius: 12px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.12);
-    overflow: hidden;
   }
 
   .annonce-form-header{
@@ -39,19 +38,33 @@
   }
 
   .annonce-form-body{
-    padding: 18px 20px 22px;
+    container-type: inline-size;
+    container-name: annonce-form;
+    padding: 18px clamp(14px, 4%, 20px) 22px;
   }
 
   .form-grid{
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px 16px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
   }
 
-  .form-grid--1{ grid-template-columns: 1fr; }
-  .form-grid--dates{ grid-template-columns: 1fr 1fr; }
+  /* Deux champs d'au moins 272 px, s?par?s par 16 px. */
+  @container annonce-form (min-width: 560px){
+    .form-grid{
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 16px;
+    }
+  }
 
+  .form-grid-full{ grid-column: 1 / -1; }
   .form-block{ margin-top: 14px; }
+
+  .annonce-form-page label,
+  .annonce-form-page .invalid-feedback,
+  .annonce-form-page [role="alert"]{
+    overflow-wrap: anywhere;
+  }
 
   .annonce-form-page label{
     display: inline-block;
@@ -76,6 +89,11 @@
   }
 
   .annonce-form-page textarea{ min-height: 160px; }
+
+  .annonce-form-page .tox-tinymce{
+    min-width: 0;
+    max-width: 100%;
+  }
 
   .field-limit{
     margin-top: 6px;
@@ -111,10 +129,8 @@
   .autre-type{ display: none; }
   .autre-type.is-visible{ display: block; }
 
-  @media (max-width: 860px){
-    .form-grid{ grid-template-columns: 1fr; }
-    .form-grid--dates{ grid-template-columns: 1fr; }
-    .annonce-form-body{ padding: 16px 14px 18px; }
+  @media (max-width: 900px){
+    .annonce-form-page{ padding-inline: var(--site-chrome-mobile-gutter); }
   }
 
   @media (max-width: 900px) and (orientation: landscape){
@@ -153,10 +169,12 @@
       <div class="form-grid form-block">
         {{ form_row(form.ville, { attr: {'data-annonce-form-target':'limitField', 'data-maxlength':'50'} }) }}
         {{ form_row(form.departement, { attr: {'data-annonce-form-target':'limitField', 'data-maxlength':'50'} }) }}
-        {{ form_row(form.adresse, { attr: {'data-annonce-form-target':'limitField', 'data-maxlength':'50'} }) }}
+        <div class="form-grid-full">
+          {{ form_row(form.adresse, { attr: {'data-annonce-form-target':'limitField', 'data-maxlength':'50'} }) }}
+        </div>
       </div>
 
-      <div class="form-grid form-grid--dates form-block">
+      <div class="form-grid form-block">
         {{ form_row(form.dateDebut, { attr: {'data-controller':'flatpickr'} }) }}
         {{ form_row(form.dateFin,   { attr: {'data-controller':'flatpickr'} }) }}
         {{ form_row(form.horaire,   { attr: {'data-annonce-form-target':'limitField', 'data-maxlength':'50'} }) }}
@@ -178,7 +196,7 @@
         {{ form_row(form.presentation) }}
       </div>
 
-      <div class="form-grid form-grid--1 form-block">
+      <div class="form-block">
         {{ form_row(form.contact, { attr: {'data-annonce-form-target':'limitField', 'data-maxlength':'100'} }) }}
       </div>
 

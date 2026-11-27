@@ -1,5 +1,159 @@
 # Changelog
 
+## [1.0.137] - 2026-11-27
+### Ajouts
+- Définition de conventions communes de largeur pour les différentes pages du frontend public.
+- Harmonisation des gouttières horizontales pour améliorer la cohérence de l'affichage sur ordinateur, tablette et mobile.
+- Définition de conventions communes de largeur pour le back-office selon la nature des interfaces : formulaires, fiches de consultation, listes de gestion et tableaux techniques.
+- Mise en place de conteneurs et de variables CSS communs pour faciliter la maintenance et garantir la cohérence des interfaces administratives.
+- Standardisation des gouttières du back-office : 20 px sur ordinateur, 16 px sur tablette et 12 px sur mobile.
+- Ajout de zones de défilement horizontal accessibles au clavier pour les tableaux administratifs nécessitant une largeur importante.
+- Ajout d'une représentation condensée de la grille de programmation, masquant la plage sans programmation de 01h00 à 06h30.
+- Ajout d'un bandeau visuel matérialisant la plage nocturne masquée, en édition comme en consultation.
+- Création d'un module JavaScript dédié à la conversion entre les horaires réels et les positions visuelles dans la grille condensée.
+- Ajout de protections empêchant les dépôts et déplacements d'émissions empiétant sur la plage nocturne masquée.
+- Ajout d'une validation côté serveur des déplacements par arbitrage susceptibles d'affecter la plage nocturne, y compris pour les rediffusions associées.
+### Corrections
+#### Frontend public
+- Harmonisation de la navbar et du footer avec un contenu centré sur une largeur maximale de 1400 px, tout en conservant les fonds pleine largeur.
+- Ajustement des espacements de navigation pour limiter les risques de débordement.
+- Réorganisation du formulaire de dépôt d'annonce : largeur maximale de 800 px, disposition sur deux colonnes sur grand écran et une colonne sur mobile.
+- Harmonisation des sections « Sur les ondes » et « Dernières émissions » de la page d'accueil avec une largeur maximale de 1400 px.
+- Adaptation du carrousel Glide pour afficher 1, 2 ou 3 émissions selon la largeur de l'écran.
+- Correction du dimensionnement des cartes des dernières émissions pour éviter les débordements sur les petits écrans.
+- Vérification de la cohérence des largeurs sur l'ensemble des routes publiques, y compris les pages du footer, les formulaires d'authentification et les pages d'erreur.
+- Préservation des mises en page existantes déjà conformes et de la présentation spécifique du programme hebdomadaire public.
+#### Programmation publique et carrousel « Sur les ondes »
+- Fiabilisation du rapprochement entre les occurrences théoriques de programmation et les diffusions publiées, commun au programme hebdomadaire et au carrousel de la page d'accueil.
+- Remplacement du rapprochement reposant uniquement sur l'égalité des horaires par un mécanisme privilégiant les liens existants entre les diffusions publiées, les brouillons de diffusion et les créneaux de programmation.
+- Prise en compte des horaires d'origine et des horaires issus des arbitrages pour identifier correctement les occurrences régulières déplacées.
+- Correction de l'affichage injustifié du nom d'une catégorie lorsqu'une diffusion publiée peut être rattachée de manière fiable à l'occurrence régulière correspondante.
+- Correction de la perte de diffusions publiées partageant exactement le même horaire de début.
+- Conservation de chaque diffusion publiée, y compris lorsqu'aucun rattachement fiable à une occurrence régulière ne peut être établi.
+- Sécurisation du rapprochement historique par horaire exact, réservé aux situations sans lien de publication connu et sans ambiguïté.
+- Prévention des rattachements incorrects en présence de plusieurs occurrences candidates, de plusieurs diffusions concurrentes ou de brouillons supprimés.
+- Correction des rattachements erronés de rediffusions après un arbitrage lorsque plusieurs occurrences partagent un même horaire.
+- Prise en compte des divergences de rang entre une diffusion publiée et son brouillon associé, sans remettre en cause les autres contrôles d'identité.
+- Conservation des horaires réels des diffusions publiées lorsqu'ils diffèrent des horaires théoriques de programmation.
+- Utilisation d'une récupération groupée des brouillons associés aux diffusions publiées afin de limiter les requêtes supplémentaires en base de données.
+- Harmonisation de l'interprétation des horaires de programmation dans le fuseau Europe/Paris, indépendamment du fuseau PHP par défaut.
+- Correction des incohérences de classement chronologique entre les occurrences théoriques et les diffusions publiées sur les environnements configurés en UTC.
+- Harmonisation des bornes de la semaine radiophonique et du classement des occurrences par journée dans le fuseau Europe/Paris.
+- Préservation des instants et des fuseaux horaires des objets DateTime déjà renseignés.
+- Correction du calcul de la semaine radiophonique courante dans le contrôleur du programme hebdomadaire, en réutilisant l'horloge PSR et le mécanisme RadioWeek existants.
+- Garantie du changement de semaine radiophonique le mardi à minuit, heure de Paris, en période estivale comme hivernale.
+- Correction de la sélection de la carte active du carrousel lorsque plusieurs occurrences sont simultanément en cours : une diffusion réelle est désormais prioritaire sur une carte générique de catégorie.
+- Préservation de l'ordre chronologique des cartes, de leurs horaires, de leurs états de diffusion en cours et du comportement de sélection entre plusieurs diffusions réelles simultanées.
+- Préservation de l'affichage générique des catégories pour les occurrences régulières ne disposant pas encore d'une diffusion publiée.
+- Maintien de la distinction entre programmation administrative et programmation publique : les affectations non publiées restent invisibles nominativement jusqu'à leur publication.
+- Préservation du cycle de validation et de dévalidation des grilles de programmation.
+#### Back-office
+- Harmonisation des listes de gestion des émissions, catégories, thèmes, éditeurs, utilisateurs, annonces, événements, pages éditoriales, anciens animateurs, règles et créneaux de programmation.
+- Harmonisation des résultats de recherche administrative.
+- Harmonisation des formulaires de création et de modification selon leur complexité et leurs besoins d'affichage.
+- Harmonisation des formulaires de profil, de modification du mot de passe et de gestion des utilisateurs.
+- Harmonisation des fiches de consultation et des listes d'émissions associées.
+- Préservation de la disposition verticale des cartes d'émissions associées.
+- Harmonisation des interfaces de gestion des images du site et des images de tags.
+- Correction des débordements horizontaux des tableaux administratifs et amélioration de l'accessibilité de leurs colonnes d'actions sur les petits écrans.
+- Correction du dimensionnement du formulaire de création des pages éditoriales sur mobile.
+- Correction du dimensionnement du champ de téléversement d'image lors de la modification d'une page éditoriale.
+- Correction des débordements provoqués par les titres très longs dans la liste des pages éditoriales.
+- Correction des débordements provoqués par les noms d'invités et les libellés de catégories ou de thèmes très longs dans les cartes d'émissions associées.
+- Correction de libellés d'accessibilité dans les listes des règles et des créneaux de programmation.
+- Correction d'un problème de réinitialisation de la durée d'une émission lors de l'ouverture du formulaire d'édition : la durée enregistrée est désormais conservée, sauf lors d'un changement volontaire de catégorie.
+#### Bibliothèque MP3
+- Harmonisation graphique de la page d'accueil de la bibliothèque MP3 avec les autres interfaces administratives.
+- Harmonisation des pages de consultation de l'inventaire MP3 et des fiches détaillées.
+- Harmonisation des listes, fiches détaillées et historiques de la corbeille MP3.
+- Harmonisation des interfaces de confirmation des opérations et des pages de résultat en cas d'échec.
+- Harmonisation des interfaces de suivi des anomalies de nettoyage, de leurs tentatives de résolution et de leurs historiques.
+- Amélioration de la lisibilité des informations techniques, des états, des diagnostics et des actions disponibles.
+- Adaptation responsive des tableaux techniques avec défilement horizontal localisé.
+- Amélioration de l'affichage des chemins de fichiers, identifiants techniques et autres chaînes de caractères longues.
+- Préservation des restrictions d'accès, des confirmations et des protections existantes pour les opérations sensibles.
+#### Préparation des fichiers MP3 pour le serveur radio
+- Harmonisation graphique de l'interface RadioExport.
+- Réorganisation visuelle des commandes de préparation, des informations de référence et des synthèses.
+- Harmonisation des listes de travail, des historiques de préparation et des déclarations de transfert.
+- Amélioration de la lisibilité des états, des empreintes de contrôle et des liens de téléchargement des archives ZIP et des fichiers JSON.
+- Adaptation responsive des tableaux techniques sans perte d'accès aux informations et aux actions.
+- Préservation de la distinction entre la déclaration d'un transfert et la confirmation effective de celui-ci.
+#### Grille de programmation
+- Correction des chevauchements entre la grille de programmation et son panneau latéral sur les écrans de largeur intermédiaire.
+- Adaptation de la disposition du panneau latéral selon la largeur réellement disponible.
+- Mise en place d'un défilement horizontal localisé permettant de consulter les sept jours de la semaine radiophonique sur les petits écrans.
+- Harmonisation graphique des commandes de navigation, des filtres, des boutons et des fenêtres de confirmation de la grille.
+- Réduction de 280 px de la hauteur de la grille grâce au masquage de la plage nocturne sans programmation.
+- Conservation des 96 créneaux horaires réels par journée, dont 74 restent individuellement visibles dans la grille condensée.
+- Adaptation du positionnement des post-it et des interactions de glisser-déposer à la nouvelle représentation temporelle.
+- Conservation des horaires réels, des durées et des données de programmation indépendamment de la compression visuelle.
+- Sécurisation des dépôts d'émissions régulières, ponctuelles, directes et des rediffusions en attente autour de la plage nocturne.
+- Sécurisation des arbitrages et des déplacements associés afin d'éviter toute programmation empiétant sur la plage nocturne.
+- Correction d'un comportement permettant de déposer une émission déjà programmée dans les listes latérales des émissions régulières ou ponctuelles sans modification effective de son affectation.
+- Préservation du fonctionnement de la corbeille de la grille et des conditions de suppression des émissions programmées.
+- Préservation des mécanismes de publication, de dévalidation, de récurrence et de gestion des conflits.
+- Préservation des horaires et des formats utilisés par le programme public, la grille imprimable et la préparation des fichiers MP3.
+### Tests et qualité
+#### Interfaces et grille de programmation
+- Réalisation d'audits successifs des interfaces publiques et administratives afin de vérifier la cohérence graphique, le comportement responsive et la préservation des fonctionnalités existantes.
+- Ajout de 156 tests unitaires JavaScript couvrant la géométrie temporelle de la grille condensée.
+- Ajout de tests de non-régression couvrant les limites horaires de la plage nocturne, les conversions de coordonnées et les dépôts invalides.
+- Renforcement des tests des arbitrages et des déplacements de rediffusions associées.
+- Ajout de tests vérifiant l'absence de modification des affectations lors d'un dépôt invalide dans les listes latérales de la grille.
+- Renforcement des tests Twig concernant la représentation condensée de la grille de programmation.
+- Correction de quatre erreurs préexistantes dans les tests de publication et de dévalidation de la grille, liées à l'évolution des dépendances du contrôleur.
+- Adaptation des tests de navigation de la bibliothèque MP3 à la nouvelle structure HTML, sans affaiblissement des contrôles d'accès.
+- Renforcement des tests de regroupement des événements dans l'historique de la corbeille MP3.
+- Adaptation des tests Stimulus du formulaire d'émission au nouveau comportement de conservation de la durée enregistrée.
+- Ajout d'un test de non-régression garantissant la conservation de la durée existante lors de l'ouverture du formulaire d'édition d'une émission.
+- Renforcement des tests des événements natifs déclenchés lors de l'application des valeurs par défaut d'une catégorie.
+#### Programmation publique
+- Application d'une démarche TDD avec reproduction des défauts en phase RED avant correction en phase GREEN.
+- Ajout de 25 tests PHP couvrant les corrections de la programmation publique et de la sélection de la carte active du carrousel.
+- Ajout de tests vérifiant le rattachement des diffusions publiées à leurs occurrences régulières malgré une divergence d'horaire.
+- Ajout de tests garantissant la conservation des diffusions publiées partageant un même horaire.
+- Ajout de tests couvrant les arbitrages, les ambiguïtés de rapprochement, les brouillons supprimés et les divergences de rang.
+- Renforcement des tests garantissant la conservation des occurrences génériques légitimes en l'absence de diffusion publiée.
+- Ajout de tests vérifiant l'identité des diffusions publiées, leur indépendance en l'absence de rattachement fiable et l'absence de duplication.
+- Suppression des dépendances injustifiées à l'ordre des entrées simultanées dans les assertions des tests.
+- Ajout de tests de non-régression couvrant l'interprétation des horaires en période estivale et hivernale, indépendamment du fuseau PHP par défaut.
+- Ajout de six cas de test à horloge fixe couvrant le changement de semaine radiophonique autour du mardi à minuit, heure de Paris.
+- Ajout de cinq cas de test couvrant la priorité des diffusions réelles dans la sélection de la carte active du carrousel.
+- Vérification de la préservation de l'ordre chronologique des cartes et de leurs états de diffusion en cours.
+- Validation des corrections dans l'environnement Docker de référence sous PHP 8.3.36.
+- Validation des tests ciblés sous les fuseaux PHP UTC et Europe/Paris, avec des résultats identiques.
+- Validation de la campagne ciblée finale : 53 tests et 288 assertions réussis dans chacun des deux fuseaux horaires.
+- Validation fonctionnelle HTTP de la page d'accueil, du programme hebdomadaire et de la navigation publique.
+#### Validation globale
+- Validation syntaxique de l'ensemble des 123 templates Twig.
+- Validation syntaxique PHP des fichiers modifiés lors des corrections de la programmation publique.
+- Vérification de la cohérence des modifications avec git diff --check.
+- Nettoyage du cache Symfony de l'environnement test avant la campagne PHPUnit finale.
+- Validation de la suite PHPUnit complète le 27 novembre 2026 :
+  - 4 210 tests.
+  - 4 206 tests réussis.
+  - 35 823 assertions.
+  - Aucun échec.
+  - Aucune erreur.
+  - 4 tests ignorés.
+  - Durée d'exécution : 15 min 29,320 s.
+  - Consommation mémoire : 1,01 Go.
+- Validation de la suite Vitest complète :
+  - 387 tests réussis répartis dans 19 fichiers.
+  - Aucun échec.
+- Établissement d'une nouvelle référence de couverture PHP, mesurée avant les dernières corrections de la programmation publique :
+  - Lignes : 94,50 % (19 755 / 20 904).
+  - Méthodes : 79,15 % (1 416 / 1 789).
+  - Classes : 53,41 % (133 / 249).
+- Bilan global des suites de tests PHP et JavaScript :
+  - 4 597 tests.
+  - 4 593 tests réussis.
+  - 4 tests ignorés.
+  - Aucun échec.
+  - Aucune erreur.
+
+
 ## [1.0.136] - 2026-11-23
 ### Corrections
 - Suppression du mot-clé `final` de l'entité `GridWeekValidationState` pour permettre la génération des proxies Doctrine.

@@ -12,11 +12,188 @@
         RESTAUREE: 'Restaurée',
         ANNULEE: 'Annulée'
     } %}
-    <h1>Corbeille MP3</h1>
-    <section class="bg-white p-3">
-        <p><a href="{{ path('admin.audio_library.index') }}">Retour à la bibliothèque MP3</a></p>
-        <form method="get" action="{{ path('admin.audio_library.trash.index') }}" class="row g-3 align-items-end mb-3">
-            <div class="col-sm-auto">
+    <style>
+    .trash-page {
+        margin-block: 24px;
+        padding-bottom: 24px;
+        font-family: "Montserrat Alternates", sans-serif;
+        overflow-wrap: anywhere;
+    }
+
+    .trash-page .trash-title {
+        margin: 0 0 24px;
+        font-size: 2rem;
+        line-height: 1.2;
+        text-align: start;
+    }
+
+    .trash-page .trash-card {
+        padding: 24px;
+        background: #fff;
+        color: #1c1c1a;
+        border-radius: 14px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10);
+    }
+
+    .trash-page .trash-action {
+        display: inline-block;
+        box-sizing: border-box;
+        max-width: 100%;
+        padding: 8px 12px;
+        border: 0;
+        border-radius: 999px;
+        background: #222;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .trash-page .trash-action:hover {
+        background: #000;
+    }
+
+    .trash-page :focus-visible {
+        outline: 2px solid #e4013a;
+        outline-offset: 2px;
+    }
+
+    .trash-page .trash-message {
+        padding: 14px 16px;
+        margin-block: 16px;
+        border-radius: 10px;
+        background: #f3f3f3;
+        color: #333;
+    }
+
+    .trash-page .trash-message[role="alert"] {
+        background: #ffebee;
+        color: #b71c1c;
+    }
+
+    .trash-page .trash-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #f3f3f3;
+        font-weight: 700;
+    }
+
+    @media (max-width: 768px) {
+        .trash-page {
+            margin-block: 20px;
+            padding-bottom: 20px;
+        }
+
+        .trash-page .trash-title {
+            font-size: 1.45rem;
+            text-align: center;
+        }
+
+        .trash-page .trash-card {
+            padding: 16px;
+        }
+    }
+
+    .trash-page {
+        --admin-width-list: var(--admin-width-list-wide);
+    }
+
+    .trash-page .trash-table-scroll {
+        overflow-x: auto;
+        margin-block: 1rem;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.10);
+    }
+
+    .trash-page .trash-table-scroll:focus-visible {
+        outline-offset: -2px;
+    }
+
+    .trash-page .trash-table {
+        width: 100%;
+        min-width: 780px;
+        table-layout: fixed;
+        border-collapse: collapse;
+    }
+
+    .trash-page .trash-table caption {
+        padding: 12px 16px;
+        text-align: start;
+    }
+
+    .trash-page .trash-table th,
+    .trash-page .trash-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #ddd;
+        text-align: start;
+        vertical-align: top;
+    }
+
+    .trash-page .trash-table thead th {
+        background: #1c1c1a;
+        color: #fff;
+        font-weight: 800;
+    }
+
+    .trash-page .trash-table tbody tr:nth-child(even) {
+        background: #f9f9f9;
+    }
+
+    .trash-page .trash-table tbody tr:hover {
+        background: #f5f5f5;
+    }
+
+    .trash-page .trash-pagination {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 16px;
+    }
+
+    .trash-page .trash-filters {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: 12px;
+        margin-block: 16px;
+    }
+
+    .trash-page .trash-filters > div {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .trash-page .trash-filters label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 800;
+    }
+
+    .trash-page .trash-filters select {
+        box-sizing: border-box;
+        max-width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #fff;
+        font: inherit;
+    }
+
+    .trash-page .trash-badge--blocked {
+        background: #ffebee;
+        color: #b71c1c;
+    }
+    </style>
+    <div class="admin-list-gutters">
+    <div class="trash-page admin-list-container">
+    <h1 class="trash-title">Corbeille MP3</h1>
+    <section class="trash-card">
+        <p><a class="trash-action" href="{{ path('admin.audio_library.index') }}">Retour à la bibliothèque MP3</a></p>
+        <form method="get" action="{{ path('admin.audio_library.trash.index') }}" class="trash-filters">
+            <div>
                 <label class="form-label" for="trash-phase">Phase</label>
                 <select class="form-select" id="trash-phase" name="phase">
                     <option value="">Toutes les phases</option>
@@ -25,7 +202,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-sm-auto">
+            <div>
                 <label class="form-label" for="trash-blocked">Blocage</label>
                 <select class="form-select" id="trash-blocked" name="blocked">
                     <option value="">Tous les états</option>
@@ -33,15 +210,15 @@
                     <option value="0"{% if filters.blocked is same as('0') %} selected{% endif %}>Non bloquée</option>
                 </select>
             </div>
-            <div class="col-sm-auto"><button class="btn btn-primary" type="submit">Filtrer</button></div>
+            <div><button class="trash-action" type="submit">Filtrer</button></div>
         </form>
         {% if error %}
-            <p role="alert">{{ error }}</p>
+            <p class="trash-message" role="alert">{{ error }}</p>
         {% elseif rows is empty %}
-            <p>Aucune opération pour cette page et ces filtres.</p>
+            <p class="trash-message">Aucune opération pour cette page et ces filtres.</p>
         {% else %}
-            <div class="table-responsive">
-                <table class="table">
+            <div class="trash-table-scroll" role="region" aria-label="Opérations de corbeille MP3" tabindex="0">
+                <table class="trash-table">
                     <caption>Phases enregistrées dans le journal. La présence des fichiers n’est pas vérifiée sur cette page.</caption>
                     <thead>
                         <tr>
@@ -67,8 +244,8 @@
                                     <small class="text-muted">(#{{ row.emission_id }})</small>
                                 </td>
                                 <td><time datetime="{{ row.created_at|date('c', 'Europe/Paris') }}">{{ row.created_at|date('d/m/Y H:i', 'Europe/Paris') }}</time></td>
-                                <td>{{ phases[row.phase] ?? row.phase }}</td>
-                                <td>{{ row.blocked ? 'Bloquée' : 'Non bloquée' }}</td>
+                                <td><span class="trash-badge">{{ phases[row.phase] ?? row.phase }}</span></td>
+                                <td><span class="trash-badge{{ row.blocked ? ' trash-badge--blocked' : '' }}">{{ row.blocked ? 'Bloquée' : 'Non bloquée' }}</span></td>
                                 <td>{{ row.last_diagnostic_code ?? '—' }}</td>
                             </tr>
                         {% endfor %}
@@ -77,10 +254,12 @@
             </div>
         {% endif %}
         {% if previous or next %}
-            <nav aria-label="Pages de la corbeille MP3">
-                {% if previous %}<a href="{{ path('admin.audio_library.trash.index', filters|merge({page: previous})) }}">Précédent</a>{% endif %}
-                {% if next %}<a href="{{ path('admin.audio_library.trash.index', filters|merge({page: next})) }}">Suivant</a>{% endif %}
+            <nav class="trash-pagination" aria-label="Pages de la corbeille MP3">
+                {% if previous %}<a class="trash-action" href="{{ path('admin.audio_library.trash.index', filters|merge({page: previous})) }}">Précédent</a>{% endif %}
+                {% if next %}<a class="trash-action" href="{{ path('admin.audio_library.trash.index', filters|merge({page: next})) }}">Suivant</a>{% endif %}
             </nav>
         {% endif %}
     </section>
+    </div>
+    </div>
 {% endblock %}

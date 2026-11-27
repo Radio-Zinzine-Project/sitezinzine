@@ -12,44 +12,61 @@ export function makeDraggable(el, source) {
     el.setAttribute('draggable', 'true')
     el.dataset.source = source
 
+    const listenerOptions = { signal: this.eventListenersAbortController?.signal }
     el.addEventListener('dragstart', () => {
         this.dragged = el
 
-        if (source === 'grid') {
+        if (el.dataset.source === 'grid') {
             this.fromDay = el.closest('.day-col')
 
-            const top = parseFloat(el.style.top || '0')
-            this.fromStartIndex = Math.round(top / this.CELL_H)
+            const index = Number(el.dataset.startIndex)
+            this.fromStartIndex = this.timeGeometry.indexToPosition(index).kind === 'slot' ? index : null
         } else {
             this.fromDay = null
             this.fromStartIndex = null
         }
-    })
+    }, listenerOptions)
 
-    el.addEventListener('dragend', () => {
-        this.dayTargets.forEach((day) => {
-            day.classList.remove('drag-over')
-        })
+    el.addEventListener('dragend', () => clearDrag.call(this), listenerOptions)
+}
 
-        const regularPool = this.element.querySelector('#emissions-pool')
-        const specialPool = this.element.querySelector('#emissions-pool-special')
+function clearDrag() {
+    this.dayTargets.forEach(day => day.classList.remove('drag-over'))
+    if (this.hasTrashZoneTarget) {
+        this.trashZoneTarget.classList.remove('is-active')
+    }
+    this.dragged = null
+    this.fromDay = null
+    this.fromStartIndex = null
+}
 
-        if (regularPool) {
-            regularPool.classList.remove('drop-pool-hover')
-        }
+function dropPosition(context, event, dayEl) {
+    return context.timeGeometry.positionToIndex(event.clientY - dayEl.getBoundingClientRect().top)
+}
 
-        if (specialPool) {
-            specialPool.classList.remove('drop-pool-hover')
-        }
+export function dragOverDay(event, dayEl) {
+    const valid = this.dragged && this.dragged.dataset.slotLocked !== 'true'
+        && dropPosition(this, event, dayEl).kind === 'slot'
+    if (valid) {
+        event.preventDefault()
+    }
+    dayEl.classList.toggle('drag-over', Boolean(valid))
+}
 
-        if (this.hasTrashZoneTarget) {
-            this.trashZoneTarget.classList.remove('is-active')
-        }
+function validateInterval(context, startIndex, duration) {
+    const start = startIndex * context.CELL_MIN
+    const result = Number.isSafeInteger(duration) && duration > 0
+        ? context.timeGeometry.classifyInterval(start, start + duration)
+        : 'invalid'
+    if (result === 'clear') {
+        return true
+    }
 
-        this.dragged = null
-        this.fromDay = null
-        this.fromStartIndex = null
-    })
+    alert(result === 'overlap'
+        ? 'Cette programmation empiète sur la plage sans programmation de 01:00 à 06:30.'
+        : 'La durée de cette programmation est invalide ou indisponible.')
+    clearDrag.call(context)
+    return false
 }
 
 export function dropOnDay(e, dayEl) {
@@ -62,57 +79,30 @@ export function dropOnDay(e, dayEl) {
         return
     }
 
-    const rect = dayEl.getBoundingClientRect()
-
-    const startIndex = Math.floor(
-        (e.clientY - rect.top) / this.CELL_H
-    )
-
-    if (
-        this.dragged.dataset.source === 'pending-rebroadcast'
-    ) {
-        e.preventDefault()
-
-        this.placePendingRebroadcastFromDrop(
-            dayEl,
-            startIndex
-        )
-
+    const destination = dropPosition(this, e, dayEl)
+    if (destination.kind !== 'slot') {
+        clearDrag.call(this)
         return
     }
+    e.preventDefault()
 
-    if (
-        this.dragged.dataset.source === 'pool'
-        && this.dragged.dataset.specialItemType
-    ) {
-        e.preventDefault()
-
-        this.createSpecialDraftFromDrop(
-            dayEl,
-            startIndex
-        )
-
-        return
+    const { index } = destination
+    const { source, specialItemType, isManualDraft, duration, emissionDuration } = this.dragged.dataset
+    if (source === 'pending-rebroadcast') {
+        if (validateInterval(this, index, Number(duration))) {
+            return this.placePendingRebroadcastFromDrop(dayEl, index)
+        }
+    } else if (source === 'pool' && specialItemType) {
+        if (validateInterval(this, index, Number(emissionDuration))) {
+            return this.createSpecialDraftFromDrop(dayEl, index)
+        }
+    } else if (source === 'grid' && isManualDraft === 'true') {
+        if (validateInterval(this, index, Number(duration))) {
+            return this.moveManualDraftFromDrop(dayEl, index)
+        }
+    } else {
+        return this.placePostIt(dayEl, index)
     }
-
-    if (
-        this.dragged.dataset.source === 'grid'
-        && this.dragged.dataset.isManualDraft === 'true'
-    ) {
-        e.preventDefault()
-
-        this.moveManualDraftFromDrop(
-            dayEl,
-            startIndex
-        )
-
-        return
-    }
-
-    this.placePostIt(
-        dayEl,
-        startIndex
-    )
 }
 
 export function placePostIt(dayEl, startIndex) {
@@ -120,23 +110,22 @@ export function placePostIt(dayEl, startIndex) {
         return
     }
 
-    const rawDuration =
-        this.dragged.dataset.duration ||
-        this.dragged.dataset.emissionDuration ||
-        '15'
-
-    const duration =
-        parseInt(rawDuration, 10) || 15
-
-    const heightPx = this.durationToPx(duration)
-    const cells = this.durationToCells(duration)
-
-    if (startIndex + cells > 96) {
-        startIndex = 96 - cells
+    if (this.timeGeometry.indexToPosition(startIndex).kind !== 'slot') {
+        clearDrag.call(this)
+        return
     }
 
-    if (startIndex < 0) {
-        startIndex = 0
+    const duration = Number(this.dragged.dataset.duration || this.dragged.dataset.emissionDuration)
+    if (!Number.isSafeInteger(duration) || duration <= 0) {
+        validateInterval(this, startIndex, duration)
+        return
+    }
+    const heightPx = this.durationToPx(duration)
+    const cells = this.durationToCells(duration)
+    startIndex = Math.max(0, Math.min(startIndex, this.daySlots - cells))
+
+    if (!validateInterval(this, startIndex, duration)) {
+        return
     }
 
     if (this.dragged.dataset.source === 'pool') {
@@ -146,8 +135,11 @@ export function placePostIt(dayEl, startIndex) {
 
     this.dragged.dataset.duration = String(duration)
 
-    this.dragged.classList.add('postit')
-    this.dragged.style.top = `${startIndex * this.CELL_H}px`
+    this.dragged.dataset.startIndex = String(startIndex)
+    this.dragged.classList.add('postit', 'time-position')
+    this.dragged.style.removeProperty('top')
+    this.dragged.style.setProperty('--time-index', String(startIndex))
+    this.dragged.style.setProperty('--after-break', startIndex >= this.breakEnd ? '1' : '0')
     this.dragged.style.left = '3px'
     this.dragged.style.right = '3px'
     this.dragged.style.height = `${heightPx}px`
@@ -203,28 +195,4 @@ export function getStartsAtFromDrop(dayEl, startIndex) {
     ).padStart(2, '0')
 
     return `${yyyy}-${mm}-${dd} ${hh}:${mi}:00`
-}
-
-export function dropBackToPool(e, pool) {
-    e.preventDefault()
-
-    pool.classList.remove('drop-pool-hover')
-
-    if (
-        !this.dragged ||
-        this.dragged.dataset.source !== 'grid' ||
-        this.dragged.dataset.slotLocked === 'true'
-    ) {
-        return
-    }
-
-    this.dragged.removeAttribute('style')
-    this.dragged.classList.remove('postit')
-    this.dragged.dataset.source = 'pool'
-
-    pool.appendChild(this.dragged)
-
-    this.dragged = null
-    this.fromDay = null
-    this.fromStartIndex = null
 }

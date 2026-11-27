@@ -1,9 +1,12 @@
 <style>
+.site-layout > footer {
+  background:#1C1C1A;
+}
+
 /* ===== Footer – base ===== */
 .footer{
   font-family:"Montserrat", sans-serif;
   font-weight:400;
-  background:#1C1C1A;
   color:#fff;
   font-size:14px;
 
@@ -12,7 +15,10 @@
   justify-content:center;
   align-items:center;
 
-  padding:12px 14px;
+  width:100%;
+  max-width:var(--site-chrome-max-width);
+  margin-inline:auto;
+  padding:12px var(--site-chrome-gutter);
   gap: 6px 12px;
   box-sizing:border-box;
 }
@@ -31,10 +37,16 @@
 }
 
 /* ===== Mobile portrait : grille compacte ===== */
+@media (max-width: 900px){
+  .footer{
+    padding-inline:var(--site-chrome-mobile-gutter);
+  }
+}
+
 @media (max-width: 560px){
   .footer{
     display:grid;
-    grid-template-columns: 1fr 1fr;   /* 👈 2 liens par ligne */
+    grid-template-columns: repeat(2, minmax(0, 1fr));   /* 👈 2 liens par ligne */
     gap: 6px 12px;
     justify-items:start;
     font-size:13px;
@@ -50,13 +62,15 @@
 
   .footer > div{
     margin: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 
 /* ===== Mobile paysage : encore plus condensé ===== */
 @media (max-width: 900px) and (orientation: landscape){
   .footer{
-    grid-template-columns: repeat(3, 1fr); /* 👈 3 colonnes en paysage */
+    grid-template-columns: repeat(3, minmax(0, 1fr)); /* 👈 3 colonnes en paysage */
     font-size:12.5px;
     gap: 4px 10px;
   }
@@ -69,7 +83,7 @@
 </style>
 <div class='footer'>
     <div>
-        Radio Zinzine Saint Hippolyte F-04300 Limans v1.0.135
+        Radio Zinzine Saint Hippolyte F-04300 Limans v1.0.137
     </div>
     <div>
         <a href="{{ path('contacts') }}">

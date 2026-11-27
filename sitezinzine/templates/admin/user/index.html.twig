@@ -27,7 +27,7 @@
         align-items: center;
         width: 100%;
         margin: 0 auto;
-        padding: 24px 20px 50px;
+        padding-block: 24px 50px;
         font-family: "Montserrat Alternates", sans-serif;
     }
 
@@ -47,13 +47,12 @@
        ========================================================= */
 
     .users-table-wrapper {
-        width: 95%;
-        max-width: 1450px;
-        margin: 1rem auto;
+        --admin-width-list: var(--admin-width-list-extra-wide);
+        margin-block: 1rem;
         background-color: white;
         border-radius: 10px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
+        overflow-x: auto;
     }
 
     /*
@@ -324,11 +323,7 @@
 
     @media screen and (max-width: 1050px) {
         .users-page {
-            padding: 20px 14px 40px;
-        }
-
-        .users-table-wrapper {
-            width: 100%;
+            padding-block: 20px 40px;
         }
 
         .users-table th,
@@ -346,7 +341,7 @@
 
     @media screen and (max-width: 700px) {
         .users-page {
-            padding: 18px 10px 32px;
+            padding-block: 18px 32px;
         }
 
         .users-page h1 {
@@ -359,8 +354,7 @@
          * Chaque utilisateur devient une carte indépendante.
          */
         .users-table-wrapper {
-            width: 100%;
-            margin: 0;
+            margin-block: 0;
             background: transparent;
             border-radius: 0;
             box-shadow: none;
@@ -453,7 +447,7 @@
 
     @media screen and (max-width: 450px) {
         .users-page {
-            padding: 14px 8px 28px;
+            padding-block: 14px 28px;
         }
 
         .users-page h1 {
@@ -487,11 +481,6 @@
        ========================================================= */
 
     @media screen and (max-width: 350px) {
-        .users-page {
-            padding-left: 6px;
-            padding-right: 6px;
-        }
-
         .users-page h1 {
             font-size: 18px;
         }
@@ -530,12 +519,12 @@
     }
 </style>
 
-<div class="users-page">
+<div class="users-page admin-list-gutters">
     <h1>
         Gestion des utilisateurices
     </h1>
 
-    <div class="users-table-wrapper">
+    <div class="users-table-wrapper admin-list-container" role="region" aria-label="Tableau des utilisateurs" tabindex="0">
         <table class="users-table">
             <thead>
                 <tr>

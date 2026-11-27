@@ -3,12 +3,101 @@
 {% block title %}Action administrative MP3{% endblock %}
 
 {% block body %}
-    <h1>Action administrative MP3</h1>
-    <section class="bg-white p-3">
-        <p role="alert">{{ message }}</p>
+    <style>
+    .trash-response {
+        --admin-content-width: 800px;
+        margin-block: 24px;
+        padding-bottom: 24px;
+        font-family: "Montserrat Alternates", sans-serif;
+        overflow-wrap: anywhere;
+    }
+
+    .trash-response .trash-response-title {
+        margin: 0 0 24px;
+        font-size: 2rem;
+        line-height: 1.2;
+        text-align: start;
+    }
+
+    .trash-response .trash-response-card {
+        padding: 24px;
+        border-radius: 14px;
+        background: #fff;
+        color: #1c1c1a;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10);
+    }
+
+    .trash-response p {
+        margin-block: 0 12px;
+    }
+
+    .trash-response .trash-response-notice {
+        padding: 14px 16px;
+        border-radius: 10px;
+        background: #fff3cd;
+        color: #664d03;
+        line-height: 1.4;
+    }
+
+    .trash-response .trash-response-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 16px;
+    }
+
+    .trash-response .trash-response-link {
+        display: inline-block;
+        box-sizing: border-box;
+        max-width: 100%;
+        padding: 8px 12px;
+        border: 0;
+        border-radius: 999px;
+        background: #222;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .trash-response .trash-response-link:hover {
+        background: #000;
+    }
+
+    .trash-response :focus-visible {
+        outline: 2px solid #e4013a;
+        outline-offset: 2px;
+    }
+
+    @media (max-width: 768px) {
+        .trash-response {
+            margin-block: 20px;
+            padding-bottom: 20px;
+        }
+
+        .trash-response .trash-response-title {
+            font-size: 1.45rem;
+            text-align: center;
+        }
+
+        .trash-response .trash-response-card {
+            padding: 16px;
+        }
+    }
+    </style>
+    <div class="admin-content-gutters">
+    <div class="trash-response admin-content-container">
+    <h1 class="trash-response-title">Action administrative MP3</h1>
+    <section class="trash-response-card">
+        <p class="trash-response-notice" role="alert">{{ message }}</p>
         {% if requestId is not null %}<p>Demande <code>{{ requestId }}</code></p>{% endif %}
         {% if traceUnavailable %}<p>La trace administrative du résultat n’a pas pu être enregistrée.</p>{% endif %}
-        <p><a href="{{ path('admin.audio_library.trash.show', destination) }}">Retour au détail de l’opération</a></p>
-        <p><a href="{{ path('admin.audio_library.trash.history', destination) }}">Historique administratif</a></p>
+        <div class="trash-response-actions">
+            <a class="trash-response-link" href="{{ path('admin.audio_library.trash.show', destination) }}">Retour au détail de l’opération</a>
+            <a class="trash-response-link" href="{{ path('admin.audio_library.trash.history', destination) }}">Historique administratif</a>
+        </div>
     </section>
+    </div>
+    </div>
 {% endblock %}

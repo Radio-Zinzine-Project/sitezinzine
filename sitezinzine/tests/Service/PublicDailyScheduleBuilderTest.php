@@ -781,6 +781,41 @@ class PublicDailyScheduleBuilderTest extends TestCase
         self::assertSame(3, $result['activeIndex']);
     }
 
+    /** @dataProvider simultaneousCards */
+    public function testActiveCardPrefersACurrentDiffusionWithoutChangingCardOrder(
+        array $cards,
+        array $current,
+        string $active,
+    ): void {
+        $entries = [];
+        foreach ($cards as [$type, $title, $endsAt]) {
+            $category = (new Categories())->setTitre($title);
+            $entries[] = $type === 'diffusion'
+                ? $this->createDiffusionItem('2026-09-08 10:00:00', "2026-09-08 $endsAt", (new Emission())->setTitre($title), $category)
+                : $this->createEmptyRegularItem('2026-09-08 10:00:00', "2026-09-08 $endsAt", $category);
+        }
+        $result = $this->buildForTuesday($this->createWeeklySchedule($entries), '2026-09-08 10:30:00');
+        $items = array_values(array_filter($result['items'], static fn (array $item): bool => $item['type'] !== 'playlist'));
+        $title = static fn (array $item): string => $item['category']->getTitre();
+
+        self::assertSame(array_column($cards, 1), array_map($title, $items));
+        self::assertSame($current, array_column($items, 'isCurrent'));
+        self::assertSame($active, $title($result['items'][$result['activeIndex']]));
+    }
+
+    public static function simultaneousCards(): iterable
+    {
+        $fallback = ['empty_regular', 'Categorie', '11:00:00'];
+        $diffusion = ['diffusion', 'Premiere', '11:00:00'];
+        $otherDiffusion = ['diffusion', 'Seconde', '11:00:00'];
+        $pastFallback = ['empty_regular', 'Categorie', '10:15:00'];
+        yield 'fallback first' => [[$fallback, $diffusion], [true, true], 'Premiere'];
+        yield 'diffusion first' => [[$diffusion, $fallback], [true, true], 'Premiere'];
+        yield 'expired fallback' => [[$pastFallback, $diffusion], [false, true], 'Premiere'];
+        yield 'only fallback' => [[$fallback], [true], 'Categorie'];
+        yield 'multiple diffusions' => [[$fallback, $diffusion, $otherDiffusion], [true, true, true], 'Premiere'];
+    }
+
     private function buildForTuesday(
         array $weeklySchedule,
         string $now

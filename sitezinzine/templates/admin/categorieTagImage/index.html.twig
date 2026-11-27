@@ -5,7 +5,7 @@
     Images de tags annuelles
 {% endblock %}
 {% block body %}
-    <div class="bodyTagImages">
+    <div class="bodyTagImages admin-list-container admin-list-gutters">
         <div class="page-header">
             <h1>
                 Images de tags annuelles
@@ -20,7 +20,7 @@
             </div>
         {% endfor %}
         {% if categorieTagImages is not empty %}
-            <div class="table-wrapper">
+            <div class="table-wrapper" role="region" aria-label="Images de tags annuelles" tabindex="0">
                 <table class="tag-image-table">
                     <thead>
                         <tr>
@@ -109,14 +109,10 @@
             </div>
 <style>
     .bodyTagImages {
-        width: 100%;
-        max-width: 1200px;
         min-width: 0;
-        margin: 24px auto;
-        padding: 0 12px 24px;
+        margin-block: 24px;
+        padding-bottom: 24px;
         font-family: "Montserrat Alternates", sans-serif;
-        box-sizing: border-box;
-        overflow-x: hidden;
     }
 
     .page-header {
@@ -155,6 +151,7 @@
     }
 
     .flash {
+        overflow-wrap: anywhere;
         padding: 14px 16px;
         border-radius: 10px;
         margin-bottom: 20px;
@@ -188,6 +185,7 @@
     .tag-image-table th,
     .tag-image-table td {
         padding: 14px;
+        overflow-wrap: anywhere;
         text-align: left;
         border-bottom: 1px solid #eee;
         vertical-align: middle;
@@ -285,8 +283,8 @@
 
     @media (max-width: 768px) {
         .bodyTagImages {
-            margin: 20px auto;
-            padding: 0 8px 20px;
+            margin-block: 20px;
+            padding-bottom: 20px;
         }
 
         .page-header {
@@ -431,8 +429,8 @@
 
     @media (max-width: 480px) {
         .bodyTagImages {
-            margin: 16px auto;
-            padding: 0 6px 16px;
+            margin-block: 16px;
+            padding-bottom: 16px;
         }
 
         .page-header h1 {
@@ -492,7 +490,7 @@
 
     @media (max-width: 320px) {
         .bodyTagImages {
-            padding: 0 4px 12px;
+            padding-bottom: 12px;
         }
 
         .page-header h1 {

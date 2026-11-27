@@ -19,17 +19,30 @@ describe('Formulaire d’émission', () => {
         expect(fetch).not.toHaveBeenCalled()
     })
 
+    test('une ouverture ordinaire en édition conserve la durée enregistrée', async () => {
+        const edition = markup.replace('<input data-emission-form-target="duree">', '<input data-emission-form-target="duree" value="90">')
+        const { controller } = await mountController('emission-form', EmissionFormController, edition)
+        expect(controller.preserveSubmittedValue).toBe(false)
+        expect(controller.dureeTarget.value).toBe('90')
+    })
+
     test('un changement volontaire de catégorie réapplique les valeurs après restauration', async () => {
         const submitted = markup
             .replace('data-controller="emission-form"', 'data-controller="emission-form" data-emission-form-preserve-submitted-value="true"')
             .replace('<input data-emission-form-target="duree">', '<input data-emission-form-target="duree" value="90">')
             .replace('<option value="8">', '<option value="8" data-editeur-id="2" data-duree="60">')
-        const { controller } = await mountController('emission-form', EmissionFormController, submitted)
+        const { controller, root } = await mountController('emission-form', EmissionFormController, submitted)
+        const changed = vi.fn()
+        root.addEventListener('change', changed)
+        expect(controller.dureeTarget.value).toBe('90')
         fetch.mockResolvedValue(jsonResponse({ users: [] }))
         controller.categorieTarget.value = '8'
         await controller.categoryChanged()
         expect(controller.editeurTarget.value).toBe('2')
         expect(controller.dureeTarget.value).toBe('60')
+        const defaultChanges = changed.mock.calls.map(([event]) => event.target)
+            .filter(target => target === controller.editeurTarget || target === controller.dureeTarget)
+        expect(defaultChanges).toEqual([controller.editeurTarget, controller.dureeTarget])
         expect(fetch).toHaveBeenCalledTimes(1)
     })
 
@@ -37,9 +50,17 @@ describe('Formulaire d’émission', () => {
         const { controller, root } = await mountController('emission-form', EmissionFormController, markup)
         expect(controller.editeurTarget.value).toBe('2')
         expect(controller.dureeTarget.value).toBe('45')
-        const changed = vi.fn(); root.addEventListener('change', changed)
+        const changed = vi.fn()
+        root.addEventListener('change', changed)
+        controller.dureeTarget.value = ''
+        controller.editeurTarget.value = '1'
         controller.syncCategoryDefaults()
+        expect(controller.editeurTarget.value).toBe('2')
+        expect(controller.dureeTarget.value).toBe('45')
         expect(changed).toHaveBeenCalledTimes(2)
+        expect(changed.mock.calls.map(([event]) => event.target)).toEqual([
+            controller.editeurTarget, controller.dureeTarget,
+        ])
     })
 
     test('la réponse construit les groupes/personnes en conservant sélection et statut', async () => {

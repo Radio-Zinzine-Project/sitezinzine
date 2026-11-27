@@ -93,7 +93,9 @@ final class TrashHistoryAccessTest extends WebTestCase
         $crawler = $client->request('GET', $uri . '?phase=EN_CORBEILLE&blocked=0&page=2&ignored=x');
         self::assertSame(200, $client->getResponse()->getStatusCode());
         self::assertCount(25, $crawler->filter('tbody th[scope="row"]'));
-        self::assertCount(2, $crawler->filter('tbody tr.table-light'));
+        $requestIds = $crawler->filter('tbody tr > td[colspan="9"] > code');
+        self::assertCount(2, $requestIds);
+        self::assertSame([str_repeat('a', 32), str_repeat('b', 32)], $requestIds->extract(['_text']));
         self::assertSame('#30', $crawler->filter('tbody th[scope="row"]')->first()->text());
         foreach (['Demande enregistrée', 'Transition confirmée', 'Refus', 'Échec', 'Issue incertaine',
             'Compte introuvable', '#17', 'Admin témoin', '19/11/2026 15:00:00', str_repeat('c', 32)] as $label) {

@@ -3,25 +3,174 @@
 {% block title %}Gestion des MP3 radio{% endblock %}
 
 {% block body %}
-    <h1>Gestion des MP3 radio</h1>
+    <style>
+    .radio-export-overview {
+        --admin-content-width: var(--admin-width-editorial-form);
+        margin-block: 24px;
+        font-family: "Montserrat Alternates", sans-serif;
+        overflow-wrap: anywhere;
+    }
 
-    <form method="get" action="{{ path('admin.radio_mp3.index') }}" class="row g-3 align-items-end mb-3">
-        <div class="col-auto">
+    .radio-export-overview .radio-export-title {
+        margin: 0 0 24px;
+        font-size: 2rem;
+        line-height: 1.2;
+        text-align: start;
+    }
+
+    .radio-export-overview .radio-export-card {
+        padding: 24px;
+        border-radius: 14px;
+        background: #fff;
+        color: #1c1c1a;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10);
+    }
+
+    .radio-export-overview h2,
+    .radio-export-overview h3 {
+        margin: 0 0 12px;
+        font-size: 1.25rem;
+        text-align: start;
+    }
+
+    .radio-export-overview p {
+        margin-block: 12px;
+    }
+
+    .radio-export-overview .radio-export-section {
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid #ddd;
+    }
+
+    .radio-export-overview .radio-export-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .radio-export-overview .radio-export-week-field {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .radio-export-overview label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 800;
+    }
+
+    .radio-export-overview input[type="date"] {
+        box-sizing: border-box;
+        display: block;
+        max-width: 100%;
+        min-width: 0;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #fff;
+        font: inherit;
+    }
+
+    .radio-export-overview .radio-export-action {
+        display: inline-block;
+        box-sizing: border-box;
+        max-width: 100%;
+        padding: 8px 12px;
+        border: 0;
+        border-radius: 999px;
+        background: #222;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .radio-export-overview .radio-export-action:hover {
+        background: #000;
+    }
+
+    .radio-export-overview .radio-export-action--prepare {
+        background: #e4013a;
+    }
+
+    .radio-export-overview .radio-export-action--prepare:hover {
+        background: #b8002e;
+    }
+
+    .radio-export-overview .radio-export-notice {
+        padding: 14px 16px;
+        border-radius: 10px;
+        background: #fff3cd;
+        color: #664d03;
+    }
+
+    .radio-export-overview .radio-export-empty {
+        padding: 14px 16px;
+        border-radius: 10px;
+        background: #f3f3f3;
+    }
+
+    .radio-export-overview .radio-export-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .radio-export-overview .radio-export-summary li {
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #f3f3f3;
+    }
+
+    .radio-export-overview :focus-visible {
+        outline: 2px solid #e4013a;
+        outline-offset: 2px;
+    }
+
+    @media (max-width: 768px) {
+        .radio-export-overview {
+            margin-block: 20px;
+        }
+
+        .radio-export-overview .radio-export-title {
+            font-size: 1.45rem;
+            text-align: center;
+        }
+
+        .radio-export-overview .radio-export-card {
+            padding: 16px;
+        }
+    }
+    </style>
+    <div class="admin-content-gutters">
+    <div class="radio-export-overview admin-content-container">
+    <h1 class="radio-export-title">Gestion des MP3 radio</h1>
+    <div class="radio-export-card">
+
+    <form method="get" action="{{ path('admin.radio_mp3.index') }}" class="radio-export-actions">
+        <div class="radio-export-week-field">
             <label for="radio-week" class="form-label">Mardi de la semaine radio</label>
             <input type="date" id="radio-week" name="week" class="form-control" required value="{{ week ? week|date('Y-m-d', 'Europe/Paris') : '' }}">
         </div>
-        <div class="col-auto"><button class="btn btn-primary">Afficher</button></div>
+        <div><button class="radio-export-action">Afficher</button></div>
     </form>
 
     {% if error %}
-        <p class="alert alert-warning" role="alert">{{ error }}</p>
+        <p class="radio-export-notice" role="alert">{{ error }}</p>
     {% endif %}
 
     {% if week %}
         <h2>Du mardi {{ week|date('d/m/Y', 'Europe/Paris') }} au lundi {{ week|date_modify('+6 days')|date('d/m/Y', 'Europe/Paris') }}</h2>
-        <nav aria-label="Semaines radio" class="mb-3">
-            <a href="{{ path('admin.radio_mp3.index', {week: week|date_modify('-7 days')|date('Y-m-d', 'Europe/Paris')}) }}">Semaine précédente</a>
-            <a class="ms-3" href="{{ path('admin.radio_mp3.index', {week: week|date_modify('+7 days')|date('Y-m-d', 'Europe/Paris')}) }}">Semaine suivante</a>
+        <nav aria-label="Semaines radio" class="radio-export-actions">
+            <a class="radio-export-action" href="{{ path('admin.radio_mp3.index', {week: week|date_modify('-7 days')|date('Y-m-d', 'Europe/Paris')}) }}">Semaine précédente</a>
+            <a class="radio-export-action" href="{{ path('admin.radio_mp3.index', {week: week|date_modify('+7 days')|date('Y-m-d', 'Europe/Paris')}) }}">Semaine suivante</a>
         </nav>
         {% if validated is same as(true) %}
             <p>Semaine validée manuellement.</p>
@@ -38,19 +187,19 @@
         {% endif %}
 
         {% if validated and launchBlock == 'reference_unavailable' %}
-            <p class="alert alert-warning">La référence n’est pas utilisable pour lancer un correctif. Consultez l’historique.</p>
+            <p class="radio-export-notice">La référence n’est pas utilisable pour lancer un correctif. Consultez l’historique.</p>
         {% endif %}
         {% if launchRequestId and not error %}
             {% set launchWeek = week|date('Y-m-d', 'Europe/Paris') %}
-            <form method="post" action="{{ path('admin.radio_mp3.prepare', {week: launchWeek}) }}" class="mb-3">
+            <form method="post" action="{{ path('admin.radio_mp3.prepare', {week: launchWeek}) }}" class="radio-export-actions">
                 <input type="hidden" name="request_id" value="{{ launchRequestId }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('radio-prepare-' ~ launchWeek ~ '-' ~ launchRequestId) }}">
-                <button type="submit" class="btn btn-primary">Préparer les MP3</button>
+                <button type="submit" class="radio-export-action radio-export-action--prepare">Préparer les MP3</button>
             </form>
         {% endif %}
 
         {% if orderUncertain %}
-            <p class="alert alert-warning">Plusieurs préparations utilisables existent. Leur ordre de publication ne permet pas de déterminer la référence.</p>
+            <p class="radio-export-notice">Plusieurs préparations utilisables existent. Leur ordre de publication ne permet pas de déterminer la référence.</p>
         {% elseif referenceId %}
             {% set freshnessLabels = {
                 current_verified: 'Sources vérifiées lors du contrôle.',
@@ -64,34 +213,187 @@
             {% if validated or revisionCurrent %}
                 <p>{{ freshnessLabels[freshness.status] }}{% if freshness.issues %} {{ freshness.issues|length }} diffusion(s) à vérifier.{% endif %}</p>
             {% endif %}
+            </section>
         {% elseif rows is not empty and not error %}
             <p>Aucune préparation utilisable pour cette semaine.</p>
         {% endif %}
 
         {% if summary is not null %}
+            <section class="radio-export-section">
             <h3>Suivi des transferts déclarés</h3>
-            <ul>
+            <ul class="radio-export-summary" role="list">
                 <li>À transférer : {{ summary.to_transfer ?? 0 }}</li>
                 <li>Déclarés transférés : {{ summary.transferred ?? 0 }}</li>
                 <li>Nouvelles versions à transférer : {{ summary.new_version ?? 0 }}</li>
                 <li>Indisponibles : {{ summary.unavailable ?? 0 }}</li>
                 <li>Exclus : {{ summary.excluded ?? 0 }}</li>
             </ul>
+            </section>
         {% endif %}
 
+    {% endif %}
+    </div>
+    </div>
+    </div>
+
+
+    <style>
+        .radio-export-details {
+            padding-bottom: 24px;
+            font-family: "Montserrat Alternates", sans-serif;
+            overflow-wrap: anywhere;
+        }
+
+        .radio-export-details .radio-detail-wide {
+            --admin-width-list: var(--admin-width-list-extra-wide);
+        }
+
+        .radio-export-details .radio-detail-card {
+            margin-block: 16px;
+            padding: 24px;
+            border-radius: 14px;
+            background: #fff;
+            color: #1c1c1a;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10);
+        }
+
+        .radio-export-details h3 {
+            margin: 0 0 12px;
+            font-size: 1.25rem;
+            text-align: start;
+        }
+
+        .radio-export-details p {
+            margin-block: 12px;
+        }
+
+        .radio-export-details ul {
+            margin: 12px 0;
+            padding-inline-start: 1.25rem;
+        }
+
+        .radio-export-details li + li {
+            margin-top: 8px;
+        }
+
+        .radio-export-details .radio-detail-scroll {
+            overflow-x: auto;
+            margin-top: 16px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.10);
+        }
+
+        .radio-export-details .radio-detail-table {
+            width: 100%;
+            min-width: 800px;
+            table-layout: fixed;
+            border-collapse: collapse;
+        }
+
+        .radio-export-details .radio-detail-table--history {
+            min-width: 1120px;
+        }
+
+        .radio-export-details .radio-detail-table th,
+        .radio-export-details .radio-detail-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #ddd;
+            text-align: start;
+            vertical-align: top;
+        }
+
+        .radio-export-details .radio-detail-table thead th {
+            background: #1c1c1a;
+            color: #fff;
+            font-weight: 800;
+        }
+
+        .radio-export-details .radio-detail-table tbody tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .radio-export-details .radio-detail-table tbody tr:hover {
+            background: #f5f5f5;
+        }
+
+        .radio-export-details .radio-detail-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: #f3f3f3;
+            font-weight: 700;
+        }
+
+        .radio-export-details .radio-detail-reference {
+            background: #e8f5e9;
+            color: #1b5e20;
+        }
+
+        .radio-export-details .radio-detail-diagnostic,
+        .radio-export-details .radio-fingerprint {
+            display: block;
+            margin-top: 6px;
+        }
+
+        .radio-export-details .radio-detail-action {
+            display: inline-block;
+            box-sizing: border-box;
+            max-width: 100%;
+            padding: 8px 12px;
+            border: 0;
+            border-radius: 999px;
+            background: #222;
+            color: #fff;
+            font: inherit;
+            font-weight: 700;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .radio-export-details .radio-detail-action:hover {
+            background: #000;
+        }
+
+        .radio-export-details .radio-detail-action--transfer {
+            background: #e4013a;
+        }
+
+        .radio-export-details .radio-detail-action--transfer:hover {
+            background: #b8002e;
+        }
+
+        .radio-export-details :focus-visible {
+            outline: 2px solid #e4013a;
+            outline-offset: 2px;
+        }
+
+        .radio-export-details .radio-detail-scroll:focus-visible {
+            outline-offset: -2px;
+        }
+
+        @media (max-width: 768px) {
+            .radio-export-details .radio-detail-card {
+                padding: 16px;
+            }
+        }
+    </style>
+    {% if week %}
+    <div class="radio-export-details admin-list-gutters">
         {% if work %}
             {% include 'admin/radio_export/_worklist.html.twig' %}
         {% endif %}
 
         {% if transferHistory %}
-            <section id="transfer-history" class="mb-4">
+            <section id="transfer-history" class="radio-detail-card radio-detail-narrow admin-content-container">
                 <h3>Historique des déclarations pour {{ transferHistory.filename }}</h3>
                 {% if transferHistory.events %}
                     <ul>
                         {% for event in transferHistory.events %}
                             <li>{{ event.confirmed_at }} UTC, compte {{ event.actor_id }},
                                 préparation {{ event.preparation_id }}{% if event.origin_attempt_id != event.preparation_id %}, ZIP {{ event.origin_attempt_id }}{% endif %}.
-                                <small>SHA-256 : <code class="text-break">{{ event.sha256 }}</code></small></li>
+                                <small>SHA-256 : <code class="radio-fingerprint">{{ event.sha256 }}</code></small></li>
                         {% endfor %}
                     </ul>
                     {% if transferHistory.older %}
@@ -107,10 +409,11 @@
             {% set types = {complete: 'Complète', differential: 'Différentielle', report_only: 'Rapport seul'} %}
             {% set statuses = {published: 'Publiée', failed: 'Échec signalé', incomplete: 'Publication incomplète',
                 unusable: 'Publication inutilisable', origin_unavailable: 'Archive d’origine indisponible'} %}
+            <section class="radio-detail-card radio-detail-wide admin-list-container">
             <h3>Historique des préparations</h3>
             <p>Les correctifs apparaissent avant leur base. Pour les tentatives sans relation, le tri utilise la date du fichier de résultat.</p>
-            <div class="table-responsive">
-                <table class="table table-striped">
+            <div class="radio-detail-scroll" role="region" aria-label="Historique des préparations" tabindex="0">
+                <table class="radio-detail-table radio-detail-table--history">
                     <thead><tr>
                         <th scope="col">Tentative</th><th scope="col">Date du fichier de résultat</th>
                         <th scope="col">Type</th><th scope="col">État</th><th scope="col">Fichiers archivés</th>
@@ -119,15 +422,15 @@
                     <tbody>
                     {% for row in rows %}
                         <tr>
-                            <th scope="row">{{ row.attemptId }}{% if row.attemptId == referenceId %} (référence){% endif %}</th>
+                            <th scope="row">{{ row.attemptId }}{% if row.attemptId == referenceId %} <span class="radio-detail-badge radio-detail-reference">(référence)</span>{% endif %}</th>
                             <td>{{ row.recordMtime is not null ? row.recordMtime|date('d/m/Y H:i', 'Europe/Paris') : '?' }}</td>
                             <td>{{ row.type ? types[row.type] : '?' }}</td>
-                            <td>{{ statuses[row.status] }}</td>
+                            <td><span class="radio-detail-badge">{{ statuses[row.status] }}</span></td>
                             <td>{{ row.fileCount ?? '?' }}</td><td>{{ row.anomalyCount ?? '?' }}</td>
                             {% set address = {week: week|date('Y-m-d', 'Europe/Paris'), attemptId: row.attemptId} %}
                             <td>
                                 {% if row.archiveAvailable %}
-                                    <a href="{{ path('admin.radio_mp3.download', address|merge({artifact: 'zip'})) }}">Télécharger le ZIP</a>
+                                    <a class="radio-detail-action" href="{{ path('admin.radio_mp3.download', address|merge({artifact: 'zip'})) }}">Télécharger le ZIP</a>
                                 {% elseif row.type == 'report_only' %}
                                     Aucun ZIP généré
                                 {% else %}
@@ -136,7 +439,7 @@
                             </td>
                             <td>
                                 {% if row.reportAvailable %}
-                                    <a href="{{ path('admin.radio_mp3.download', address|merge({artifact: 'report'})) }}">Télécharger le rapport</a>
+                                    <a class="radio-detail-action" href="{{ path('admin.radio_mp3.download', address|merge({artifact: 'report'})) }}">Télécharger le rapport</a>
                                 {% else %}
                                     Indisponible
                                 {% endif %}
@@ -146,6 +449,8 @@
                     </tbody>
                 </table>
             </div>
+            </section>
         {% endif %}
+    </div>
     {% endif %}
 {% endblock %}

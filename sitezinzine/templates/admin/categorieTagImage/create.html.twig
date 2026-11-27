@@ -3,7 +3,8 @@
 {% block title %}Ajouter une image annuelle{% endblock %}
 
 {% block body %}
-<div class="bodyTagImageCreate">
+<div class="admin-content-gutters">
+<div class="bodyTagImageCreate admin-content-container">
     <div class="page-header">
         <h1>Ajouter une image annuelle</h1>
 
@@ -25,12 +26,12 @@
         button_label: 'Créer'
     }) }}
 </div>
+</div>
 
 <style>
     .bodyTagImageCreate {
-        max-width: 1200px;
-        margin: 40px auto;
-        padding: 0 20px 40px;
+        margin-block: 40px;
+        padding-bottom: 40px;
         font-family: "Montserrat Alternates", sans-serif;
     }
 
@@ -63,6 +64,7 @@
     }
 
     .flash {
+        overflow-wrap: anywhere;
         padding: 14px 16px;
         border-radius: 10px;
         margin-bottom: 20px;

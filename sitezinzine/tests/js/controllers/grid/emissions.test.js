@@ -207,6 +207,7 @@ describe('Candidats et affectations', () => {
 
         const option = document.createElement('option')
         option.value = '7'
+        option.dataset.liveDuration = '90'
         option.textContent = 'Catégorie test'
         ctx.specialCategorySelectTarget.append(option)
         ctx.specialCategorySelectTarget.value = '7'
@@ -239,8 +240,8 @@ describe('Candidats et affectations', () => {
         expect(cards).toHaveLength(2)
 
         expect(
-            list.querySelector('[data-special-item-type="manual_live"]')
-        ).not.toBeNull()
+            list.querySelector('[data-special-item-type="manual_live"]').dataset.emissionDuration
+        ).toBe('90')
 
         const emissionCard = list.querySelector(
             '[data-special-item-type="manual_emission"]'

@@ -3,11 +3,12 @@
     to_transfer: 'À transférer', transferred: 'Déclaré transféré',
     new_version: 'Nouvelle version à retransférer', unavailable: 'Indisponible', excluded: 'Exclu'
 } %}
+<section class="radio-detail-card radio-detail-wide admin-list-container">
 <p>Envoyez les fichiers avec votre client de transfert, puis confirmez ici chaque fichier envoyé. Votre confirmation enregistre une déclaration.</p>
 
 {% if work.lines %}
-    <div class="table-responsive">
-        <table class="table table-striped">
+    <div class="radio-detail-scroll" role="region" aria-label="Fichiers à transférer" tabindex="0">
+        <table class="radio-detail-table radio-detail-table--work">
             <thead><tr>
                 <th scope="col">Émission</th>
                 <th scope="col">Fichier radio</th>
@@ -21,11 +22,11 @@
                     <th scope="row">{{ line.occurrence.emissionTitle ?? ('Diffusion ' ~ line.diffusionId) }}</th>
                     <td>{{ line.filename ?? '?' }}</td>
                     <td>
-                        {{ stateLabels[line.transferState] }}
+                        <span class="radio-detail-badge">{{ stateLabels[line.transferState] }}</span>
                         {% if line.confirmation and line.filename %}
                             <a href="{{ path('admin.radio_mp3.index', {week: radioWeek, history: line.filename}) }}#transfer-history">Historique</a>
                         {% endif %}
-                        {% if line.issues %}<small class="d-block">Anomalies : {{ line.issues|join(', ') }}</small>{% endif %}
+                        {% if line.issues %}<small class="radio-detail-diagnostic">Anomalies : {{ line.issues|join(', ') }}</small>{% endif %}
                     </td>
                     <td>
                         {% if line.zip %}
@@ -38,7 +39,7 @@
                                 <input type="hidden" name="request_id" value="{{ line.requestId }}">
                                 <input type="hidden" name="version" value="{{ line.version }}">
                                 <input type="hidden" name="_token" value="{{ csrf_token('radio-transfer-' ~ radioWeek ~ '-' ~ work.attemptId) }}">
-                                <button class="btn btn-outline-primary btn-sm" type="submit">Marquer comme transféré</button>
+                                <button class="radio-detail-action radio-detail-action--transfer" type="submit">Marquer comme transféré</button>
                             </form>
                         {% endif %}
                     </td>
@@ -49,7 +50,10 @@
     </div>
 {% endif %}
 
+</section>
+
 {% if work.removed %}
+    <section class="radio-detail-card radio-detail-narrow admin-content-container">
     <h3>Retraits de programmation</h3>
     <p>Vérifiez ces fichiers lors de votre tri manuel sur votre ordinateur.</p>
     <ul>
@@ -57,4 +61,5 @@
             <li>{{ item.filename ?? ('Diffusion ' ~ item.diffusionId) }}{% if item.confirmation %} <a href="{{ path('admin.radio_mp3.index', {week: radioWeek, history: item.filename}) }}#transfer-history">Historique</a>{% endif %}</li>
         {% endfor %}
     </ul>
+    </section>
 {% endif %}

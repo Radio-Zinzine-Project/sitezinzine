@@ -17,9 +17,8 @@
 
 .main-content .programmation-rule-index{
   font-family: "Montserrat Alternates", sans-serif;
-  max-width: 1280px;
-  margin: 18px auto 28px;
-  padding: 16px;
+  margin-block: 18px 28px;
+  padding-block: 16px;
   color: #1C1C1A;
 }
 
@@ -75,7 +74,7 @@
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .main-content .programmation-rule-index table{
@@ -284,8 +283,8 @@
      ------------------------------------------------------- */
 
   .main-content .programmation-rule-index{
-    margin: 14px 12px 22px;
-    padding: 0;
+    margin-block: 14px 22px;
+    padding-block: 0;
   }
 
 
@@ -417,7 +416,7 @@
 }
 </style>
 
-<div class="programmation-rule-index">
+<div class="programmation-rule-index admin-list-container admin-list-gutters">
   <div class="page-header">
     <h1>
       Règles de programmation
@@ -431,7 +430,7 @@
     </a>
   </div>
 
-  <div class="table-wrap">
+  <div class="table-wrap" role="region" aria-label="Tableau des règles de programmation" tabindex="0">
     <table>
       <thead>
         <tr>

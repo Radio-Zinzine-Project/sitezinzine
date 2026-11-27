@@ -10,7 +10,6 @@
        ========================================================= */
 
     :root {
-      --slot-h: 14px;
       --head-h: 64px;
       --time-col-w: 78px;
       --sidebar-w: 320px;
@@ -67,21 +66,66 @@
 
     .schedule-layout {
         display: flex;
+        flex-direction: column;
         gap: 20px;
         align-items: flex-start;
+    }
+
+    .schedule-page {
+        container: schedule-page / inline-size;
     }
 
     .grid-area {
         flex: 1 1 auto;
         min-width: 0;
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .grid-area:focus-visible {
+        outline: 2px solid #1c1c1a;
+        outline-offset: -2px;
+    }
+
+    .week-nav__date:focus,
+    .regular-search-input:focus,
+    .special-filter-select:focus,
+    .pending-rebroadcast-search:focus {
+        border-color: #e4013a;
+        outline: 2px solid #e4013a;
+        outline-offset: 1px;
+    }
+
+    .week-nav__link:focus-visible,
+    .week-nav__btn:focus-visible,
+    .grid-print-btn:focus-visible,
+    .grid-publication-btn:focus-visible,
+    .rebroadcast-modal__actions button:focus-visible,
+    .rebroadcast-modal__close:focus-visible {
+        outline: 2px solid #e4013a;
+        outline-offset: 2px;
     }
 
     .sidebar {
-        width: var(--sidebar-w);
-        flex: 0 0 var(--sidebar-w);
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
         overflow-y: auto;
         overflow-x: hidden;
         padding-right: 6px;
+        overflow-wrap: anywhere;
+    }
+
+    /* Grid (980px + borders) + gap (20px) + sidebar (320px + padding). */
+    @container schedule-page (min-width: 1328px) {
+        .schedule-layout {
+            flex-direction: row;
+        }
+
+        .sidebar {
+            width: calc(var(--sidebar-w) + 6px);
+            flex: 0 0 auto;
+        }
     }
 
     /* =========================================================
@@ -96,7 +140,8 @@
       padding: 14px 16px;
       background: #ffffff;
       border: 1px solid #e6e6e6;
-      border-radius: 10px;
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10);
     }
 
     .week-nav__title {
@@ -157,11 +202,12 @@
     .week-nav__date {
       min-width: 160px;
       height: 38px;
+      box-sizing: border-box;
       padding: 0 8px;
       color: #1c1c1a;
       background: #ffffff;
       border: 1px solid #d6d6d6;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 14px;
     }
 
@@ -172,7 +218,7 @@
       height: 38px;
       padding: 0 12px;
       border: 1px solid transparent;
-      border-radius: 6px;
+      border-radius: 999px;
       font-size: 13px;
       font-weight: 800;
       text-decoration: none;
@@ -208,9 +254,10 @@
     .schedule-grid {
       display: grid;
       grid-template-columns: var(--time-col-w) repeat(7, minmax(0, 1fr));
-      grid-template-rows: var(--head-h) repeat(96, var(--slot-h));
+      grid-template-rows: var(--head-h) var(--time-h);
+      box-sizing: border-box;
       width: 100%;
-      min-width: 980px;
+      min-width: 982px;
       background: var(--grid-bg);
       border: 1px solid var(--grid-line);
     }
@@ -252,16 +299,47 @@
     .hours-col {
       position: relative;
       grid-column: 1;
-      grid-row: 2 / span 96;
+      grid-row: 2;
       background: #fcfcfc;
       border-right: 1px solid var(--grid-line);
     }
 
     .day-col {
       position: relative;
-      grid-row: 2 / span 96;
+      grid-row: 2;
       min-width: 0;
       border-left: 1px solid var(--grid-line);
+    }
+
+    .schedule-grid .time-position {
+      top: calc(var(--time-index) * var(--slot-h) - var(--after-break) * var(--compression));
+    }
+
+    .schedule-break {
+      grid-area: 2 / 1 / 3 / -1;
+      align-self: start;
+      z-index: 3;
+      margin-top: var(--break-top);
+      box-sizing: border-box;
+      height: var(--break-h);
+      background: #eeeeee;
+      border-block: 1px dashed #888888;
+      color: #333333;
+      pointer-events: none;
+    }
+
+    .schedule-break__label {
+      position: sticky;
+      left: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-sizing: border-box;
+      height: 100%;
+      padding-inline: 8px;
+      background: inherit;
+      font: 700 11px/1.2 system-ui, sans-serif;
+      white-space: nowrap;
     }
 
     .h-slot,
@@ -291,7 +369,7 @@
       align-items: center;
       justify-content: center;
       width: 100%;
-      height: calc(4 * var(--slot-h));
+      height: calc(var(--slots-per-hour) * var(--slot-h));
       color: #888888;
       font-size: 12px;
       font-weight: 700;
@@ -691,7 +769,7 @@
       padding: 12px;
       background: #ffffff;
       border: 1px solid #e6e6e6;
-      border-radius: 8px;
+      border-radius: 10px;
     }
 
     .sidebar-section h3 {
@@ -704,9 +782,8 @@
     #special-selection-empty {
       padding: 14px;
       color: #555555;
-      background: #ffffff;
-      border: 1px dashed #d0d0d0;
-      border-radius: 8px;
+      background: #f3f3f3;
+      border-radius: 10px;
       font-size: 14px;
     }
 
@@ -740,7 +817,7 @@
       color: #1c1c1a;
       background: #ffffff;
       border: 1px solid #d6d6d6;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 14px;
     }
 
@@ -776,14 +853,6 @@
       flex-direction: column;
       gap: 10px;
       min-height: 40px;
-    }
-
-    #emissions-pool.drop-pool-hover,
-    #emissions-pool-special.drop-pool-hover {
-      padding: 10px;
-      background: #fff8f8;
-      border: 2px dashed var(--postit-live);
-      border-radius: 6px;
     }
 
     .emission-card {
@@ -1069,6 +1138,8 @@
         align-items: center;
         justify-content: center;
 
+        box-sizing: border-box;
+        max-width: 100%;
         min-height: 38px;
         padding: 0 18px;
 
@@ -1080,10 +1151,10 @@
 
         font-size: 13px;
         font-weight: 800;
-        line-height: 1;
+        line-height: 1.25;
 
         text-decoration: none;
-        white-space: nowrap;
+        text-align: center;
 
         transition:
             background 0.2s ease,
@@ -1101,6 +1172,14 @@
         flex-wrap: wrap;
         gap: 10px;
         margin: 10px 0 14px;
+    }
+
+    .grid-status--validated {
+        padding: 14px 16px;
+        border-radius: 10px;
+        background: #f3f3f3;
+        color: #1c1c1a;
+        line-height: 1.4;
     }
 
    /* =========================================================
@@ -1128,7 +1207,7 @@
         min-height: 38px;
         box-sizing: border-box;
         padding: 0 16px;
-        border-radius: 6px;
+        border-radius: 999px;
         font-size: 13px;
         font-weight: 800;
         line-height: 1;
@@ -1168,7 +1247,7 @@
         color: #616161;
         background: #f7f7f8;
         border: 1px solid #d6d6d6;
-        border-radius: 6px;
+        border-radius: 10px;
         font-size: 12px;
         font-weight: 700;
         text-align: center;
@@ -1316,13 +1395,16 @@
     }
 
     .rebroadcast-modal {
-      width: min(520px, 100%);
+      box-sizing: border-box;
+      width: min(568px, 100%);
       max-height: calc(100vh - 2rem);
       overflow: auto;
       padding: 1.5rem;
       background: #ffffff;
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+      color: #1c1c1a;
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10);
+      overflow-wrap: anywhere;
     }
 
     .rebroadcast-modal h3 {
@@ -1354,8 +1436,12 @@
 
     .rebroadcast-modal__close {
       margin-top: 1rem;
-      color: #222222;
-      background: #eeeeee;
+      color: #ffffff;
+      background: #222222;
+    }
+
+    .rebroadcast-modal__close:hover {
+      background: #000000;
     }
 
     .existing-rebroadcasts {
@@ -1480,15 +1566,9 @@
     color: #1c1c1a;
     background: #ffffff;
     border: 1px solid #d6d6d6;
-    border-radius: 6px;
+    border-radius: 8px;
 
     font-size: 13px;
-}
-
-.pending-rebroadcast-search:focus {
-    border-color: #999999;
-    outline: 2px solid rgba(28, 28, 26, 0.12);
-    outline-offset: 1px;
 }
 
 .pending-rebroadcast-status {
@@ -1763,7 +1843,7 @@
       }
 
       .schedule-grid {
-        min-width: 900px;
+        min-width: 902px;
       }
     }
 
@@ -1793,22 +1873,6 @@
 
       .week-nav__date {
         flex: 1 1 180px;
-      }
-
-      .schedule-layout {
-        flex-direction: column;
-      }
-
-      .grid-area {
-        position: static;
-        width: 100%;
-        max-height: none;
-        overflow: auto;
-      }
-
-      .sidebar {
-        width: 100%;
-        flex: none;
       }
 
       .head__day {
@@ -1858,6 +1922,7 @@
   </style>
 {% endblock %}
 {% block body %}
+  <div class="schedule-page admin-content-gutters">
   <h1>
     Grille de programmation
   </h1>
@@ -1926,7 +1991,8 @@
           </div>
         </div>
         <div class="schedule-layout {{ gridMode == 'diffusion' ? 'schedule-layout--readonly' : '' }}" data-controller="grid" data-grid-week-start-value="{{ startOfWeek|date('Y-m-d') }}" data-grid-readonly-value="{{ gridMode == 'diffusion' ? 'true' : 'false' }}">
-          <div class="grid-area">
+          {# En édition, le contrôleur enlève inert après avoir installé la géométrie compacte. #}
+          <div class="grid-area" tabindex="0" role="region" aria-label="Grille horaire du mardi au lundi" {% if gridMode != 'diffusion' %}inert{% endif %}>
             {{ include('admin/grille/_grid.html.twig') }}
           </div>
           <aside class="sidebar">
@@ -2050,7 +2116,7 @@
                         Choisir une catégorie
                       </option>
                       {% for category in specialCategories %}
-                        <option value="{{ category.id }}">
+                        <option value="{{ category.id }}" data-live-duration="{{ category.duree > 0 ? category.duree : 60 }}">
                           {{ category.titre }}
                         </option>
                       {% endfor %}
@@ -2096,5 +2162,5 @@
                   </div>
                 </aside>
               </div>
-            {% endblock %}
-            
+  </div>
+{% endblock %}

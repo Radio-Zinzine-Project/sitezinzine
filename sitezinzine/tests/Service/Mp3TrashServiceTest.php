@@ -98,6 +98,7 @@ final class Mp3TrashServiceTest extends TestCase
 
             return new \ArrayIterator(match ($fault) {
                 'alias', 'deleted_alias' => ['https://legacy.example.test/audio/' . self::NAME],
+                'uncertain_unrelated_url' => ['legacy/other.mp3'],
                 'safe_urls' => ['https://external.example.test/audio/' . self::NAME, 'https://legacy.example.test/audio/other.mp3'],
                 default => [],
             });
@@ -176,9 +177,14 @@ final class Mp3TrashServiceTest extends TestCase
         } catch (Mp3TrashFailure $error) {
             self::assertSame($uncertain, $error->commitUncertain);
             self::assertSame($this->operation?->id(), $error->operationId);
+
+            if ($fault === 'uncertain_unrelated_url') {
+                self::assertSame('reservation', $error->step);
+                self::assertInstanceOf(\DomainException::class, $error->getPrevious());
+            }
         }
         self::assertSame($phase, $this->committed);
-        if (in_array($fault, ['shared', 'alias', 'deleted_alias'], true)) {
+        if (in_array($fault, ['shared', 'alias', 'deleted_alias', 'uncertain_unrelated_url'], true)) {
             self::assertSame(self::NAME, $this->row['thumbnail_mp3']);
             self::assertSame(self::BASE . '/' . self::NAME, $this->row['url']);
             self::assertNull($this->operation);
@@ -198,6 +204,7 @@ final class Mp3TrashServiceTest extends TestCase
         yield ['shared', null, true, false];
         yield ['alias', null, true, false];
         yield ['deleted_alias', null, true, false];
+        yield 'unrelated relative URL blocks reservation' => ['uncertain_unrelated_url', null, true, false];
         yield ['reserved', null, true, false];
         yield ['lock', null, true, false];
         yield ['prepare', Phase::SUPPRESSION_PREPAREE, true, false];

@@ -1,11 +1,13 @@
 {% extends 'admin/admin.html.twig' %}
-{% block styles %}
+{% block stylesheets %}
+{{ parent() }}
 
 <style>
   /* ===== Admin Page Edit (style proche Emission edit) ===== */
 .admin-edit-page {
   background: linear-gradient(#E4013A, #B81C61);
-  padding: 50px;
+  --admin-content-width: var(--admin-width-editorial-form);
+  padding-block: 50px;
   color: white;
   font-family: "Montserrat Alternates", sans-serif;
 }
@@ -36,7 +38,8 @@
 .admin-edit-page .mb-3 {
   margin: 15px 0;
   flex: 1 1 260px;
-  min-width: 260px;
+  min-width: min(100%, 260px);
+  overflow-wrap: anywhere;
 }
 
 /* Labels */
@@ -87,6 +90,8 @@
 /* TinyMCE : donner de l'air */
 .admin-edit-page .tox-tinymce {
   margin: 10px 0 0 0;
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Boutons */
@@ -135,7 +140,7 @@
 {% block title %}Créer une nouvelle page{% endblock %}
 
 {% block body %}
-<div class="admin-edit-page">
+<div class="admin-edit-page admin-content-container admin-content-gutters">
   <h1>Créer une nouvelle page</h1>
 
   <a href="{{ path('admin.page.index') }}" class="btn btn-secondary mb-3" >

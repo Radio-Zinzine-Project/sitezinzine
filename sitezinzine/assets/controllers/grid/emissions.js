@@ -424,6 +424,7 @@ export function renderSpecialEmissions(
 ) {
     const items = Array.isArray(data.items) ? data.items : []
     const categoryId = context.specialCategorySelectTarget.value || ''
+    const liveDuration = context.specialCategorySelectTarget.selectedOptions[0]?.dataset.liveDuration || ''
 
     let html = ''
 
@@ -434,7 +435,7 @@ export function renderSpecialEmissions(
                 data-source="pool"
                 data-special-item-type="manual_live"
                 data-category-id="${escapeHtml(categoryId)}"
-                data-emission-duration="60"
+                data-emission-duration="${escapeHtml(liveDuration)}"
             >
                 Créer un direct
                 <small>Glisse cette carte dans la grille</small>

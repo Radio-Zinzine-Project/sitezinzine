@@ -17,6 +17,47 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
             <style>
+            .admin-layout {
+                --admin-width-list: 1200px;
+                --admin-width-list-wide: 1400px;
+                --admin-width-list-extra-wide: 1450px;
+                --admin-width-editorial-form: 1080px;
+                --admin-width-detail: 900px;
+                --admin-width-profile: 620px;
+                --admin-width-user-edit: 800px;
+                --admin-list-gutter: 20px;
+            }
+
+            @media (max-width: 900px) {
+                .admin-layout { --admin-list-gutter: 16px; }
+            }
+
+            @media (max-width: 600px) {
+                .admin-layout { --admin-list-gutter: 12px; }
+            }
+
+            .admin-layout .admin-list-container {
+                box-sizing: border-box;
+                width: 100%;
+                max-width: var(--admin-width-list);
+                margin-inline: auto;
+            }
+
+            .admin-layout .admin-list-gutters {
+                padding-inline: var(--admin-list-gutter);
+            }
+
+            .admin-layout .admin-content-container {
+                box-sizing: border-box;
+                width: 100%;
+                max-width: var(--admin-content-width, var(--admin-width-detail));
+                margin-inline: auto;
+            }
+
+            .admin-layout .admin-content-gutters {
+                padding-inline: var(--admin-list-gutter);
+            }
+
             .main-content {
                 background: linear-gradient(#E4013A, #B81C61);
                 background-size: 100%;
@@ -208,7 +249,7 @@
 {% endblock %}
 
     </head>
-    <body>
+    <body class="admin-layout">
         {% include 'admin/navbar.html.twig' %}
         <div class="container my-4">
             {% include 'partials/flash.html.twig' %}

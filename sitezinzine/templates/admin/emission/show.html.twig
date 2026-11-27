@@ -6,15 +6,6 @@
 {% block body %}
   <style>
 /* ✅ Spécifique admin : force full-width malgré le padding du layout */
-.admin-fullbleed{
-  width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
-}
-
 /* ========== GÉNÉRAL ========== */
 .bodyemission,
 .bodyemission *{
@@ -62,9 +53,7 @@
 
 /* ========== FICHE ÉMISSION ========== */
 .bodyemission .fiche-emission {
-  max-width: 900px;
-  width: calc(100% - 32px);
-  margin: 2rem auto;
+  margin-block: 2rem;
   background-color: #fff;
   color: #1C1C1A;
   border-radius: 12px;
@@ -193,6 +182,7 @@
 }
 
 .bodyemission .catemission h1{
+  overflow-wrap: anywhere;
 color: #E40039;
 font-size: 1.6rem;
 }
@@ -247,9 +237,8 @@ font-size: 1.6rem;
 /* ========== RESPONSIVE ========== */
 @media (max-width: 768px) {
   .bodyemission .fiche-emission{
-    width: calc(100% - 24px);
     padding: 1rem;
-    margin: 1rem auto;
+    margin-block: 1rem;
   }
 
   .bodyemission .bloc-haut {
@@ -328,10 +317,26 @@ font-size: 1.6rem;
   .bodyemission .bloc-texte h1{ font-size: 1.3rem; }
   .bodyemission .descriptif{ margin: 10px 0; }
 }
+.emissionsdelacategorie .emission-list .invites,
+.emissionsdelacategorie .emission-list .cat {
+  overflow-wrap: anywhere;
+}
+
+.emissionsdelacategorie > .results {
+  padding-inline: 0;
+}
+
+.emissionsdelacategorie > .results > .results-inner {
+  box-sizing: border-box;
+  max-width: var(--admin-width-list);
+  padding-inline: var(--admin-list-gutter);
+}
+
 </style>
-  <div class="admin-fullbleed">
+  <div>
     <div class="bodyemission">
-      <div class="fiche-emission">
+      <div class="admin-content-gutters">
+      <div class="fiche-emission admin-content-container">
         <a href="{{ app.request.headers.get('referer') ?? path('admin.emission.index') }}" class="btn-back">
           ← Retour
         </a>
@@ -486,6 +491,7 @@ font-size: 1.6rem;
                             </div>
                           </div>
                         {% endif %}
+                      </div>
                       </div>
                       <img class="bottom" src="/images/top-content-dechire-D.gif" alt="">
                         {% if emissions %}

@@ -80,12 +80,7 @@
    ========================================================= */
 
 .recherche .form {
-    width: 100%;
-    max-width: 1200px;
-
-    margin: 0 auto;
-
-    padding: 40px 50px 50px;
+    padding-block: 40px 50px;
 }
 
 
@@ -361,10 +356,7 @@
 @media screen and (max-width: 1000px) {
 
     .recherche .form {
-        padding:
-            32px
-            28px
-            42px;
+        padding-block: 32px 42px;
     }
 
     .recherche .search-row,
@@ -391,10 +383,7 @@
     }
 
     .recherche .form {
-        padding:
-            24px
-            20px
-            34px;
+        padding-block: 24px 34px;
     }
 
     /*
@@ -445,10 +434,7 @@
     }
 
     .recherche .form {
-        padding:
-            20px
-            14px
-            30px;
+        padding-block: 20px 30px;
     }
 
     .recherche .search-row,
@@ -513,10 +499,7 @@
     }
 
     .recherche .form {
-        padding:
-            16px
-            10px
-            26px;
+        padding-block: 16px 26px;
     }
 
     .recherche .form label {
@@ -549,10 +532,7 @@
     }
 
     .recherche .form {
-        padding:
-            14px
-            8px
-            22px;
+        padding-block: 14px 22px;
     }
 
     .recherche .form input[type="text"],
@@ -581,10 +561,7 @@
     }
 
     .recherche .form {
-        padding:
-            14px
-            18px
-            22px;
+        padding-block: 14px 22px;
     }
 
     /*
@@ -631,6 +608,15 @@
         grid-template-columns: 1fr;
     }
 }
+.admin-emission-results > .results {
+    padding-inline: 0;
+}
+
+.admin-emission-results > .results > .results-inner {
+    max-width: var(--admin-width-list);
+    padding-inline: var(--admin-list-gutter);
+}
+
 </style>
 
 
@@ -642,7 +628,7 @@
 
 
     <div
-        class="form"
+        class="form admin-list-container admin-list-gutters"
         data-controller="reset-form"
         data-reset-form-url-value="{{ path('admin.emission.rechercheadmin') }}"
     >
@@ -744,24 +730,26 @@
 ></div>
 
 
-{% include 'partials/_emission_results.html.twig' with {
-    emissions: emissions,
-    searchTerm: searchTerm,
-    showNoResults: form.vars.submitted,
-    resultsTitle: 'Résultats de la recherche :',
-    noResultsText: 'Aucune émission trouvée pour les critères de recherche.',
-    resultsAnchor: 'resultats',
-    showRoute: 'admin.emission.show',
-    isAdmin: true,
-    showAdminActions: true,
-    editRoute: 'admin.emission.edit',
-    deleteRoute: 'admin.emission.delete',
-    useKnpPagination: true,
-    useAlphabetPagination: true,
-    initiale: initiale,
-    alphabet: alphabet,
-    alphabetRoute: 'admin.emission.rechercheadmin'
-} %}
+<div class="admin-emission-results">
+    {% include 'partials/_emission_results.html.twig' with {
+        emissions: emissions,
+        searchTerm: searchTerm,
+        showNoResults: form.vars.submitted,
+        resultsTitle: 'Résultats de la recherche :',
+        noResultsText: 'Aucune émission trouvée pour les critères de recherche.',
+        resultsAnchor: 'resultats',
+        showRoute: 'admin.emission.show',
+        isAdmin: true,
+        showAdminActions: true,
+        editRoute: 'admin.emission.edit',
+        deleteRoute: 'admin.emission.delete',
+        useKnpPagination: true,
+        useAlphabetPagination: true,
+        initiale: initiale,
+        alphabet: alphabet,
+        alphabetRoute: 'admin.emission.rechercheadmin'
+    } %}
+</div>
 
 
 {% if form.vars.submitted %}

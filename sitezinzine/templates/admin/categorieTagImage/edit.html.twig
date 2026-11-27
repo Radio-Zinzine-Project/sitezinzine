@@ -3,7 +3,8 @@
 {% block title %}Modifier une image annuelle{% endblock %}
 
 {% block body %}
-<div class="bodyTagImageEdit">
+<div class="admin-content-gutters">
+<div class="bodyTagImageEdit admin-content-container">
     <div class="page-header">
         <h1>Modifier une image annuelle</h1>
 
@@ -28,12 +29,12 @@
         button_label: 'Enregistrer'
     }) }}
 </div>
+</div>
 
 <style>
     .bodyTagImageEdit {
-        max-width: 1200px;
-        margin: 40px auto;
-        padding: 0 20px 40px;
+        margin-block: 40px;
+        padding-bottom: 40px;
         font-family: "Montserrat Alternates", sans-serif;
     }
 
@@ -72,6 +73,7 @@
     }
 
     .flash {
+        overflow-wrap: anywhere;
         padding: 14px 16px;
         border-radius: 10px;
         margin-bottom: 20px;

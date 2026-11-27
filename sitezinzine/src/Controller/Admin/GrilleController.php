@@ -935,7 +935,11 @@ class GrilleController extends AbstractController
             $slotsToHandle = $slotRepository->findActiveByRule($rule);
         }
 
-        $changedCount = 0;
+        $rescheduledPrimaryStartsAt = 'previous' === $direction
+            ? $originalStartsAt->modify('-7 days')
+            : $originalStartsAt->modify('+7 days');
+
+        $operations = [];
 
         foreach ($slotsToHandle as $slotToHandle) {
             if (!$slotToHandle instanceof ProgrammationRuleSlot) {
@@ -958,56 +962,34 @@ class GrilleController extends AbstractController
 
             $linkedEndsAt = $linkedStartsAt->modify(sprintf('+%d minutes', $duration));
 
-            $arbitration = $gridSlotArbitrationRepository->findOneActiveForOccurrence($slotToHandle, $linkedStartsAt)
-                ?? new GridSlotArbitration();
+            $targetStartsAt = null;
+            $targetEndsAt = null;
+            $operationAction = GridSlotArbitration::ACTION_CANCEL;
 
-            if ($slotToHandle !== $slot && 'cancel' === $rebroadcastStrategy) {
-                $arbitration
-                    ->setSlot($slotToHandle)
-                    ->setOriginalStartsAt($linkedStartsAt)
-                    ->setOriginalEndsAt($linkedEndsAt)
-                    ->setType(GridSlotArbitration::TYPE_CALENDAR_ADJUSTMENT)
-                    ->setAction(GridSlotArbitration::ACTION_CANCEL)
-                    ->setRescheduledStartsAt(null)
-                    ->setRescheduledEndsAt(null)
-                    ->setStatus(GridSlotArbitration::STATUS_RESOLVED)
-                    ->setArbitrationGroupKey($arbitrationGroupKey);
-            } else {
-                $rescheduledStartsAt = 'previous' === $direction
-                    ? $linkedStartsAt->modify('-7 days')
-                    : $linkedStartsAt->modify('+7 days');
+            if ($slotToHandle === $slot || 'cancel' !== $rebroadcastStrategy) {
+                $targetStartsAt = $slotToHandle === $slot
+                    ? $rescheduledPrimaryStartsAt
+                    : ('previous' === $direction ? $linkedStartsAt->modify('-7 days') : $linkedStartsAt->modify('+7 days'));
 
-                $rescheduledEndsAt = $rescheduledStartsAt->modify(sprintf('+%d minutes', $duration));
+                $targetEndsAt = $targetStartsAt->modify(sprintf('+%d minutes', $duration));
 
-                $arbitration
-                    ->setSlot($slotToHandle)
-                    ->setOriginalStartsAt($linkedStartsAt)
-                    ->setOriginalEndsAt($linkedEndsAt)
-                    ->setType(GridSlotArbitration::TYPE_CALENDAR_ADJUSTMENT)
-                    ->setAction($action)
-                    ->setRescheduledStartsAt($rescheduledStartsAt)
-                    ->setRescheduledEndsAt($rescheduledEndsAt)
-                    ->setStatus(GridSlotArbitration::STATUS_RESOLVED)
-                    ->setArbitrationGroupKey($arbitrationGroupKey);
+                if (null !== $refusal = $this->rejectNocturnalDestination($targetStartsAt, $targetEndsAt)) {
+                    return $refusal;
+                }
+                $operationAction = $action;
             }
 
-            $arbitration->markResolved();
-
-            $em->persist($arbitration);
-            $changedCount++;
+            $operations[] = [$slotToHandle, $linkedStartsAt, $linkedEndsAt, $operationAction, $targetStartsAt, $targetEndsAt];
         }
 
+        $this->applyRescheduleOperations($operations, $arbitrationGroupKey, $gridSlotArbitrationRepository, $em);
         $em->flush();
-
-        $targetStartsAt = 'previous' === $direction
-            ? $originalStartsAt->modify('-7 days')
-            : $originalStartsAt->modify('+7 days');
 
         return $this->json([
             'success' => true,
-            'changedCount' => $changedCount,
+            'changedCount' => \count($operations),
             'arbitrationGroupKey' => $arbitrationGroupKey,
-            'targetWeekStart' => $this->getRadioWeekStart($targetStartsAt)->format('Y-m-d'),
+            'targetWeekStart' => $this->getRadioWeekStart($rescheduledPrimaryStartsAt)->format('Y-m-d'),
         ]);
     }
 
@@ -1126,7 +1108,7 @@ class GrilleController extends AbstractController
         }
 
         $deltaSeconds = $rescheduledStartsAt->getTimestamp() - $originalStartsAt->getTimestamp();
-        $changedCount = 0;
+        $operations = [];
 
         foreach ($slotsToHandle as $slotToHandle) {
             if (!$slotToHandle instanceof ProgrammationRuleSlot) {
@@ -1149,21 +1131,11 @@ class GrilleController extends AbstractController
 
             $linkedEndsAt = $linkedStartsAt->modify(sprintf('+%d minutes', $duration));
 
-            $arbitration = $gridSlotArbitrationRepository->findOneActiveForOccurrence($slotToHandle, $linkedStartsAt)
-                ?? new GridSlotArbitration();
+            $targetStartsAt = null;
+            $targetEndsAt = null;
+            $operationAction = GridSlotArbitration::ACTION_CANCEL;
 
-            if ($slotToHandle !== $slot && 'cancel' === $rebroadcastStrategy) {
-                $arbitration
-                    ->setSlot($slotToHandle)
-                    ->setOriginalStartsAt($linkedStartsAt)
-                    ->setOriginalEndsAt($linkedEndsAt)
-                    ->setType(GridSlotArbitration::TYPE_CALENDAR_ADJUSTMENT)
-                    ->setAction(GridSlotArbitration::ACTION_CANCEL)
-                    ->setRescheduledStartsAt(null)
-                    ->setRescheduledEndsAt(null)
-                    ->setStatus(GridSlotArbitration::STATUS_RESOLVED)
-                    ->setArbitrationGroupKey($arbitrationGroupKey);
-            } else {
+            if ($slotToHandle === $slot || 'cancel' !== $rebroadcastStrategy) {
                 if ($slotToHandle === $slot) {
                     $targetStartsAt = $rescheduledStartsAt;
                 } elseif ('custom' === $rebroadcastStrategy) {
@@ -1208,33 +1180,68 @@ class GrilleController extends AbstractController
 
                 $targetEndsAt = $targetStartsAt->modify(sprintf('+%d minutes', $duration));
 
-                $arbitration
-                    ->setSlot($slotToHandle)
-                    ->setOriginalStartsAt($linkedStartsAt)
-                    ->setOriginalEndsAt($linkedEndsAt)
-                    ->setType(GridSlotArbitration::TYPE_CALENDAR_ADJUSTMENT)
-                    ->setAction(GridSlotArbitration::ACTION_RESCHEDULE_CUSTOM)
-                    ->setRescheduledStartsAt($targetStartsAt)
-                    ->setRescheduledEndsAt($targetEndsAt)
-                    ->setStatus(GridSlotArbitration::STATUS_RESOLVED)
-                    ->setArbitrationGroupKey($arbitrationGroupKey);
+                if (null !== $refusal = $this->rejectNocturnalDestination($targetStartsAt, $targetEndsAt)) {
+                    return $refusal;
+                }
+                $operationAction = GridSlotArbitration::ACTION_RESCHEDULE_CUSTOM;
             }
 
-            $arbitration->markResolved();
-
-            $em->persist($arbitration);
-            $changedCount++;
+            $operations[] = [$slotToHandle, $linkedStartsAt, $linkedEndsAt, $operationAction, $targetStartsAt, $targetEndsAt];
         }
 
+        $this->applyRescheduleOperations($operations, $arbitrationGroupKey, $gridSlotArbitrationRepository, $em);
         $em->flush();
 
         return $this->json([
             'success' => true,
-            'changedCount' => $changedCount,
+            'changedCount' => \count($operations),
             'arbitrationGroupKey' => $arbitrationGroupKey,
             'rescheduledStartsAt' => $rescheduledStartsAt->format('Y-m-d H:i:s'),
             'targetWeekStart' => $this->getRadioWeekStart($rescheduledStartsAt)->format('Y-m-d'),
         ]);
+    }
+
+    private function rejectNocturnalDestination(\DateTimeImmutable $start, \DateTimeImmutable $end): ?JsonResponse
+    {
+        for ($day = $start->setTime(0, 0); $day < $end; $day = $day->modify('+1 day')->setTime(0, 0)) {
+            if ($start < $day->setTime(6, 30) && $end > $day->setTime(1, 0)) {
+                return $this->json([
+                    'success' => false,
+                    'error' => 'Cette programmation empiète sur la plage sans programmation de 01:00 à 06:30.',
+                ], 422);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<array{ProgrammationRuleSlot, \DateTimeImmutable, \DateTimeImmutable, string, ?\DateTimeImmutable, ?\DateTimeImmutable}> $operations
+     */
+    private function applyRescheduleOperations(
+        array $operations,
+        string $arbitrationGroupKey,
+        GridSlotArbitrationRepository $repository,
+        EntityManagerInterface $em
+    ): void {
+        foreach ($operations as [$slot, $originalStart, $originalEnd, $action, $targetStart, $targetEnd]) {
+            $arbitration = $repository->findOneActiveForOccurrence($slot, $originalStart)
+                ?? new GridSlotArbitration();
+
+            $arbitration
+                ->setSlot($slot)
+                ->setOriginalStartsAt($originalStart)
+                ->setOriginalEndsAt($originalEnd)
+                ->setType(GridSlotArbitration::TYPE_CALENDAR_ADJUSTMENT)
+                ->setAction($action)
+                ->setRescheduledStartsAt($targetStart)
+                ->setRescheduledEndsAt($targetEnd)
+                ->setStatus(GridSlotArbitration::STATUS_RESOLVED)
+                ->setArbitrationGroupKey($arbitrationGroupKey);
+
+            $arbitration->markResolved();
+            $em->persist($arbitration);
+        }
     }
 
     #[Route('/cancel-occurrence', name: 'cancel_occurrence', methods: ['POST'])]

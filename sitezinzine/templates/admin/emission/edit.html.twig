@@ -7,7 +7,6 @@
      SCOPE GLOBAL DU FORMULAIRE
      On exclut volontairement TinyMCE pour éviter de casser sa UI.
      ============================================================ */
-  .main-content .em-form,
   .main-content .em-form *:not(.tox):not(.tox *) {
     box-sizing: border-box;
   }
@@ -35,8 +34,8 @@
      ============================================================ */
   .main-content .em-form {
     font-family: "Montserrat Alternates", sans-serif;
-    max-width: 1080px;
-    margin: 18px auto 28px;
+    --admin-content-width: var(--admin-width-editorial-form);
+    margin-block: 18px 28px;
     padding: 16px;
     background: #fff;
     border-radius: 12px;
@@ -105,6 +104,7 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   /* ============================================================
@@ -236,6 +236,10 @@
   /* ============================================================
      ERREURS DE CHAMP
      ============================================================ */
+  .main-content .em-form form > [role="alert"] {
+    overflow-wrap: anywhere;
+  }
+
   .main-content .em-form .field-error {
     margin-top: 6px;
     padding: 8px 10px;
@@ -439,7 +443,7 @@
      ============================================================ */
   @media (max-width: 960px) {
     .main-content .em-form {
-      margin: 14px 12px 22px;
+      margin-block: 14px 22px;
       padding: 14px 12px;
     }
 
@@ -492,7 +496,7 @@
      ============================================================ */
   @media (max-width: 420px) {
     .main-content .em-form {
-      margin: 10px 8px 16px;
+      margin-block: 10px 16px;
       padding: 12px 10px;
       border-radius: 10px;
     }
@@ -534,7 +538,7 @@
      ============================================================ */
   @media (max-height: 520px) and (orientation: landscape) {
     .main-content .em-form {
-      margin: 10px 12px 14px;
+      margin-block: 10px 14px;
       padding: 12px;
     }
 
@@ -563,7 +567,8 @@
 </style>
 
 
-<div class="em-form">
+<div class="admin-content-gutters">
+<div class="em-form admin-content-container">
 
   {# ============================================================
      TITRE
@@ -786,5 +791,6 @@
       {{ form_end(formEmission, {
     render_rest: false
   }) }}
+    </div>
     </div>
   {% endblock %}

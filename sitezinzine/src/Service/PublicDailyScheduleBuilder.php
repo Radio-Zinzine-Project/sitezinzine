@@ -423,10 +423,17 @@ final class PublicDailyScheduleBuilder
         \DateTimeImmutable $now
     ): int {
         $activeIndex = 0;
+        $currentFallbackIndex = null;
 
         foreach ($items as $index => $item) {
             if ($item['isCurrent']) {
-                return $index;
+                if ($item['type'] === 'diffusion') {
+                    return $index;
+                }
+                if ($currentFallbackIndex === null && $item['type'] !== 'empty_regular') {
+                    return $index;
+                }
+                $currentFallbackIndex ??= $index;
             }
 
             if ($item['startsAt'] <= $now) {
@@ -434,7 +441,7 @@ final class PublicDailyScheduleBuilder
             }
         }
 
-        return $activeIndex;
+        return $currentFallbackIndex ?? $activeIndex;
     }
 
     private function toLocalImmutable(

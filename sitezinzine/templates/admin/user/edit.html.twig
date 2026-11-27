@@ -7,9 +7,8 @@
 {% block body %}
 <style>
     .edit-container {
-        width: 90%;
-        max-width: 800px;
-        margin: auto;
+        --admin-content-width: var(--admin-width-user-edit);
+        overflow-wrap: anywhere;
         background-color: white;
         border-radius: 8px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -134,6 +133,7 @@
         position: fixed;
         bottom: 20px;
         right: 20px;
+        max-width: calc(100% - 40px);
         z-index: 1000;
     }
 
@@ -143,6 +143,8 @@
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         margin-bottom: 1rem;
         width: 300px;
+        max-width: 100%;
+        overflow-wrap: anywhere;
     }
 
     .toast-header {
@@ -169,7 +171,7 @@
 
     #user_roles {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1rem;
     }
 
@@ -194,6 +196,7 @@
         color: #333;
         display: flex;
         align-items: center;
+        min-width: 0;
         line-height: 1.2;
     }
 
@@ -231,8 +234,7 @@
 
     @media (max-width: 768px) {
         .edit-container {
-            width: 95%;
-            margin: 1rem auto;
+            margin-block: 1rem;
         }
 
         .edit-content {
@@ -254,60 +256,62 @@
     }
 </style>
 
-<div class="edit-container">
-    <div class="edit-header">
-        <h2>
-            Édition de l'utilisateurice : {{ user.displayName }}
-        </h2>
-    </div>
+<div class="admin-content-gutters">
+    <div class="edit-container admin-content-container">
+        <div class="edit-header">
+            <h2>
+                Édition de l'utilisateurice : {{ user.displayName }}
+            </h2>
+        </div>
 
-    <div class="edit-content">
+        <div class="edit-content">
 
-        <div class="account-state">
-            <div class="account-state-title">
-                État du compte
+            <div class="account-state">
+                <div class="account-state-title">
+                    État du compte
+                </div>
+
+                {% if not user.verified %}
+                    <span class="account-status account-status--email">
+                        E-mail à confirmer
+                    </span>
+                {% elseif not user.approved %}
+                    <span class="account-status account-status--pending">
+                        En attente de validation
+                    </span>
+                {% else %}
+                    <span class="account-status account-status--approved">
+                        Compte validé
+                    </span>
+                {% endif %}
             </div>
 
-            {% if not user.verified %}
-                <span class="account-status account-status--email">
-                    E-mail à confirmer
-                </span>
-            {% elseif not user.approved %}
-                <span class="account-status account-status--pending">
-                    En attente de validation
-                </span>
-            {% else %}
-                <span class="account-status account-status--approved">
-                    Compte validé
-                </span>
-            {% endif %}
+            {{ form_start(form) }}
+
+            <div class="form-group">
+                {{ form_label(form.roles, 'Rôles') }}
+                {{ form_widget(form.roles) }}
+                {{ form_errors(form.roles) }}
+            </div>
+
+            <div class="form-buttons">
+                <a
+                    href="{{ path('admin.user.index') }}"
+                    class="btn btn-retour"
+                >
+                    Retour
+                </a>
+
+                <button
+                    type="submit"
+                    class="btn btn-save"
+                >
+                    Enregistrer
+                </button>
+            </div>
+
+            {{ form_end(form) }}
         </div>
-
-        {{ form_start(form) }}
-
-        <div class="form-group">
-            {{ form_label(form.roles, 'Rôles') }}
-            {{ form_widget(form.roles) }}
-            {{ form_errors(form.roles) }}
-        </div>
-
-        <div class="form-buttons">
-            <a
-                href="{{ path('admin.user.index') }}"
-                class="btn btn-retour"
-            >
-                Retour
-            </a>
-
-            <button
-                type="submit"
-                class="btn btn-save"
-            >
-                Enregistrer
-            </button>
-        </div>
-
-        {{ form_end(form) }}
     </div>
 </div>
 
